@@ -23,17 +23,27 @@ export type Database = {
             | null
           created_at: string
           created_by: string | null
+          demolition_reason: string | null
+          engineer_name: string | null
           file_number: string
+          floors_count: number | null
           full_name: string
           id: string
           municipality: Database["public"]["Enums"]["municipality"]
           ownership_type: Database["public"]["Enums"]["ownership_type"]
+          permit_type: Database["public"]["Enums"]["permit_type"] | null
           plot_area: number | null
+          plots_count: number | null
           property_group: string | null
+          property_reference: string | null
+          rejection_reason: string | null
           section: string | null
           session_date: string | null
+          shares_count: number | null
           submission_date: string | null
+          total_area: number | null
           updated_at: string
+          work_duration: string | null
           year: number
         }
         Insert: {
@@ -44,17 +54,27 @@ export type Database = {
             | null
           created_at?: string
           created_by?: string | null
+          demolition_reason?: string | null
+          engineer_name?: string | null
           file_number: string
+          floors_count?: number | null
           full_name: string
           id?: string
           municipality: Database["public"]["Enums"]["municipality"]
           ownership_type: Database["public"]["Enums"]["ownership_type"]
+          permit_type?: Database["public"]["Enums"]["permit_type"] | null
           plot_area?: number | null
+          plots_count?: number | null
           property_group?: string | null
+          property_reference?: string | null
+          rejection_reason?: string | null
           section?: string | null
           session_date?: string | null
+          shares_count?: number | null
           submission_date?: string | null
+          total_area?: number | null
           updated_at?: string
+          work_duration?: string | null
           year?: number
         }
         Update: {
@@ -65,17 +85,27 @@ export type Database = {
             | null
           created_at?: string
           created_by?: string | null
+          demolition_reason?: string | null
+          engineer_name?: string | null
           file_number?: string
+          floors_count?: number | null
           full_name?: string
           id?: string
           municipality?: Database["public"]["Enums"]["municipality"]
           ownership_type?: Database["public"]["Enums"]["ownership_type"]
+          permit_type?: Database["public"]["Enums"]["permit_type"] | null
           plot_area?: number | null
+          plots_count?: number | null
           property_group?: string | null
+          property_reference?: string | null
+          rejection_reason?: string | null
           section?: string | null
           session_date?: string | null
+          shares_count?: number | null
           submission_date?: string | null
+          total_area?: number | null
           updated_at?: string
+          work_duration?: string | null
           year?: number
         }
         Relationships: []
@@ -144,6 +174,7 @@ export type Database = {
       committee_opinion: "رأي إيجابي" | "تحفظ" | "مرفوض"
       municipality: "غرداية" | "العطف" | "بونورة"
       ownership_type: "عقد ملكية" | "دفتر عقاري"
+      permit_type: "رخصة بناء" | "رخصة تجزئة" | "رخصة هدم" | "شهادة تقسيم"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -275,6 +306,7 @@ export const Constants = {
       committee_opinion: ["رأي إيجابي", "تحفظ", "مرفوض"],
       municipality: ["غرداية", "العطف", "بونورة"],
       ownership_type: ["عقد ملكية", "دفتر عقاري"],
+      permit_type: ["رخصة بناء", "رخصة تجزئة", "رخصة هدم", "شهادة تقسيم"],
     },
   },
 } as const
