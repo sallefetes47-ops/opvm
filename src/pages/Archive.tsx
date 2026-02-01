@@ -30,10 +30,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Archive, Search, FileDown, Trash2, Edit, Loader2 } from "lucide-react";
+import { Archive, Search, FileDown, Trash2, Edit, Eye, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
 import type { Database } from "@/integrations/supabase/types";
 
 type FileRecord = Database["public"]["Tables"]["files"]["Row"];
@@ -47,6 +48,7 @@ export default function ArchivePage() {
   const [municipalityFilter, setMunicipalityFilter] = useState<string>("all");
   const [opinionFilter, setOpinionFilter] = useState<string>("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileRecord | null>(null);
 
   const { data: files, isLoading } = useQuery({
@@ -176,6 +178,23 @@ export default function ArchivePage() {
     });
   };
 
+  const handleView = (file: FileRecord) => {
+    setSelectedFile(file);
+    setViewDialogOpen(true);
+  };
+
+  const handleEdit = (file: FileRecord) => {
+    toast({
+      title: "قريباً",
+      description: "خاصية التعديل قيد التطوير",
+    });
+  };
+
+  const handleDelete = (file: FileRecord) => {
+    setSelectedFile(file);
+    setDeleteDialogOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -282,14 +301,28 @@ export default function ArchivePage() {
                         {format(new Date(file.created_at), "d MMMM yyyy", { locale: ar })}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              setSelectedFile(file);
-                              setDeleteDialogOpen(true);
-                            }}
+                            onClick={() => handleView(file)}
+                            title="مشاهدة"
+                          >
+                            <Eye className="h-4 w-4 text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(file)}
+                            title="تعديل"
+                          >
+                            <Edit className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(file)}
+                            title="حذف"
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -307,6 +340,94 @@ export default function ArchivePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* View Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>تفاصيل الملف رقم {selectedFile?.file_number}</DialogTitle>
+          </DialogHeader>
+          {selectedFile && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">الاسم الكامل</Label>
+                  <p className="font-medium">{selectedFile.full_name}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">البلدية</Label>
+                  <p className="font-medium">{selectedFile.municipality}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">رقم الملف</Label>
+                  <p className="font-medium">{selectedFile.file_number}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">السنة</Label>
+                  <p className="font-medium">{selectedFile.year}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">نوع السند</Label>
+                  <p className="font-medium">{selectedFile.ownership_type}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">العنوان</Label>
+                  <p className="font-medium">{selectedFile.address}</p>
+                </div>
+                {selectedFile.section && (
+                  <div>
+                    <Label className="text-muted-foreground">القسم</Label>
+                    <p className="font-medium">{selectedFile.section}</p>
+                  </div>
+                )}
+                {selectedFile.property_group && (
+                  <div>
+                    <Label className="text-muted-foreground">مجموعة الملكية</Label>
+                    <p className="font-medium">{selectedFile.property_group}</p>
+                  </div>
+                )}
+                {selectedFile.plot_area && (
+                  <div>
+                    <Label className="text-muted-foreground">مساحة القطعة</Label>
+                    <p className="font-medium">{selectedFile.plot_area} م²</p>
+                  </div>
+                )}
+                {selectedFile.built_area && (
+                  <div>
+                    <Label className="text-muted-foreground">المساحة المبنية</Label>
+                    <p className="font-medium">{selectedFile.built_area} م²</p>
+                  </div>
+                )}
+                {selectedFile.submission_date && (
+                  <div>
+                    <Label className="text-muted-foreground">تاريخ الإيداع</Label>
+                    <p className="font-medium">
+                      {format(new Date(selectedFile.submission_date), "d MMMM yyyy", { locale: ar })}
+                    </p>
+                  </div>
+                )}
+                {selectedFile.session_date && (
+                  <div>
+                    <Label className="text-muted-foreground">تاريخ الجلسة</Label>
+                    <p className="font-medium">
+                      {format(new Date(selectedFile.session_date), "d MMMM yyyy", { locale: ar })}
+                    </p>
+                  </div>
+                )}
+                <div className="col-span-2">
+                  <Label className="text-muted-foreground">رأي اللجنة</Label>
+                  <div className="mt-1">{getOpinionBadge(selectedFile.committee_opinion)}</div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -27,10 +28,12 @@ import type { Database } from "@/integrations/supabase/types";
 type Municipality = Database["public"]["Enums"]["municipality"];
 type OwnershipType = Database["public"]["Enums"]["ownership_type"];
 type CommitteeOpinion = Database["public"]["Enums"]["committee_opinion"];
+type PermitType = "رخصة بناء" | "رخصة تجزئة" | "رخصة هدم" | "شهادة تقسيم" | "";
 
 interface FileFormData {
   full_name: string;
   municipality: Municipality | "";
+  permit_type: PermitType;
   file_number: string;
   year: number;
   ownership_type: OwnershipType;
@@ -39,9 +42,18 @@ interface FileFormData {
   property_group: string;
   plot_area: string;
   built_area: string;
+  floors_count: string;
+  engineer_name: string;
+  total_area: string;
+  plots_count: string;
+  demolition_reason: string;
+  work_duration: string;
+  shares_count: string;
+  property_reference: string;
   submission_date: Date | undefined;
   session_date: Date | undefined;
   committee_opinion: CommitteeOpinion | "";
+  rejection_reason: string;
 }
 
 export default function NewFile() {
@@ -54,6 +66,7 @@ export default function NewFile() {
   const [formData, setFormData] = useState<FileFormData>({
     full_name: "",
     municipality: "",
+    permit_type: "",
     file_number: "",
     year: currentYear,
     ownership_type: "عقد ملكية",
@@ -62,9 +75,18 @@ export default function NewFile() {
     property_group: "",
     plot_area: "",
     built_area: "",
+    floors_count: "",
+    engineer_name: "",
+    total_area: "",
+    plots_count: "",
+    demolition_reason: "",
+    work_duration: "",
+    shares_count: "",
+    property_reference: "",
     submission_date: undefined,
     session_date: undefined,
     committee_opinion: "",
+    rejection_reason: "",
   });
 
   const createFileMutation = useMutation({
@@ -72,6 +94,7 @@ export default function NewFile() {
       const { error } = await supabase.from("files").insert({
         full_name: data.full_name,
         municipality: data.municipality as Municipality,
+        permit_type: data.permit_type || null,
         file_number: data.file_number,
         year: data.year,
         ownership_type: data.ownership_type,
@@ -79,10 +102,19 @@ export default function NewFile() {
         section: data.ownership_type === "دفتر عقاري" ? data.section : null,
         property_group: data.ownership_type === "دفتر عقاري" ? data.property_group : null,
         plot_area: data.plot_area ? parseFloat(data.plot_area) : null,
-        built_area: data.built_area ? parseFloat(data.built_area) : null,
+        built_area: data.permit_type === "رخصة بناء" && data.built_area ? parseFloat(data.built_area) : null,
+        floors_count: data.permit_type === "رخصة بناء" && data.floors_count ? parseInt(data.floors_count) : null,
+        engineer_name: data.permit_type === "رخصة بناء" ? data.engineer_name : null,
+        total_area: data.permit_type === "رخصة تجزئة" && data.total_area ? parseFloat(data.total_area) : null,
+        plots_count: data.permit_type === "رخصة تجزئة" && data.plots_count ? parseInt(data.plots_count) : null,
+        demolition_reason: data.permit_type === "رخصة هدم" ? data.demolition_reason : null,
+        work_duration: data.permit_type === "رخصة هدم" ? data.work_duration : null,
+        shares_count: data.permit_type === "شهادة تقسيم" && data.shares_count ? parseInt(data.shares_count) : null,
+        property_reference: data.permit_type === "شهادة تقسيم" ? data.property_reference : null,
         submission_date: data.submission_date ? format(data.submission_date, "yyyy-MM-dd") : null,
         session_date: data.session_date ? format(data.session_date, "yyyy-MM-dd") : null,
         committee_opinion: data.committee_opinion || null,
+        rejection_reason: (data.committee_opinion === "تحفظ" || data.committee_opinion === "مرفوض") ? data.rejection_reason : null,
         created_by: user?.id,
       });
 
@@ -127,8 +159,19 @@ export default function NewFile() {
       return;
     }
 
+    if ((formData.committee_opinion === "تحفظ" || formData.committee_opinion === "مرفوض") && !formData.rejection_reason) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ذكر سبب التحفظ أو الرفض",
+        variant: "destructive",
+      });
+      return;
+    }
+
     createFileMutation.mutate(formData);
   };
+
+  const showRejectionReason = formData.committee_opinion === "تحفظ" || formData.committee_opinion === "مرفوض";
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -178,6 +221,25 @@ export default function NewFile() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="permit_type">نوع عقد التعمير</Label>
+              <Select
+                value={formData.permit_type}
+                onValueChange={(value: PermitType) =>
+                  setFormData({ ...formData, permit_type: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر نوع العقد" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="رخصة بناء">رخصة بناء</SelectItem>
+                  <SelectItem value="رخصة تجزئة">رخصة تجزئة</SelectItem>
+                  <SelectItem value="رخصة هدم">رخصة هدم</SelectItem>
+                  <SelectItem value="شهادة تقسيم">شهادة تقسيم</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="file_number">رقم الملف *</Label>
               <Input
                 id="file_number"
@@ -201,10 +263,142 @@ export default function NewFile() {
           </CardContent>
         </Card>
 
+        {/* Dynamic Fields based on permit_type */}
+        {formData.permit_type === "رخصة بناء" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>بيانات رخصة البناء</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="built_area">المساحة المبنية (م²)</Label>
+                <Input
+                  id="built_area"
+                  type="number"
+                  value={formData.built_area}
+                  onChange={(e) => setFormData({ ...formData, built_area: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="floors_count">عدد الطوابق</Label>
+                <Input
+                  id="floors_count"
+                  type="number"
+                  value={formData.floors_count}
+                  onChange={(e) => setFormData({ ...formData, floors_count: e.target.value })}
+                  placeholder="0"
+                  min="1"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="engineer_name">اسم المهندس</Label>
+                <Input
+                  id="engineer_name"
+                  value={formData.engineer_name}
+                  onChange={(e) => setFormData({ ...formData, engineer_name: e.target.value })}
+                  placeholder="أدخل اسم المهندس"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {formData.permit_type === "رخصة تجزئة" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>بيانات رخصة التجزئة</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="total_area">المساحة الإجمالية (م²)</Label>
+                <Input
+                  id="total_area"
+                  type="number"
+                  value={formData.total_area}
+                  onChange={(e) => setFormData({ ...formData, total_area: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="plots_count">عدد القطع</Label>
+                <Input
+                  id="plots_count"
+                  type="number"
+                  value={formData.plots_count}
+                  onChange={(e) => setFormData({ ...formData, plots_count: e.target.value })}
+                  placeholder="0"
+                  min="1"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {formData.permit_type === "رخصة هدم" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>بيانات رخصة الهدم</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="demolition_reason">سبب الهدم</Label>
+                <Input
+                  id="demolition_reason"
+                  value={formData.demolition_reason}
+                  onChange={(e) => setFormData({ ...formData, demolition_reason: e.target.value })}
+                  placeholder="أدخل سبب الهدم"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="work_duration">مدة الأشغال</Label>
+                <Input
+                  id="work_duration"
+                  value={formData.work_duration}
+                  onChange={(e) => setFormData({ ...formData, work_duration: e.target.value })}
+                  placeholder="مثال: 3 أشهر"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {formData.permit_type === "شهادة تقسيم" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>بيانات شهادة التقسيم</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="shares_count">عدد الحصص</Label>
+                <Input
+                  id="shares_count"
+                  type="number"
+                  value={formData.shares_count}
+                  onChange={(e) => setFormData({ ...formData, shares_count: e.target.value })}
+                  placeholder="0"
+                  min="1"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="property_reference">المرجع العقاري</Label>
+                <Input
+                  id="property_reference"
+                  value={formData.property_reference}
+                  onChange={(e) => setFormData({ ...formData, property_reference: e.target.value })}
+                  placeholder="أدخل المرجع العقاري"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Ownership Documents */}
         <Card>
           <CardHeader>
-            <CardTitle>سندات الملكية</CardTitle>
+            <CardTitle>سند الملكية</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
@@ -280,17 +474,6 @@ export default function NewFile() {
                 step="0.01"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="built_area">المساحة المبنية (م²)</Label>
-              <Input
-                id="built_area"
-                type="number"
-                value={formData.built_area}
-                onChange={(e) => setFormData({ ...formData, built_area: e.target.value })}
-                placeholder="0.00"
-                step="0.01"
-              />
-            </div>
           </CardContent>
         </Card>
 
@@ -361,7 +544,7 @@ export default function NewFile() {
               <Select
                 value={formData.committee_opinion}
                 onValueChange={(value: CommitteeOpinion) =>
-                  setFormData({ ...formData, committee_opinion: value })
+                  setFormData({ ...formData, committee_opinion: value, rejection_reason: "" })
                 }
               >
                 <SelectTrigger>
@@ -389,6 +572,20 @@ export default function NewFile() {
                 </SelectContent>
               </Select>
             </div>
+            
+            {showRejectionReason && (
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="rejection_reason">سبب التحفظ أو الرفض *</Label>
+                <Textarea
+                  id="rejection_reason"
+                  value={formData.rejection_reason}
+                  onChange={(e) => setFormData({ ...formData, rejection_reason: e.target.value })}
+                  placeholder="اذكر سبب التحفظ أو الرفض بالتفصيل..."
+                  rows={4}
+                  required
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

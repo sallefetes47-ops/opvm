@@ -12,13 +12,15 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Building2, LayoutDashboard, FilePlus, Archive, Users, LogOut } from "lucide-react";
+import { Building2, LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const mainMenuItems = [
   { title: "لوحة التحكم", url: "/", icon: LayoutDashboard },
   { title: "ملف جديد", url: "/new-file", icon: FilePlus },
+  { title: "إعادة الدراسة", url: "/restudy", icon: RefreshCw },
   { title: "الأرشيف", url: "/archive", icon: Archive },
 ];
 
@@ -33,7 +35,7 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar className="border-l-0 border-r border-sidebar-border">
+    <Sidebar className="border-l-0 border-r border-sidebar-border" side="right">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-sidebar-primary/20 rounded-lg flex items-center justify-center">
@@ -120,14 +122,18 @@ export function AppSidebar() {
               {role === "admin" ? "مدير" : "موظف"}
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={signOut}
-            className="text-sidebar-foreground hover:bg-sidebar-accent"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={signOut}
+              className="text-sidebar-foreground hover:bg-sidebar-accent"
+              title="تسجيل الخروج"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>
