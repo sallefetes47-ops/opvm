@@ -30,14 +30,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Archive, Search, FileDown, Trash2, Edit, Eye, Loader2 } from "lucide-react";
+import { Archive, Search, FileDown, Trash2, Edit, Eye, Loader2, History } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import type { Database } from "@/integrations/supabase/types";
 
 type FileRecord = Database["public"]["Tables"]["files"]["Row"];
+
+interface FileStudy {
+  id: string;
+  file_id: string;
+  study_date: string;
+  permit_type: string | null;
+  committee_opinion: string;
+  rejection_reason: string | null;
+  notes: string | null;
+  created_at: string;
+}
 
 export default function ArchivePage() {
   const { role } = useAuth();
@@ -50,6 +62,8 @@ export default function ArchivePage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileRecord | null>(null);
+  const [fileStudies, setFileStudies] = useState<FileStudy[]>([]);
+  const [loadingStudies, setLoadingStudies] = useState(false);
 
   const { data: files, isLoading } = useQuery({
     queryKey: ["archive-files"],
@@ -178,9 +192,30 @@ export default function ArchivePage() {
     });
   };
 
-  const handleView = (file: FileRecord) => {
+  const handleView = async (file: FileRecord) => {
     setSelectedFile(file);
     setViewDialogOpen(true);
+    setLoadingStudies(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("file_studies")
+        .select("*")
+        .eq("file_id", file.id)
+        .order("study_date", { ascending: false });
+
+      if (error) throw error;
+      setFileStudies(data || []);
+    } catch (error: any) {
+      toast({
+        title: "خطأ",
+        description: "فشل في تحميل سجل الدراسات",
+        variant: "destructive",
+      });
+      setFileStudies([]);
+    } finally {
+      setLoadingStudies(false);
+    }
   };
 
   const handleEdit = (file: FileRecord) => {
@@ -341,14 +376,15 @@ export default function ArchivePage() {
         </CardContent>
       </Card>
 
-      {/* View Dialog */}
+      {/* View Dialog with History */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>تفاصيل الملف رقم {selectedFile?.file_number}</DialogTitle>
           </DialogHeader>
           {selectedFile && (
-            <div className="grid gap-4 py-4">
+            <div className="space-y-6 py-4">
+              {/* File Details */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">الاسم الكامل</Label>
@@ -374,6 +410,12 @@ export default function ArchivePage() {
                   <Label className="text-muted-foreground">العنوان</Label>
                   <p className="font-medium">{selectedFile.address}</p>
                 </div>
+                {selectedFile.permit_type && (
+                  <div>
+                    <Label className="text-muted-foreground">نوع عقد التعمير</Label>
+                    <p className="font-medium">{selectedFile.permit_type}</p>
+                  </div>
+                )}
                 {selectedFile.section && (
                   <div>
                     <Label className="text-muted-foreground">القسم</Label>
@@ -415,9 +457,61 @@ export default function ArchivePage() {
                   </div>
                 )}
                 <div className="col-span-2">
-                  <Label className="text-muted-foreground">رأي اللجنة</Label>
+                  <Label className="text-muted-foreground">رأي اللجنة الحالي</Label>
                   <div className="mt-1">{getOpinionBadge(selectedFile.committee_opinion)}</div>
                 </div>
+                {selectedFile.rejection_reason && (
+                  <div className="col-span-2">
+                    <Label className="text-muted-foreground">سبب التحفظ/الرفض</Label>
+                    <p className="font-medium whitespace-pre-wrap">{selectedFile.rejection_reason}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Study History */}
+              <Separator />
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <History className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-semibold">سجل الدراسات</h3>
+                </div>
+                
+                {loadingStudies ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : fileStudies.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>تاريخ الدراسة</TableHead>
+                          <TableHead>نوع العقد</TableHead>
+                          <TableHead>رأي اللجنة</TableHead>
+                          <TableHead>الأسباب/الملاحظات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {fileStudies.map((study) => (
+                          <TableRow key={study.id}>
+                            <TableCell>
+                              {format(new Date(study.study_date), "d MMMM yyyy", { locale: ar })}
+                            </TableCell>
+                            <TableCell>{study.permit_type || "-"}</TableCell>
+                            <TableCell>{getOpinionBadge(study.committee_opinion)}</TableCell>
+                            <TableCell className="max-w-xs truncate">
+                              {study.rejection_reason || study.notes || "-"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-lg">
+                    لا توجد دراسات سابقة مسجلة لهذا الملف
+                  </div>
+                )}
               </div>
             </div>
           )}

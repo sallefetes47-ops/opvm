@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      file_studies: {
+        Row: {
+          committee_opinion: string
+          created_at: string
+          created_by: string | null
+          file_id: string
+          id: string
+          notes: string | null
+          permit_type: string | null
+          rejection_reason: string | null
+          study_date: string
+        }
+        Insert: {
+          committee_opinion: string
+          created_at?: string
+          created_by?: string | null
+          file_id: string
+          id?: string
+          notes?: string | null
+          permit_type?: string | null
+          rejection_reason?: string | null
+          study_date?: string
+        }
+        Update: {
+          committee_opinion?: string
+          created_at?: string
+          created_by?: string | null
+          file_id?: string
+          id?: string
+          notes?: string | null
+          permit_type?: string | null
+          rejection_reason?: string | null
+          study_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_studies_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       files: {
         Row: {
           address: string
