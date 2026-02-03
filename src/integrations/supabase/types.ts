@@ -214,7 +214,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "employee"
+      app_role: "admin" | "employee" | "viewer"
       committee_opinion: "رأي إيجابي" | "تحفظ" | "مرفوض"
       municipality: "غرداية" | "العطف" | "بونورة"
       ownership_type: "عقد ملكية" | "دفتر عقاري"
@@ -346,7 +346,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "employee"],
+      app_role: ["admin", "employee", "viewer"],
       committee_opinion: ["رأي إيجابي", "تحفظ", "مرفوض"],
       municipality: ["غرداية", "العطف", "بونورة"],
       ownership_type: ["عقد ملكية", "دفتر عقاري"],
