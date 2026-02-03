@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+
+// Check if user can edit (not a viewer)
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,9 +54,11 @@ interface FileStudy {
 }
 
 export default function ArchivePage() {
-  const { role } = useAuth();
+  const { role, isViewer } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  const canEdit = !isViewer && role !== "viewer";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [municipalityFilter, setMunicipalityFilter] = useState<string>("all");
@@ -345,22 +349,26 @@ export default function ArchivePage() {
                           >
                             <Eye className="h-4 w-4 text-primary" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(file)}
-                            title="تعديل"
-                          >
-                            <Edit className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(file)}
-                            title="حذف"
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {canEdit && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(file)}
+                                title="تعديل"
+                              >
+                                <Edit className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(file)}
+                                title="حذف"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

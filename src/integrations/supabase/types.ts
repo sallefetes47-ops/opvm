@@ -154,6 +154,105 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_documents: {
+        Row: {
+          content_text: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          document_date: string | null
+          document_number: string | null
+          document_type: string
+          file_name: string | null
+          file_url: string | null
+          id: string
+          keywords: string[] | null
+          language: string | null
+          title_ar: string
+          title_fr: string | null
+          updated_at: string
+        }
+        Insert: {
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_date?: string | null
+          document_number?: string | null
+          document_type: string
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          keywords?: string[] | null
+          language?: string | null
+          title_ar: string
+          title_fr?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_date?: string | null
+          document_number?: string | null
+          document_type?: string
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          keywords?: string[] | null
+          language?: string | null
+          title_ar?: string
+          title_fr?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meeting_minutes: {
+        Row: {
+          agenda: string | null
+          attendees: string[] | null
+          created_at: string
+          created_by: string | null
+          decisions: string | null
+          file_name: string | null
+          file_url: string | null
+          id: string
+          notes: string | null
+          session_date: string
+          session_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          agenda?: string | null
+          attendees?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          decisions?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          session_date: string
+          session_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agenda?: string | null
+          attendees?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          decisions?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          session_date?: string
+          session_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -175,6 +274,51 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      summons: {
+        Row: {
+          attendance_status: string | null
+          committee_members: string[] | null
+          created_at: string
+          created_by: string | null
+          file_name: string | null
+          file_url: string | null
+          id: string
+          notes: string | null
+          summons_date: string
+          summons_number: string | null
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          attendance_status?: string | null
+          committee_members?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          summons_date: string
+          summons_number?: string | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          attendance_status?: string | null
+          committee_members?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          summons_date?: string
+          summons_number?: string | null
+          updated_at?: string
+          venue?: string | null
         }
         Relationships: []
       }
