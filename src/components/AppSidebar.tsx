@@ -12,41 +12,52 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Building2, LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw } from "lucide-react";
+import { 
+  Building2, LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
+  FileText, Users2, Scale, Database
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const mainMenuItems = [
   { title: "لوحة التحكم", url: "/", icon: LayoutDashboard },
-  { title: "ملف جديد", url: "/new-file", icon: FilePlus },
-  { title: "إعادة الدراسة", url: "/restudy", icon: RefreshCw },
+  { title: "ملف جديد", url: "/new-file", icon: FilePlus, requiresEdit: true },
+  { title: "إعادة الدراسة", url: "/restudy", icon: RefreshCw, requiresEdit: true },
   { title: "الأرشيف", url: "/archive", icon: Archive },
+];
+
+const newModulesItems = [
+  { title: "محاضر الجلسات", url: "/minutes", icon: FileText },
+  { title: "الاستدعاءات", url: "/summons", icon: Users2 },
+  { title: "المراسيم والتعليمات", url: "/legal-archive", icon: Scale },
 ];
 
 const adminMenuItems = [
   { title: "إدارة المستخدمين", url: "/users", icon: Users },
+  { title: "النسخ الاحتياطي", url: "/backup", icon: Database },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
-  const { role, signOut, user } = useAuth();
+  const { role, signOut, user, isViewer } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
+  const canEdit = !isViewer && role !== "viewer";
 
   return (
     <Sidebar className="border-l-0 border-r border-sidebar-border" side="right">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-sidebar-primary/20 rounded-lg flex items-center justify-center">
-            <Building2 className="w-6 h-6 text-sidebar-primary" />
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(212, 175, 55, 0.2)' }}>
+            <Building2 className="w-6 h-6" style={{ color: '#D4AF37' }} />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">
               نظام إدارة الملفات
             </h2>
             <p className="text-xs text-sidebar-foreground/70 mt-0.5">
-              المرسوم 15-19
+              OPVM - المرسوم 15-19
             </p>
           </div>
         </div>
@@ -59,7 +70,38 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainMenuItems.map((item) => (
+              {mainMenuItems
+                .filter(item => !item.requiresEdit || canEdit)
+                .map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        to={item.url}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
+                          isActive(item.url)
+                            ? "text-[#2D2926]"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent"
+                        )}
+                        style={isActive(item.url) ? { backgroundColor: '#D4AF37' } : undefined}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/70">
+            الوحدات
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {newModulesItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link
@@ -67,9 +109,10 @@ export function AppSidebar() {
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
                         isActive(item.url)
-                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          ? "text-[#2D2926]"
                           : "text-sidebar-foreground hover:bg-sidebar-accent"
                       )}
+                      style={isActive(item.url) ? { backgroundColor: '#D4AF37' } : undefined}
                     >
                       <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
@@ -96,9 +139,10 @@ export function AppSidebar() {
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
                           isActive(item.url)
-                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                            ? "text-[#2D2926]"
                             : "text-sidebar-foreground hover:bg-sidebar-accent"
                         )}
+                        style={isActive(item.url) ? { backgroundColor: '#D4AF37' } : undefined}
                       >
                         <item.icon className="h-5 w-5" />
                         <span>{item.title}</span>
@@ -116,10 +160,10 @@ export function AppSidebar() {
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {user?.email}
+              {isViewer ? "مشاهد" : user?.email}
             </p>
             <p className="text-xs text-sidebar-foreground/70">
-              {role === "admin" ? "مدير" : "موظف"}
+              {role === "admin" ? "مدير" : role === "viewer" || isViewer ? "مشاهد" : "موظف"}
             </p>
           </div>
           <div className="flex items-center gap-1">

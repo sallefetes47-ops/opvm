@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, isViewer } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -20,6 +20,22 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
         </div>
       </div>
     );
+  }
+
+  // Allow viewer access
+  if (isViewer) {
+    // Viewers cannot access admin-only routes
+    if (requiredRole === "admin") {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="text-center space-y-4">
+            <h1 className="text-2xl font-bold text-destructive">غير مصرح</h1>
+            <p className="text-muted-foreground">ليس لديك صلاحية للوصول إلى هذه الصفحة</p>
+          </div>
+        </div>
+      );
+    }
+    return <>{children}</>;
   }
 
   if (!user) {

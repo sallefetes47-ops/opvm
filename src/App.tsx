@@ -16,6 +16,10 @@ import NewFile from "@/pages/NewFile";
 import Restudy from "@/pages/Restudy";
 import Archive from "@/pages/Archive";
 import Users from "@/pages/Users";
+import Minutes from "@/pages/Minutes";
+import Summons from "@/pages/Summons";
+import LegalArchive from "@/pages/LegalArchive";
+import Backup from "@/pages/Backup";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,11 +49,22 @@ const App = () => (
                 <Route path="/new-file" element={<NewFile />} />
                 <Route path="/restudy" element={<Restudy />} />
                 <Route path="/archive" element={<Archive />} />
+                <Route path="/minutes" element={<Minutes />} />
+                <Route path="/summons" element={<Summons />} />
+                <Route path="/legal-archive" element={<LegalArchive />} />
                 <Route
                   path="/users"
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <Users />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/backup"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <Backup />
                     </ProtectedRoute>
                   }
                 />

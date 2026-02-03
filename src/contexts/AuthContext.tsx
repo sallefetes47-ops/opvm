@@ -2,25 +2,31 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type UserRole = "admin" | "employee" | null;
+type UserRole = "admin" | "employee" | "viewer" | null;
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   role: UserRole;
   loading: boolean;
+  isViewer: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  signInAsViewer: () => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Viewer session storage key
+const VIEWER_SESSION_KEY = "opvm_viewer_session";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
+  const [isViewer, setIsViewer] = useState(false);
 
   const fetchUserRole = async (userId: string) => {
     try {
@@ -43,6 +49,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // Check for viewer session first
+    const viewerSession = localStorage.getItem(VIEWER_SESSION_KEY);
+    if (viewerSession === "active") {
+      setIsViewer(true);
+      setRole("viewer");
+      setLoading(false);
+      return;
+    }
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -104,10 +119,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Clear viewer session if active
+    if (isViewer) {
+      localStorage.removeItem(VIEWER_SESSION_KEY);
+      setIsViewer(false);
+      setRole(null);
+      return;
+    }
+    
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     setRole(null);
+  };
+
+  const signInAsViewer = async () => {
+    try {
+      localStorage.setItem(VIEWER_SESSION_KEY, "active");
+      setIsViewer(true);
+      setRole("viewer");
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
   };
 
   return (
@@ -117,9 +151,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         role,
         loading,
+        isViewer,
         signIn,
         signUp,
         signOut,
+        signInAsViewer,
       }}
     >
       {children}
