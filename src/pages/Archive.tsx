@@ -32,7 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Archive, Search, FileDown, Trash2, Edit, Eye, Loader2, History } from "lucide-react";
+import { Archive, Search, Trash2, Edit, Eye, Loader2, History } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -136,65 +136,6 @@ export default function ArchivePage() {
     }
   };
 
-  const exportToCSV = () => {
-    if (!filteredFiles || filteredFiles.length === 0) {
-      toast({
-        title: "تنبيه",
-        description: "لا توجد بيانات للتصدير",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const headers = [
-      "رقم الملف",
-      "الاسم الكامل",
-      "البلدية",
-      "السنة",
-      "نوع السند",
-      "العنوان",
-      "القسم",
-      "مجموعة الملكية",
-      "مساحة القطعة",
-      "المساحة المبنية",
-      "تاريخ الإيداع",
-      "تاريخ الجلسة",
-      "رأي اللجنة",
-    ];
-
-    const rows = filteredFiles.map((file) => [
-      file.file_number,
-      file.full_name,
-      file.municipality,
-      file.year,
-      file.ownership_type,
-      file.address,
-      file.section || "",
-      file.property_group || "",
-      file.plot_area || "",
-      file.built_area || "",
-      file.submission_date || "",
-      file.session_date || "",
-      file.committee_opinion || "قيد الانتظار",
-    ]);
-
-    const csvContent =
-      "\uFEFF" +
-      [headers.join(","), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))].join(
-        "\n"
-      );
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `archive_${format(new Date(), "yyyy-MM-dd")}.csv`;
-    link.click();
-
-    toast({
-      title: "تم التصدير",
-      description: "تم تصدير البيانات بنجاح",
-    });
-  };
 
   const handleView = async (file: FileRecord) => {
     setSelectedFile(file);
@@ -298,10 +239,6 @@ export default function ArchivePage() {
                 <SelectItem value="pending">قيد الانتظار</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={exportToCSV}>
-              <FileDown className="ml-2 h-4 w-4" />
-              تصدير
-            </Button>
           </div>
         </CardContent>
       </Card>

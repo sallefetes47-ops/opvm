@@ -17,6 +17,7 @@ import { CalendarIcon, Loader2, Scale, Plus, Eye, Trash, Search } from "lucide-r
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { FileImport } from "@/components/FileImport";
 
 interface DocumentFormData {
   title_ar: string;
@@ -50,6 +51,21 @@ export default function LegalArchive() {
   });
 
   const canEdit = !isViewer && role !== "viewer";
+
+  const handleDataExtracted = (data: Record<string, any>) => {
+    setFormData({
+      title_ar: data.title_ar || "",
+      title_fr: data.title_fr || "",
+      document_type: data.document_type || "",
+      document_number: data.document_number || "",
+      document_date: data.document_date ? new Date(data.document_date) : undefined,
+      description: data.description || "",
+      content_text: data.content_text || "",
+      keywords: Array.isArray(data.keywords) ? data.keywords.join(", ") : (data.keywords || ""),
+      language: data.language || "ar",
+    });
+    setIsAddDialogOpen(true);
+  };
 
   const { data: documents, isLoading } = useQuery({
     queryKey: ["legal-documents"],
@@ -150,13 +166,19 @@ export default function LegalArchive() {
         </div>
         
         {canEdit && (
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                <Plus className="w-4 h-4 ml-2" />
-                إضافة وثيقة
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <FileImport
+              documentType="legal_document"
+              onDataExtracted={handleDataExtracted}
+              buttonLabel="استيراد من ملف"
+            />
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
+                  <Plus className="w-4 h-4 ml-2" />
+                  إضافة وثيقة
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>إضافة وثيقة قانونية</DialogTitle>
@@ -288,9 +310,9 @@ export default function LegalArchive() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         )}
       </div>
-
       {/* Search */}
       <Card>
         <CardContent className="p-4">

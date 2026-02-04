@@ -13,9 +13,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CalendarIcon, Loader2, FileText, Plus, Eye, Trash, Search } from "lucide-react";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { FileImport } from "@/components/FileImport";
 
 interface MinuteFormData {
   session_date: Date | undefined;
@@ -43,6 +44,18 @@ export default function Minutes() {
   });
 
   const canEdit = !isViewer && role !== "viewer";
+
+  const handleDataExtracted = (data: Record<string, any>) => {
+    setFormData({
+      session_date: data.session_date ? new Date(data.session_date) : undefined,
+      session_number: data.session_number || "",
+      attendees: Array.isArray(data.attendees) ? data.attendees.join(", ") : (data.attendees || ""),
+      agenda: data.agenda || "",
+      decisions: data.decisions || "",
+      notes: data.notes || "",
+    });
+    setIsAddDialogOpen(true);
+  };
 
   const { data: minutes, isLoading } = useQuery({
     queryKey: ["meeting-minutes"],
@@ -131,13 +144,19 @@ export default function Minutes() {
         </div>
         
         {canEdit && (
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                <Plus className="w-4 h-4 ml-2" />
-                إضافة محضر
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <FileImport
+              documentType="meeting_minutes"
+              onDataExtracted={handleDataExtracted}
+              buttonLabel="استيراد من ملف"
+            />
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
+                  <Plus className="w-4 h-4 ml-2" />
+                  إضافة محضر
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>إضافة محضر جلسة جديد</DialogTitle>
@@ -221,6 +240,7 @@ export default function Minutes() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         )}
       </div>
 

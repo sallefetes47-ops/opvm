@@ -13,7 +13,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { 
-  Building2, LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
+  LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
   FileText, Users2, Scale, Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,9 +27,14 @@ const mainMenuItems = [
   { title: "الأرشيف", url: "/archive", icon: Archive },
 ];
 
+// These modules are hidden from viewers
 const newModulesItems = [
   { title: "محاضر الجلسات", url: "/minutes", icon: FileText },
   { title: "الاستدعاءات", url: "/summons", icon: Users2 },
+];
+
+// Legal archive is visible to all
+const publicModulesItems = [
   { title: "المراسيم والتعليمات", url: "/legal-archive", icon: Scale },
 ];
 
@@ -49,15 +54,25 @@ export function AppSidebar() {
     <Sidebar className="border-l-0 border-r border-sidebar-border" side="right">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(212, 175, 55, 0.2)' }}>
-            <Building2 className="w-6 h-6" style={{ color: '#D4AF37' }} />
+          <img 
+            src="/images/opvm-logo.png" 
+            alt="OPVM Logo" 
+            className="w-12 h-12 object-contain"
+            onError={(e) => {
+              // Fallback if logo not loaded yet
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+            }}
+          />
+          <div className="w-10 h-10 rounded-lg items-center justify-center hidden" style={{ backgroundColor: 'rgba(212, 175, 55, 0.2)' }}>
+            <span className="text-lg font-bold" style={{ color: '#D4AF37' }}>م</span>
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">
-              نظام إدارة الملفات
+              ديوان حماية وادي ميزاب وترقيته
             </h2>
             <p className="text-xs text-sidebar-foreground/70 mt-0.5">
-              OPVM - المرسوم 15-19
+              OPVM
             </p>
           </div>
         </div>
@@ -101,7 +116,28 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {newModulesItems.map((item) => (
+              {/* Modules hidden from viewers */}
+              {canEdit && newModulesItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <Link
+                      to={item.url}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
+                        isActive(item.url)
+                          ? "text-[#2D2926]"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent"
+                      )}
+                      style={isActive(item.url) ? { backgroundColor: '#D4AF37' } : undefined}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              {/* Legal archive visible to all */}
+              {publicModulesItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link

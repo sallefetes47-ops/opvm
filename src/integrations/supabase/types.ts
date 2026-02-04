@@ -73,6 +73,7 @@ export type Database = {
           floors_count: number | null
           full_name: string
           id: string
+          lot_number: string | null
           municipality: Database["public"]["Enums"]["municipality"]
           ownership_type: Database["public"]["Enums"]["ownership_type"]
           permit_type: Database["public"]["Enums"]["permit_type"] | null
@@ -84,6 +85,7 @@ export type Database = {
           section: string | null
           session_date: string | null
           shares_count: number | null
+          subdivision_name: string | null
           submission_date: string | null
           total_area: number | null
           updated_at: string
@@ -104,6 +106,7 @@ export type Database = {
           floors_count?: number | null
           full_name: string
           id?: string
+          lot_number?: string | null
           municipality: Database["public"]["Enums"]["municipality"]
           ownership_type: Database["public"]["Enums"]["ownership_type"]
           permit_type?: Database["public"]["Enums"]["permit_type"] | null
@@ -115,6 +118,7 @@ export type Database = {
           section?: string | null
           session_date?: string | null
           shares_count?: number | null
+          subdivision_name?: string | null
           submission_date?: string | null
           total_area?: number | null
           updated_at?: string
@@ -135,6 +139,7 @@ export type Database = {
           floors_count?: number | null
           full_name?: string
           id?: string
+          lot_number?: string | null
           municipality?: Database["public"]["Enums"]["municipality"]
           ownership_type?: Database["public"]["Enums"]["ownership_type"]
           permit_type?: Database["public"]["Enums"]["permit_type"] | null
@@ -146,6 +151,7 @@ export type Database = {
           section?: string | null
           session_date?: string | null
           shares_count?: number | null
+          subdivision_name?: string | null
           submission_date?: string | null
           total_area?: number | null
           updated_at?: string
@@ -361,7 +367,7 @@ export type Database = {
       app_role: "admin" | "employee" | "viewer"
       committee_opinion: "رأي إيجابي" | "تحفظ" | "مرفوض"
       municipality: "غرداية" | "العطف" | "بونورة"
-      ownership_type: "عقد ملكية" | "دفتر عقاري"
+      ownership_type: "عقد ملكية" | "دفتر عقاري" | "شهادة إستفادة"
       permit_type: "رخصة بناء" | "رخصة تجزئة" | "رخصة هدم" | "شهادة تقسيم"
     }
     CompositeTypes: {
@@ -493,7 +499,7 @@ export const Constants = {
       app_role: ["admin", "employee", "viewer"],
       committee_opinion: ["رأي إيجابي", "تحفظ", "مرفوض"],
       municipality: ["غرداية", "العطف", "بونورة"],
-      ownership_type: ["عقد ملكية", "دفتر عقاري"],
+      ownership_type: ["عقد ملكية", "دفتر عقاري", "شهادة إستفادة"],
       permit_type: ["رخصة بناء", "رخصة تجزئة", "رخصة هدم", "شهادة تقسيم"],
     },
   },

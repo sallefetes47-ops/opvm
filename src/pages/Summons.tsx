@@ -17,6 +17,7 @@ import { CalendarIcon, Loader2, Users, Plus, Eye, Trash, Search } from "lucide-r
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { FileImport } from "@/components/FileImport";
 
 interface SummonsFormData {
   summons_date: Date | undefined;
@@ -44,6 +45,18 @@ export default function Summons() {
   });
 
   const canEdit = !isViewer && role !== "viewer";
+
+  const handleDataExtracted = (data: Record<string, any>) => {
+    setFormData({
+      summons_date: data.summons_date ? new Date(data.summons_date) : undefined,
+      summons_number: data.summons_number || "",
+      committee_members: Array.isArray(data.committee_members) ? data.committee_members.join(", ") : (data.committee_members || ""),
+      venue: data.venue || "",
+      attendance_status: data.attendance_status || "",
+      notes: data.notes || "",
+    });
+    setIsAddDialogOpen(true);
+  };
 
   const { data: summonsList, isLoading } = useQuery({
     queryKey: ["summons"],
@@ -131,13 +144,19 @@ export default function Summons() {
         </div>
         
         {canEdit && (
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                <Plus className="w-4 h-4 ml-2" />
-                إضافة استدعاء
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <FileImport
+              documentType="summons"
+              onDataExtracted={handleDataExtracted}
+              buttonLabel="استيراد من ملف"
+            />
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
+                  <Plus className="w-4 h-4 ml-2" />
+                  إضافة استدعاء
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>إضافة استدعاء جديد</DialogTitle>
@@ -228,6 +247,7 @@ export default function Summons() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         )}
       </div>
 

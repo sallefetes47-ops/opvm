@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type Municipality = Database["public"]["Enums"]["municipality"];
-type OwnershipType = Database["public"]["Enums"]["ownership_type"];
+type OwnershipType = "عقد ملكية" | "دفتر عقاري" | "شهادة إستفادة";
 type CommitteeOpinion = Database["public"]["Enums"]["committee_opinion"];
 type PermitType = "رخصة بناء" | "رخصة تجزئة" | "رخصة هدم" | "شهادة تقسيم" | "";
 
@@ -44,6 +44,9 @@ interface FileFormData {
   built_area: string;
   engineer_name: string;
   shares_count: string;
+  plots_count: string;
+  lot_number: string;
+  subdivision_name: string;
   submission_date: Date | undefined;
   session_date: Date | undefined;
   committee_opinion: CommitteeOpinion | "";
@@ -71,6 +74,9 @@ export default function NewFile() {
     built_area: "",
     engineer_name: "",
     shares_count: "",
+    plots_count: "",
+    lot_number: "",
+    subdivision_name: "",
     submission_date: undefined,
     session_date: undefined,
     committee_opinion: "",
@@ -85,16 +91,19 @@ export default function NewFile() {
         permit_type: data.permit_type || null,
         file_number: data.file_number,
         year: data.year,
-        ownership_type: data.ownership_type,
+        ownership_type: data.ownership_type as any,
         address: data.address,
         section: data.ownership_type === "دفتر عقاري" ? data.section : null,
         property_group: data.ownership_type === "دفتر عقاري" ? data.property_group : null,
-        plot_area: data.permit_type === "رخصة بناء" || data.permit_type === "شهادة تقسيم" 
+        lot_number: data.ownership_type === "شهادة إستفادة" ? data.lot_number : null,
+        subdivision_name: data.ownership_type === "شهادة إستفادة" ? data.subdivision_name : null,
+        plot_area: data.permit_type === "رخصة بناء" || data.permit_type === "شهادة تقسيم" || data.permit_type === "رخصة تجزئة"
           ? (data.plot_area ? parseFloat(data.plot_area) : null) 
           : null,
         built_area: data.permit_type === "رخصة بناء" && data.built_area ? parseFloat(data.built_area) : null,
         engineer_name: data.permit_type === "رخصة بناء" ? data.engineer_name : null,
         shares_count: data.permit_type === "شهادة تقسيم" && data.shares_count ? parseInt(data.shares_count) : null,
+        plots_count: data.permit_type === "رخصة تجزئة" && data.plots_count ? parseInt(data.plots_count) : null,
         submission_date: data.submission_date ? format(data.submission_date, "yyyy-MM-dd") : null,
         session_date: data.session_date ? format(data.session_date, "yyyy-MM-dd") : null,
         committee_opinion: data.committee_opinion || null,
@@ -138,6 +147,15 @@ export default function NewFile() {
       toast({
         title: "خطأ",
         description: "يرجى ملء حقول القسم ومجموعة الملكية",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.ownership_type === "شهادة إستفادة" && (!formData.lot_number || !formData.subdivision_name)) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء حقول رقم القطعة واسم التجزئة",
         variant: "destructive",
       });
       return;
@@ -289,6 +307,39 @@ export default function NewFile() {
           </Card>
         )}
 
+        {/* Dynamic Fields based on permit_type - رخصة تجزئة */}
+        {formData.permit_type === "رخصة تجزئة" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>بيانات رخصة التجزئة</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="plot_area">مساحة الأرضية (م²)</Label>
+                <Input
+                  id="plot_area"
+                  type="number"
+                  value={formData.plot_area}
+                  onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="plots_count">عدد القطع</Label>
+                <Input
+                  id="plots_count"
+                  type="number"
+                  value={formData.plots_count}
+                  onChange={(e) => setFormData({ ...formData, plots_count: e.target.value })}
+                  placeholder="0"
+                  min="1"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Dynamic Fields based on permit_type - شهادة تقسيم */}
         {formData.permit_type === "شهادة تقسيم" && (
           <Card>
@@ -333,9 +384,9 @@ export default function NewFile() {
               <RadioGroup
                 value={formData.ownership_type}
                 onValueChange={(value: OwnershipType) =>
-                  setFormData({ ...formData, ownership_type: value })
+                  setFormData({ ...formData, ownership_type: value, section: "", property_group: "", lot_number: "", subdivision_name: "" })
                 }
-                className="flex gap-6"
+                className="flex flex-wrap gap-6"
               >
                 <div className="flex items-center space-x-2 space-x-reverse">
                   <RadioGroupItem value="عقد ملكية" id="deed" />
@@ -344,6 +395,10 @@ export default function NewFile() {
                 <div className="flex items-center space-x-2 space-x-reverse">
                   <RadioGroupItem value="دفتر عقاري" id="booklet" />
                   <Label htmlFor="booklet" className="cursor-pointer">دفتر عقاري</Label>
+                </div>
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <RadioGroupItem value="شهادة إستفادة" id="certificate" />
+                  <Label htmlFor="certificate" className="cursor-pointer">شهادة إستفادة</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -371,16 +426,50 @@ export default function NewFile() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="address">العنوان *</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="أدخل العنوان الكامل"
-                required
-              />
-            </div>
+            {formData.ownership_type === "شهادة إستفادة" && (
+              <div className="grid gap-4 md:grid-cols-3 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="lot_number">رقم القطعة *</Label>
+                  <Input
+                    id="lot_number"
+                    value={formData.lot_number}
+                    onChange={(e) => setFormData({ ...formData, lot_number: e.target.value })}
+                    placeholder="أدخل رقم القطعة"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="subdivision_name">التجزئة *</Label>
+                  <Input
+                    id="subdivision_name"
+                    value={formData.subdivision_name}
+                    onChange={(e) => setFormData({ ...formData, subdivision_name: e.target.value })}
+                    placeholder="أدخل اسم التجزئة"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address_cert">العنوان *</Label>
+                  <Input
+                    id="address_cert"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="أدخل العنوان"
+                  />
+                </div>
+              </div>
+            )}
+
+            {formData.ownership_type !== "شهادة إستفادة" && (
+              <div className="space-y-2">
+                <Label htmlFor="address">العنوان *</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="أدخل العنوان الكامل"
+                  required
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
