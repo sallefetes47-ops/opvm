@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Download, Upload, Database, FileJson, FileSpreadsheet, FileCode, Loader2, AlertTriangle } from "lucide-react";
+import { Download, Upload, Database, FileJson, FileSpreadsheet, FileCode, Loader2, AlertTriangle, FileText } from "lucide-react";
+import * as XLSX from 'xlsx';
 
 export default function Backup() {
   const { role, isViewer } = useAuth();
@@ -85,10 +86,56 @@ export default function Backup() {
               typeof v === "string" ? `"${v.replace(/"/g, '""')}"` : v
             ).join(",")
           );
-          const csv = [headers, ...rows].join("\n");
-          downloadFile(csv, `opvm_files_${new Date().toISOString().split("T")[0]}.csv`, "text/csv");
+          const csv = "\uFEFF" + [headers, ...rows].join("\n");
+          downloadFile(csv, `opvm_files_${new Date().toISOString().split("T")[0]}.csv`, "text/csv;charset=utf-8");
         }
         toast({ title: "تم التصدير", description: "تم تصدير الملفات بصيغة CSV" });
+      }
+    } catch (error) {
+      toast({ title: "خطأ", description: "فشل في تصدير البيانات", variant: "destructive" });
+    }
+    setIsExporting(false);
+  };
+
+  const exportToExcel = async () => {
+    setIsExporting(true);
+    try {
+      const result = await refetch();
+      if (result.data) {
+        const workbook = XLSX.utils.book_new();
+        
+        // Files sheet
+        if (result.data.files.length > 0) {
+          const filesSheet = XLSX.utils.json_to_sheet(result.data.files);
+          XLSX.utils.book_append_sheet(workbook, filesSheet, "الملفات");
+        }
+        
+        // File studies sheet
+        if (result.data.file_studies.length > 0) {
+          const studiesSheet = XLSX.utils.json_to_sheet(result.data.file_studies);
+          XLSX.utils.book_append_sheet(workbook, studiesSheet, "سجل الدراسات");
+        }
+        
+        // Meeting minutes sheet
+        if (result.data.meeting_minutes.length > 0) {
+          const minutesSheet = XLSX.utils.json_to_sheet(result.data.meeting_minutes);
+          XLSX.utils.book_append_sheet(workbook, minutesSheet, "محاضر الجلسات");
+        }
+        
+        // Summons sheet
+        if (result.data.summons.length > 0) {
+          const summonsSheet = XLSX.utils.json_to_sheet(result.data.summons);
+          XLSX.utils.book_append_sheet(workbook, summonsSheet, "الاستدعاءات");
+        }
+        
+        // Legal documents sheet
+        if (result.data.legal_documents.length > 0) {
+          const legalSheet = XLSX.utils.json_to_sheet(result.data.legal_documents);
+          XLSX.utils.book_append_sheet(workbook, legalSheet, "المراسيم والتعليمات");
+        }
+        
+        XLSX.writeFile(workbook, `opvm_backup_${new Date().toISOString().split("T")[0]}.xlsx`);
+        toast({ title: "تم التصدير", description: "تم تصدير البيانات بصيغة Excel" });
       }
     } catch (error) {
       toast({ title: "خطأ", description: "فشل في تصدير البيانات", variant: "destructive" });
@@ -226,7 +273,7 @@ export default function Backup() {
             </CardTitle>
             <CardDescription>قم بتنزيل نسخة احتياطية من جميع البيانات</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             <Button
               onClick={exportToJSON}
               disabled={isExporting}
@@ -245,6 +292,16 @@ export default function Backup() {
             >
               <FileSpreadsheet className="w-4 h-4 ml-2" />
               تصدير CSV (الملفات فقط)
+              {isExporting && <Loader2 className="w-4 h-4 mr-auto animate-spin" />}
+            </Button>
+            <Button
+              onClick={exportToExcel}
+              disabled={isExporting}
+              className="w-full justify-start"
+              variant="outline"
+            >
+              <FileText className="w-4 h-4 ml-2" />
+              تصدير Excel (.xlsx)
               {isExporting && <Loader2 className="w-4 h-4 mr-auto animate-spin" />}
             </Button>
             <Button

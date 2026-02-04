@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -93,13 +93,27 @@ export default function Login() {
       {/* Glassmorphism Card */}
       <Card className="w-full max-w-md relative z-10 backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(212, 175, 55, 0.2)' }}>
-            <Building2 className="w-10 h-10" style={{ color: '#D4AF37' }} />
+          {/* Logo centered above fields */}
+          <div className="mx-auto">
+            <img 
+              src="/images/opvm-logo.png" 
+              alt="OPVM Logo" 
+              className="w-24 h-24 object-contain mx-auto"
+              onError={(e) => {
+                // Fallback if logo not loaded
+                e.currentTarget.style.display = 'none';
+                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                if (fallback) fallback.classList.remove('hidden');
+              }}
+            />
+            <div className="hidden mx-auto w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(212, 175, 55, 0.2)' }}>
+              <span className="text-3xl font-bold" style={{ color: '#D4AF37' }}>م</span>
+            </div>
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold text-white">نظام إدارة ملفات التعمير</CardTitle>
-            <CardDescription className="mt-2 text-white/80">المرسوم التنفيذي 15-19</CardDescription>
-            <p className="text-sm text-white/60 mt-1">OPVM - مديرية التعمير والبناء</p>
+            <CardTitle className="text-2xl font-bold text-white">ديوان حماية وادي ميزاب وترقيته</CardTitle>
+            <CardDescription className="mt-2 text-white/80">نظام إدارة ملفات التعمير</CardDescription>
+            <p className="text-sm text-white/60 mt-1">المرسوم التنفيذي 15-19</p>
           </div>
         </CardHeader>
 
