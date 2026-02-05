@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CheckCircle, AlertTriangle, XCircle, Clock } from "lucide-react";
+import { FileText, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
@@ -56,14 +55,12 @@ export default function Dashboard() {
     positive: files?.filter((f) => f.committee_opinion === "رأي إيجابي").length || 0,
     reserved: files?.filter((f) => f.committee_opinion === "تحفظ").length || 0,
     rejected: files?.filter((f) => f.committee_opinion === "مرفوض").length || 0,
-    pending: files?.filter((f) => !f.committee_opinion).length || 0,
   };
 
   const pieData = [
     { name: "رأي إيجابي", value: stats.positive, color: "hsl(142, 70%, 45%)" },
     { name: "تحفظ", value: stats.reserved, color: "hsl(35, 90%, 55%)" },
     { name: "مرفوض", value: stats.rejected, color: "hsl(0, 70%, 50%)" },
-    { name: "قيد الانتظار", value: stats.pending, color: "hsl(220, 10%, 60%)" },
   ].filter((d) => d.value > 0);
 
   const municipalityData = files
@@ -108,18 +105,10 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">لوحة التحكم</h1>
-        <Link
-          to="/new-file"
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4"
-        >
-          تسجيل ملف جديد
-        </Link>
-      </div>
+      <h1 className="text-2xl font-bold">لوحة التحكم</h1>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">إجمالي الملفات</CardTitle>
@@ -154,15 +143,6 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{stats.rejected}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">قيد الانتظار</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-muted-foreground">{stats.pending}</div>
           </CardContent>
         </Card>
       </div>
@@ -258,10 +238,7 @@ export default function Dashboard() {
             </Table>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              لا توجد ملفات مسجلة بعد.{" "}
-              <Link to="/new-file" className="text-primary hover:underline">
-                ابدأ بتسجيل ملف جديد
-              </Link>
+              لا توجد ملفات مسجلة بعد.
             </div>
           )}
         </CardContent>

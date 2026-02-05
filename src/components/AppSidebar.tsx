@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { 
   LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
-  FileText, Users2, Scale, Database
+  FileText, Users2, Scale, Database, FolderSync
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ const mainMenuItems = [
   { title: "الأرشيف", url: "/archive", icon: Archive },
 ];
 
-// These modules are hidden from viewers
+// These modules are hidden from viewers (requires edit permissions)
 const newModulesItems = [
   { title: "محاضر الجلسات", url: "/minutes", icon: FileText },
   { title: "الاستدعاءات", url: "/summons", icon: Users2 },
@@ -38,9 +38,13 @@ const publicModulesItems = [
   { title: "المراسيم والتعليمات", url: "/legal-archive", icon: Scale },
 ];
 
+// Data Management - hidden from viewers
+const dataManagementItems = [
+  { title: "تسيير البيانات", url: "/backup", icon: FolderSync },
+];
+
 const adminMenuItems = [
   { title: "إدارة المستخدمين", url: "/users", icon: Users },
-  { title: "النسخ الاحتياطي", url: "/backup", icon: Database },
 ];
 
 export function AppSidebar() {
@@ -138,6 +142,26 @@ export function AppSidebar() {
               ))}
               {/* Legal archive visible to all */}
               {publicModulesItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <Link
+                      to={item.url}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
+                        isActive(item.url)
+                          ? "text-[#2D2926]"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent"
+                      )}
+                      style={isActive(item.url) ? { backgroundColor: '#D4AF37' } : undefined}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              {/* Data Management - hidden from viewers */}
+              {canEdit && dataManagementItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link

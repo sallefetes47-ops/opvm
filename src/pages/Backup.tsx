@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Download, Upload, Database, FileJson, FileSpreadsheet, FileCode, Loader2, AlertTriangle, FileText } from "lucide-react";
+import { Download, Upload, FolderSync, FileJson, FileSpreadsheet, FileCode, Loader2, AlertTriangle, FileText, Database as DatabaseIcon } from "lucide-react";
 import * as XLSX from 'xlsx';
 
 export default function Backup() {
@@ -255,10 +255,10 @@ export default function Backup() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-          <Database className="w-5 h-5 text-primary" />
+          <FolderSync className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">النسخ الاحتياطي</h1>
+          <h1 className="text-2xl font-bold">تسيير البيانات</h1>
           <p className="text-muted-foreground">تصدير واستيراد بيانات النظام</p>
         </div>
       </div>
@@ -311,7 +311,7 @@ export default function Backup() {
               variant="outline"
             >
               <FileCode className="w-4 h-4 ml-2" />
-              تصدير SQL
+              تصدير MDB (SQL)
               {isExporting && <Loader2 className="w-4 h-4 mr-auto animate-spin" />}
             </Button>
           </CardContent>
