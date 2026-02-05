@@ -93,7 +93,7 @@ export default function Login() {
       {/* Banner Header Image - Top Center */}
       <div className="relative z-10 mb-6">
         <img 
-          src="/images/opvm-banner.jpg" 
+          src="/images/opvm-banner.webp" 
           alt="OPVM Banner" 
           className="max-w-[750px] w-full h-auto object-contain rounded-lg shadow-lg"
           onError={(e) => {
