@@ -79,7 +79,7 @@ export default function Login() {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 relative"
+      className="min-h-screen flex flex-col items-center justify-center p-4 relative"
       style={{
         backgroundImage: `url('/images/login-bg.webp')`,
         backgroundSize: 'cover',
@@ -90,26 +90,21 @@ export default function Login() {
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/50" />
       
+      {/* Banner Header Image - Top Center */}
+      <div className="relative z-10 mb-6">
+        <img 
+          src="/images/opvm-banner.jpg" 
+          alt="OPVM Banner" 
+          className="max-w-[750px] w-full h-auto object-contain rounded-lg shadow-lg"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      </div>
+
       {/* Glassmorphism Card */}
       <Card className="w-full max-w-md relative z-10 backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
         <CardHeader className="text-center space-y-4">
-          {/* Logo centered above fields */}
-          <div className="mx-auto">
-            <img 
-              src="/images/opvm-logo.png" 
-              alt="OPVM Logo" 
-              className="w-24 h-24 object-contain mx-auto"
-              onError={(e) => {
-                // Fallback if logo not loaded
-                e.currentTarget.style.display = 'none';
-                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                if (fallback) fallback.classList.remove('hidden');
-              }}
-            />
-            <div className="hidden mx-auto w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(212, 175, 55, 0.2)' }}>
-              <span className="text-3xl font-bold" style={{ color: '#D4AF37' }}>م</span>
-            </div>
-          </div>
           <div>
             <CardTitle className="text-2xl font-bold text-white">ديوان حماية وادي ميزاب وترقيته</CardTitle>
             <CardDescription className="mt-2 text-white/80">نظام إدارة ملفات التعمير</CardDescription>

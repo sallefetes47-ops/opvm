@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, FilePlus } from "lucide-react";
+import { CalendarIcon, Loader2, FilePlus, FileUp } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Municipality = Database["public"]["Enums"]["municipality"];
 type OwnershipType = "عقد ملكية" | "دفتر عقاري" | "شهادة إستفادة";
+type OwnershipTypeForNonBuilding = "عقد ملكية" | "دفتر عقاري";
 type CommitteeOpinion = Database["public"]["Enums"]["committee_opinion"];
 type PermitType = "رخصة بناء" | "رخصة تجزئة" | "رخصة هدم" | "شهادة تقسيم" | "";
 
@@ -36,7 +37,7 @@ interface FileFormData {
   permit_type: PermitType;
   file_number: string;
   year: number;
-  ownership_type: OwnershipType;
+  ownership_type: OwnershipType | OwnershipTypeForNonBuilding;
   address: string;
   section: string;
   property_group: string;
@@ -51,6 +52,7 @@ interface FileFormData {
   session_date: Date | undefined;
   committee_opinion: CommitteeOpinion | "";
   rejection_reason: string;
+  electronic_permit_file: File | null;
 }
 
 export default function NewFile() {
@@ -81,7 +83,39 @@ export default function NewFile() {
     session_date: undefined,
     committee_opinion: "",
     rejection_reason: "",
+    electronic_permit_file: null,
   });
+
+  // Determine available ownership types based on permit type
+  // "شهادة إستفادة" is only available for "رخصة بناء"
+  const getAvailableOwnershipTypes = () => {
+    if (formData.permit_type === "رخصة بناء") {
+      return ["عقد ملكية", "دفتر عقاري", "شهادة إستفادة"] as const;
+    }
+    return ["عقد ملكية", "دفتر عقاري"] as const;
+  };
+
+  const handlePermitTypeChange = (value: PermitType) => {
+    // If switching away from "رخصة بناء" and currently using "شهادة إستفادة", reset to "عقد ملكية"
+    if (value !== "رخصة بناء" && formData.ownership_type === "شهادة إستفادة") {
+      setFormData({ 
+        ...formData, 
+        permit_type: value,
+        ownership_type: "عقد ملكية",
+        lot_number: "",
+        subdivision_name: ""
+      });
+    } else {
+      setFormData({ ...formData, permit_type: value });
+    }
+  };
+
+  const handleElectronicPermitFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData({ ...formData, electronic_permit_file: file });
+    }
+  };
 
   const createFileMutation = useMutation({
     mutationFn: async (data: FileFormData) => {
@@ -226,9 +260,7 @@ export default function NewFile() {
               <Label htmlFor="permit_type">نوع عقد التعمير</Label>
               <Select
                 value={formData.permit_type}
-                onValueChange={(value: PermitType) =>
-                  setFormData({ ...formData, permit_type: value })
-                }
+                onValueChange={handlePermitTypeChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="اختر نوع العقد" />
@@ -383,7 +415,7 @@ export default function NewFile() {
               <Label>نوع السند *</Label>
               <RadioGroup
                 value={formData.ownership_type}
-                onValueChange={(value: OwnershipType) =>
+                onValueChange={(value: OwnershipType | OwnershipTypeForNonBuilding) =>
                   setFormData({ ...formData, ownership_type: value, section: "", property_group: "", lot_number: "", subdivision_name: "" })
                 }
                 className="flex flex-wrap gap-6"
@@ -396,10 +428,13 @@ export default function NewFile() {
                   <RadioGroupItem value="دفتر عقاري" id="booklet" />
                   <Label htmlFor="booklet" className="cursor-pointer">دفتر عقاري</Label>
                 </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <RadioGroupItem value="شهادة إستفادة" id="certificate" />
-                  <Label htmlFor="certificate" className="cursor-pointer">شهادة إستفادة</Label>
-                </div>
+                {/* شهادة إستفادة only visible for رخصة بناء */}
+                {formData.permit_type === "رخصة بناء" && (
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <RadioGroupItem value="شهادة إستفادة" id="certificate" />
+                    <Label htmlFor="certificate" className="cursor-pointer">شهادة إستفادة</Label>
+                  </div>
+                )}
               </RadioGroup>
             </div>
 
@@ -580,6 +615,31 @@ export default function NewFile() {
                   rows={4}
                   required
                 />
+              </div>
+            )}
+
+            {/* Electronic Permit Copy - Only for Building Permit */}
+            {formData.permit_type === "رخصة بناء" && (
+              <div className="space-y-2 md:col-span-2 pt-2 border-t border-border">
+                <Label>نسخة إلكترونية من الرخصة</Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={handleElectronicPermitFile}
+                    className="flex-1"
+                    id="electronic_permit"
+                  />
+                  {formData.electronic_permit_file && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <FileUp className="w-4 h-4" />
+                      <span>{formData.electronic_permit_file.name}</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  يمكنك رفع نسخة PDF أو صورة من الرخصة
+                </p>
               </div>
             )}
           </CardContent>
