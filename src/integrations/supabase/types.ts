@@ -67,12 +67,14 @@ export type Database = {
             | null
           created_at: string
           created_by: string | null
+          deleted_at: string | null
           demolition_reason: string | null
           engineer_name: string | null
           file_number: string
           floors_count: number | null
           full_name: string
           id: string
+          is_deleted: boolean | null
           lot_number: string | null
           municipality: Database["public"]["Enums"]["municipality"]
           ownership_type: Database["public"]["Enums"]["ownership_type"]
@@ -100,12 +102,14 @@ export type Database = {
             | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           demolition_reason?: string | null
           engineer_name?: string | null
           file_number: string
           floors_count?: number | null
           full_name: string
           id?: string
+          is_deleted?: boolean | null
           lot_number?: string | null
           municipality: Database["public"]["Enums"]["municipality"]
           ownership_type: Database["public"]["Enums"]["ownership_type"]
@@ -133,12 +137,14 @@ export type Database = {
             | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
           demolition_reason?: string | null
           engineer_name?: string | null
           file_number?: string
           floors_count?: number | null
           full_name?: string
           id?: string
+          is_deleted?: boolean | null
           lot_number?: string | null
           municipality?: Database["public"]["Enums"]["municipality"]
           ownership_type?: Database["public"]["Enums"]["ownership_type"]

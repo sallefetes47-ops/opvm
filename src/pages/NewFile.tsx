@@ -17,9 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, FilePlus, FileUp } from "lucide-react";
+import { DateInput } from "@/components/ui/date-input";
+import { Loader2, FilePlus, FileUp } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -516,59 +515,19 @@ export default function NewFile() {
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>تاريخ إيداع الملف</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-right font-normal",
-                      !formData.submission_date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="ml-2 h-4 w-4" />
-                    {formData.submission_date
-                      ? format(formData.submission_date, "d MMMM yyyy", { locale: ar })
-                      : "اختر التاريخ"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.submission_date}
-                    onSelect={(date) => setFormData({ ...formData, submission_date: date })}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+              <DateInput
+                value={formData.submission_date}
+                onChange={(date) => setFormData({ ...formData, submission_date: date })}
+                placeholder="DD/MM/YYYY"
+              />
             </div>
             <div className="space-y-2">
               <Label>تاريخ الجلسة</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-right font-normal",
-                      !formData.session_date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="ml-2 h-4 w-4" />
-                    {formData.session_date
-                      ? format(formData.session_date, "d MMMM yyyy", { locale: ar })
-                      : "اختر التاريخ"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.session_date}
-                    onSelect={(date) => setFormData({ ...formData, session_date: date })}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+              <DateInput
+                value={formData.session_date}
+                onChange={(date) => setFormData({ ...formData, session_date: date })}
+                placeholder="DD/MM/YYYY"
+              />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>رأي اللجنة</Label>

@@ -82,17 +82,21 @@ export default function ArchivePage() {
     },
   });
 
-  const deleteMutation = useMutation({
+  const softDeleteMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      const { error } = await supabase.from("files").delete().eq("id", fileId);
+      const { error } = await supabase
+        .from("files")
+        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+        .eq("id", fileId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["archive-files"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-files"] });
+      queryClient.invalidateQueries({ queryKey: ["deleted-files"] });
       toast({
-        title: "تم الحذف",
-        description: "تم حذف الملف بنجاح",
+        title: "✅ تم النقل إلى سلة المحذوفات",
+        description: "يمكنك استعادة الملف من سلة المحذوفات",
       });
       setDeleteDialogOpen(false);
       setSelectedFile(null);
@@ -472,10 +476,9 @@ export default function ArchivePage() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>تأكيد الحذف</DialogTitle>
+            <DialogTitle>نقل إلى سلة المحذوفات</DialogTitle>
             <DialogDescription>
-              هل أنت متأكد من حذف الملف رقم "{selectedFile?.file_number}"؟ لا يمكن التراجع عن هذا
-              الإجراء.
+              هل أنت متأكد من نقل الملف رقم "{selectedFile?.file_number}" إلى سلة المحذوفات؟ يمكنك استعادته لاحقاً.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
@@ -484,16 +487,16 @@ export default function ArchivePage() {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => selectedFile && deleteMutation.mutate(selectedFile.id)}
-              disabled={deleteMutation.isPending}
+              onClick={() => selectedFile && softDeleteMutation.mutate(selectedFile.id)}
+              disabled={softDeleteMutation.isPending}
             >
-              {deleteMutation.isPending ? (
+              {softDeleteMutation.isPending ? (
                 <>
                   <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  جاري الحذف...
+                  جاري النقل...
                 </>
               ) : (
-                "حذف"
+                "نقل إلى المحذوفات"
               )}
             </Button>
           </DialogFooter>

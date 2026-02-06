@@ -64,48 +64,51 @@
   }
 
   .dark {
-    --background: 220 20% 10%;
+    /* Deep Navy with Gold/Sand accents - Vibrant Professional Dark Mode */
+    --background: 222 47% 11%; /* Deep Navy #0F172A */
     --foreground: 40 30% 95%;
 
-    --card: 220 20% 12%;
+    --card: 222 47% 13%;
     --card-foreground: 40 30% 95%;
 
-    --popover: 220 20% 12%;
+    --popover: 222 47% 13%;
     --popover-foreground: 40 30% 95%;
 
-    --primary: 35 50% 58%;
-    --primary-foreground: 220 20% 10%;
+    /* Gold accent color #D4AF37 */
+    --primary: 43 74% 52%;
+    --primary-foreground: 222 47% 11%;
 
-    --secondary: 220 15% 20%;
+    --secondary: 222 30% 20%;
     --secondary-foreground: 40 30% 95%;
 
-    --muted: 220 15% 20%;
-    --muted-foreground: 220 10% 60%;
+    --muted: 222 30% 18%;
+    --muted-foreground: 220 15% 65%;
 
-    --accent: 220 15% 20%;
+    --accent: 222 30% 20%;
     --accent-foreground: 40 30% 95%;
 
-    --destructive: 0 60% 45%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 60% 40%;
+    --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 35 80% 50%;
-    --warning-foreground: 220 20% 10%;
+    --warning: 43 74% 52%;
+    --warning-foreground: 222 47% 11%;
 
-    --border: 220 15% 25%;
-    --input: 220 15% 25%;
-    --ring: 35 50% 58%;
+    --border: 222 30% 22%;
+    --input: 222 30% 22%;
+    --ring: 43 74% 52%;
 
-    --sidebar-background: 220 20% 8%;
+    /* Sidebar - Deep Navy with Gold highlights */
+    --sidebar-background: 222 47% 8%;
     --sidebar-foreground: 40 30% 95%;
-    --sidebar-primary: 35 50% 58%;
-    --sidebar-primary-foreground: 220 20% 10%;
-    --sidebar-accent: 220 15% 15%;
+    --sidebar-primary: 43 74% 52%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 222 30% 15%;
     --sidebar-accent-foreground: 40 30% 95%;
-    --sidebar-border: 220 15% 20%;
-    --sidebar-ring: 35 50% 58%;
+    --sidebar-border: 222 30% 18%;
+    --sidebar-ring: 43 74% 52%;
   }
 }
 
