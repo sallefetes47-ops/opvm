@@ -20,6 +20,7 @@ import Minutes from "@/pages/Minutes";
 import Summons from "@/pages/Summons";
 import LegalArchive from "@/pages/LegalArchive";
 import Backup from "@/pages/Backup";
+import TrashBin from "@/pages/TrashBin";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,14 @@ const App = () => (
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <Backup />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/trash"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <TrashBin />
                     </ProtectedRoute>
                   }
                 />

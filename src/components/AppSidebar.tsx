@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { 
   LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
-  FileText, Users2, Scale, Database, FolderSync
+  FileText, Users2, Scale, FolderSync, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ const publicModulesItems = [
 // Data Management - hidden from viewers
 const dataManagementItems = [
   { title: "تسيير البيانات", url: "/backup", icon: FolderSync },
+  { title: "سلة المحذوفات", url: "/trash", icon: Trash2, adminOnly: true },
 ];
 
 const adminMenuItems = [
@@ -160,8 +161,10 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {/* Data Management - hidden from viewers */}
-              {canEdit && dataManagementItems.map((item) => (
+              {/* Data Management - hidden from viewers, some items admin only */}
+              {canEdit && dataManagementItems
+                .filter(item => !item.adminOnly || role === "admin")
+                .map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link

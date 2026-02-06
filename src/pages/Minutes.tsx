@@ -8,12 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateInput } from "@/components/ui/date-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, Loader2, FileText, Plus, Eye, Trash, Search } from "lucide-react";
-import { format, parse } from "date-fns";
+import { Loader2, FileText, Plus, Eye, Trash, Search } from "lucide-react";
+import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { FileImport } from "@/components/FileImport";
@@ -165,25 +164,11 @@ export default function Minutes() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>تاريخ الجلسة</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn("w-full justify-start text-right", !formData.session_date && "text-muted-foreground")}
-                        >
-                          <CalendarIcon className="ml-2 h-4 w-4" />
-                          {formData.session_date ? format(formData.session_date, "d MMMM yyyy", { locale: ar }) : "اختر التاريخ"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={formData.session_date}
-                          onSelect={(date) => setFormData({ ...formData, session_date: date })}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <DateInput
+                      value={formData.session_date}
+                      onChange={(date) => setFormData({ ...formData, session_date: date })}
+                      placeholder="DD/MM/YYYY"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>رقم الجلسة</Label>
