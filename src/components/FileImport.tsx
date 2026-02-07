@@ -105,7 +105,12 @@ export function FileImport({ documentType, onDataExtracted, buttonLabel = "اس�
           });
         }
 
-        onDataExtracted(data.data);
+        // Pass raw_response so the page can do regex fallback parsing
+        const extractedData = { ...data.data };
+        if (data.raw_response) {
+          extractedData.raw_text = data.raw_response;
+        }
+        onDataExtracted(extractedData);
         setTimeout(() => {
           setIsOpen(false);
           setSelectedFile(null);

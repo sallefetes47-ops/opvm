@@ -30,6 +30,84 @@ interface DocumentFormData {
   language: string;
 }
 
+// Regex-based fallback parser for Arabic legal documents
+function parseArabicLegalText(rawText: string, data: Record<string, any>): Record<string, any> {
+  const result = { ...data };
+  const text = rawText || data.content_text || data.raw_text || "";
+  if (!text) return result;
+
+  // Extract document number: مرسوم رقم XX-XX / قرار رقم / تعليمة رقم
+  if (!result.document_number) {
+    const numPatterns = [
+      /(?:مرسوم|قرار|تعليمة|أمر|قانون|منشور)\s*(?:تنفيذي\s*)?(?:رقم|رقم:)\s*([\d\-\/\.]+)/,
+      /رقم\s*:?\s*([\d\-\/\.]+)/,
+      /n[°o]\s*([\d\-\/\.]+)/i,
+    ];
+    for (const p of numPatterns) {
+      const m = text.match(p);
+      if (m) { result.document_number = m[1].trim(); break; }
+    }
+  }
+
+  // Extract document type
+  if (!result.document_type) {
+    const typeMap: [RegExp, string][] = [
+      [/مرسوم\s*تنفيذي/, "مرسوم"],
+      [/مرسوم\s*رئاسي/, "مرسوم"],
+      [/مرسوم/, "مرسوم"],
+      [/تعليمة/, "تعليمة"],
+      [/قرار\s*وزاري|قرار/, "قرار"],
+      [/منشور/, "منشور"],
+      [/قانون/, "قانون"],
+      [/أمر/, "أمر"],
+    ];
+    for (const [rx, type] of typeMap) {
+      if (rx.test(text)) { result.document_type = type; break; }
+    }
+  }
+
+  // Extract date: المؤرخ في / بتاريخ / الموافق
+  if (!result.document_date) {
+    // Try Gregorian patterns first (DD month YYYY or DD/MM/YYYY)
+    const datePatterns = [
+      /(?:المؤرخ في|بتاريخ|الموافق(?:\s*لـ?)?)\s*(\d{1,2})\s*(جانفي|فيفري|فبراير|يناير|مارس|أفريل|أبريل|ماي|مايو|جوان|يونيو|جويلية|يوليو|أوت|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر)\s*(?:سنة\s*)?(\d{4})/,
+      /(?:المؤرخ في|بتاريخ|الموافق)\s*(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/,
+    ];
+    const monthMap: Record<string, string> = {
+      "جانفي": "01", "يناير": "01", "فيفري": "02", "فبراير": "02",
+      "مارس": "03", "أفريل": "04", "أبريل": "04", "ماي": "05", "مايو": "05",
+      "جوان": "06", "يونيو": "06", "جويلية": "07", "يوليو": "07",
+      "أوت": "08", "أغسطس": "08", "سبتمبر": "09", "أكتوبر": "10",
+      "نوفمبر": "11", "ديسمبر": "12",
+    };
+    const m1 = text.match(datePatterns[0]);
+    if (m1) {
+      const day = m1[1].padStart(2, "0");
+      const month = monthMap[m1[2]] || "01";
+      result.document_date = `${m1[3]}-${month}-${day}`;
+    } else {
+      const m2 = text.match(datePatterns[1]);
+      if (m2) {
+        result.document_date = `${m2[3]}-${m2[2].padStart(2, "0")}-${m2[1].padStart(2, "0")}`;
+      }
+    }
+  }
+
+  // Extract title from المتضمن / يتضمن / المتعلق بـ
+  if (!result.title_ar) {
+    const titlePatterns = [
+      /(?:المتضمن|يتضمن|المتعلق\s*بـ?)\s*(.{10,150}?)(?:\.|،|$)/,
+      /(?:الموضوع|موضوع)\s*:?\s*(.{10,150}?)(?:\.|،|$)/,
+    ];
+    for (const p of titlePatterns) {
+      const m = text.match(p);
+      if (m) { result.title_ar = m[1].trim(); break; }
+    }
+  }
+
+  return result;
+}
+
 export default function LegalArchive() {
   const { user, role, isViewer } = useAuth();
   const { toast } = useToast();
@@ -37,6 +115,7 @@ export default function LegalArchive() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewDocument, setViewDocument] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<DocumentFormData>({
     title_ar: "",
     title_fr: "",
@@ -52,18 +131,46 @@ export default function LegalArchive() {
   const canEdit = !isViewer && role !== "viewer";
 
   const handleDataExtracted = (data: Record<string, any>) => {
-    setFormData({
-      title_ar: data.title_ar || "",
-      title_fr: data.title_fr || "",
-      document_type: data.document_type || "",
-      document_number: data.document_number || "",
-      document_date: data.document_date ? new Date(data.document_date) : undefined,
-      description: data.description || "",
-      content_text: data.content_text || "",
-      keywords: Array.isArray(data.keywords) ? data.keywords.join(", ") : (data.keywords || ""),
-      language: data.language || "ar",
-    });
+    // Apply regex fallback parsing on the raw text
+    const enriched = parseArabicLegalText(data.raw_text || data.content_text || "", data);
+
+    const filled = new Set<string>();
+    const newFormData: DocumentFormData = {
+      title_ar: "",
+      title_fr: "",
+      document_type: "",
+      document_number: "",
+      document_date: undefined,
+      description: "",
+      content_text: "",
+      keywords: "",
+      language: "ar",
+    };
+
+    if (enriched.title_ar) { newFormData.title_ar = enriched.title_ar; filled.add("title_ar"); }
+    if (enriched.title_fr) { newFormData.title_fr = enriched.title_fr; filled.add("title_fr"); }
+    if (enriched.document_type) { newFormData.document_type = enriched.document_type; filled.add("document_type"); }
+    if (enriched.document_number) { newFormData.document_number = enriched.document_number; filled.add("document_number"); }
+    if (enriched.document_date) {
+      const d = new Date(enriched.document_date);
+      if (!isNaN(d.getTime())) { newFormData.document_date = d; filled.add("document_date"); }
+    }
+    if (enriched.description) { newFormData.description = enriched.description; filled.add("description"); }
+    if (enriched.content_text) { newFormData.content_text = enriched.content_text; filled.add("content_text"); }
+    if (enriched.keywords) {
+      newFormData.keywords = Array.isArray(enriched.keywords) ? enriched.keywords.join(", ") : enriched.keywords;
+      filled.add("keywords");
+    }
+    if (enriched.language) { newFormData.language = enriched.language; }
+
+    setFormData(newFormData);
+    setAutoFilledFields(filled);
     setIsAddDialogOpen(true);
+
+    toast({
+      title: "تم تعبئة الحقول",
+      description: `تم ملء ${filled.size} حقول تلقائياً من الوثيقة`,
+    });
   };
 
   const { data: documents, isLoading } = useQuery({
@@ -132,7 +239,11 @@ export default function LegalArchive() {
       keywords: "",
       language: "ar",
     });
+    setAutoFilledFields(new Set());
   };
+
+  const autoFillClass = (field: string) =>
+    autoFilledFields.has(field) ? "ring-2 ring-green-500/40 bg-green-500/5" : "";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,6 +302,7 @@ export default function LegalArchive() {
                       onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
                       placeholder="أدخل العنوان بالعربية"
                       required
+                      className={autoFillClass("title_ar")}
                     />
                   </div>
                   <div className="space-y-2">
@@ -200,6 +312,7 @@ export default function LegalArchive() {
                       onChange={(e) => setFormData({ ...formData, title_fr: e.target.value })}
                       placeholder="Titre en français"
                       dir="ltr"
+                      className={autoFillClass("title_fr")}
                     />
                   </div>
                 </div>
@@ -210,7 +323,7 @@ export default function LegalArchive() {
                       value={formData.document_type}
                       onValueChange={(value) => setFormData({ ...formData, document_type: value })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={autoFillClass("document_type")}>
                         <SelectValue placeholder="اختر النوع" />
                       </SelectTrigger>
                       <SelectContent>
@@ -229,6 +342,7 @@ export default function LegalArchive() {
                       value={formData.document_number}
                       onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
                       placeholder="مثال: 15-19"
+                      className={autoFillClass("document_number")}
                     />
                   </div>
                   <div className="space-y-2">
@@ -237,6 +351,7 @@ export default function LegalArchive() {
                       value={formData.document_date}
                       onChange={(date) => setFormData({ ...formData, document_date: date })}
                       placeholder="DD/MM/YYYY"
+                      className={autoFillClass("document_date")}
                     />
                   </div>
                 </div>
