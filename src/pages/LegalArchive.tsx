@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,14 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DateInput } from "@/components/ui/date-input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Scale, Plus, Eye, Trash, Search } from "lucide-react";
+import { Loader2, Scale, Plus, Eye, Trash2, Search, FileUp, AlertCircle, X } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { FileImport } from "@/components/FileImport";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface DocumentFormData {
   title_ar: string;
@@ -28,6 +29,7 @@ interface DocumentFormData {
   content_text: string;
   keywords: string;
   language: string;
+  file: File | null;
 }
 
 // Regex-based fallback parser for Arabic legal documents
@@ -116,9 +118,12 @@ export default function LegalArchive() {
   const [viewDocument, setViewDocument] = useState<any>(null);
   const [previewDocument, setPreviewDocument] = useState<any>(null);
   const [docToDelete, setDocToDelete] = useState<any>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<DocumentFormData>({
     title_ar: "",
     title_fr: "",
@@ -129,6 +134,7 @@ export default function LegalArchive() {
     content_text: "",
     keywords: "",
     language: "ar",
+    file: null,
   });
 
   const canEdit = !isViewer && role !== "viewer";
@@ -148,6 +154,7 @@ export default function LegalArchive() {
       content_text: "",
       keywords: "",
       language: "ar",
+      file: null,
     };
 
     if (enriched.title_ar) { newFormData.title_ar = enriched.title_ar; filled.add("title_ar"); }
@@ -191,6 +198,35 @@ export default function LegalArchive() {
 
   const createMutation = useMutation({
     mutationFn: async (data: DocumentFormData) => {
+      let fileUrl = null;
+      let fileName = null;
+
+      // Upload file if provided
+      if (data.file) {
+        try {
+          const fileName_local = `${Date.now()}_${data.file.name}`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from("legal_documents")
+            .upload(fileName_local, data.file, {
+              cacheControl: "3600",
+              upsert: false,
+            });
+
+          if (uploadError) throw uploadError;
+          
+          // Get public URL
+          const { data: publicUrl } = supabase.storage
+            .from("legal_documents")
+            .getPublicUrl(fileName_local);
+          
+          fileUrl = publicUrl.publicUrl;
+          fileName = fileName_local;
+        } catch (error: any) {
+          console.error("File upload error:", error);
+          throw new Error(`فشل تحميل الملف: ${error.message}`);
+        }
+      }
+
       const { error } = await supabase.from("legal_documents").insert({
         title_ar: data.title_ar,
         title_fr: data.title_fr || null,
@@ -201,39 +237,65 @@ export default function LegalArchive() {
         content_text: data.content_text,
         keywords: data.keywords.split(",").map(k => k.trim()).filter(Boolean),
         language: data.language,
+        file_url: fileUrl,
+        file_name: fileName,
         created_by: user?.id,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
-      toast({ title: "تم الحفظ", description: "تم حفظ الوثيقة بنجاح" });
+      toast({ title: "✅ تم الحفظ", description: "تم حفظ الوثيقة والملف بنجاح" });
       setIsAddDialogOpen(false);
       resetForm();
+      setUploadProgress(0);
     },
     onError: (error) => {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      toast({ title: "❌ خطأ", description: error.message, variant: "destructive" });
+      setUploadProgress(0);
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      // First get the document to retrieve file info
+      const { data: docData } = await supabase
+        .from("legal_documents")
+        .select("file_name")
+        .eq("id", id)
+        .single();
+
+      // Delete from storage if file exists
+      if (docData?.file_name) {
+        try {
+          await supabase.storage
+            .from("legal_documents")
+            .remove([docData.file_name]);
+        } catch (error) {
+          console.warn("Storage deletion warning:", error);
+          // Continue with DB deletion even if storage delete fails
+        }
+      }
+
+      // Delete from database
       const { error } = await supabase.from("legal_documents").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
-      toast({ title: "تم الحذف", description: "تم حذف الوثيقة بنجاح" });
+      toast({ title: "✅ تم الحذف", description: "تم حذف الوثيقة والملف بنجاح" });
+      setDeleteConfirmOpen(false);
+      setDocToDelete(null);
     },
     onError: (error) => {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      toast({ title: "❌ خطأ", description: error.message, variant: "destructive" });
     },
   });
 
   // Helper to remove file from likely storage buckets
   const removeFromStorage = async (fileName: string | null) => {
     if (!fileName) return;
-    const buckets = ["documents", "legal_documents", "files", "public"];
+    const buckets = ["legal_documents", "documents", "files", "public"];
     for (const b of buckets) {
       try {
         const { error } = await supabase.storage.from(b).remove([fileName]);
@@ -248,7 +310,6 @@ export default function LegalArchive() {
     }
   };
 
-
   const resetForm = () => {
     setFormData({
       title_ar: "",
@@ -260,8 +321,13 @@ export default function LegalArchive() {
       content_text: "",
       keywords: "",
       language: "ar",
+      file: null,
     });
     setAutoFilledFields(new Set());
+    setUploadProgress(0);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const autoFillClass = (field: string) =>
@@ -270,10 +336,36 @@ export default function LegalArchive() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title_ar || !formData.document_type) {
-      toast({ title: "خطأ", description: "يرجى ملء الحقول المطلوبة", variant: "destructive" });
+      toast({ title: "خطأ", description: "يرجى ملء الحقول المطلوبة (العنوان والنوع)", variant: "destructive" });
       return;
     }
     createMutation.mutate(formData);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["application/pdf", "image/png", "image/jpeg", "image/webp", "image/gif"];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "نوع ملف غير مدعوم",
+        description: "يرجى اختيار ملف PDF أو صورة (PNG, JPG, WEBP)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      toast({
+        title: "حجم الملف كبير جداً",
+        description: "الحد الأقصى لحجم الملف هو 20 ميجابايت",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFormData({ ...formData, file });
   };
 
   const filteredDocuments = documents?.filter(d => {
@@ -354,8 +446,9 @@ export default function LegalArchive() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="مرسوم">مرسوم</SelectItem>
-                        <SelectItem value="قرار">قرار</SelectItem>
                         <SelectItem value="تعليمة">تعليمة</SelectItem>
+                        <SelectItem value="إجراء">إجراء</SelectItem>
+                        <SelectItem value="قرار">قرار</SelectItem>
                         <SelectItem value="منشور">منشور</SelectItem>
                         <SelectItem value="قانون">قانون</SelectItem>
                         <SelectItem value="أمر">أمر</SelectItem>
@@ -425,6 +518,54 @@ export default function LegalArchive() {
                     </Select>
                   </div>
                 </div>
+
+                {/* File Upload Section */}
+                <div className="space-y-2 border rounded-lg p-4 bg-slate-50">
+                  <Label className="flex items-center gap-2">
+                    <FileUp className="w-4 h-4" />
+                    تحميل ملف PDF أو صورة (اختياري)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    الأنواع المدعومة: PDF, PNG, JPG, WEBP | الحد الأقصى: 20 ميجابايت
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,image/*"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full"
+                    >
+                      <FileUp className="w-4 h-4 ml-2" />
+                      اختيار ملف
+                    </Button>
+                  </div>
+                  {formData.file && (
+                    <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded">
+                      <span className="text-sm font-medium text-green-700">✓</span>
+                      <span className="text-sm text-green-700 flex-1">{formData.file.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setFormData({ ...formData, file: null });
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-2 justify-end">
                   <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                     إلغاء
@@ -442,8 +583,8 @@ export default function LegalArchive() {
       {/* Search & Filter */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex gap-3 flex-col md:flex-row">
-            <div className="relative flex-1 md:flex-none">
+          <div className="flex gap-3 flex-col md:flex-row items-start md:items-center md:justify-between">
+            <div className="relative flex-1 w-full md:flex-none md:min-w-80">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="بحث في الوثائق (العنوان، الرقم، الكلمات المفتاحية، المحتوى)..."
@@ -452,21 +593,23 @@ export default function LegalArchive() {
                 className="pr-10"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Label className="text-sm">النوع:</Label>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="border rounded px-2 py-1 text-sm"
-              >
-                <option value="all">الكل</option>
-                <option value="مرسوم">مرسوم</option>
-                <option value="قرار">قرار</option>
-                <option value="تعليمة">تعليمة</option>
-                <option value="منشور">منشور</option>
-                <option value="قانون">قانون</option>
-                <option value="أمر">أمر</option>
-              </select>
+            <div className="flex gap-2 items-center flex-wrap">
+              <Label className="text-sm font-medium shrink-0">النوع:</Label>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="اختر النوع" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">الكل</SelectItem>
+                  <SelectItem value="مرسوم">المراسيم</SelectItem>
+                  <SelectItem value="تعليمة">التعليمات</SelectItem>
+                  <SelectItem value="إجراء">الإجراءات</SelectItem>
+                  <SelectItem value="قرار">القرارات</SelectItem>
+                  <SelectItem value="منشور">المنشورات</SelectItem>
+                  <SelectItem value="قانون">القوانين</SelectItem>
+                  <SelectItem value="أمر">الأوامر</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -518,20 +661,20 @@ export default function LegalArchive() {
                     <TableCell>
                               <div className="flex gap-2">
                         <Button size="icon" variant="ghost" onClick={() => setPreviewDocument(doc)} title="عرض المعاينة">
-                          <Eye className="w-5 h-5" />
+                          <Eye className="w-5 h-5 text-blue-600 hover:text-blue-800" />
                         </Button>
                         {canEdit && role === "admin" && (
-                          <>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-destructive"
-                              onClick={() => setDocToDelete(doc)}
-                              title="حذف الوثيقة"
-                            >
-                              <Trash className="w-5 h-5" />
-                            </Button>
-                          </>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              setDocToDelete(doc);
+                              setDeleteConfirmOpen(true);
+                            }}
+                            title="حذف الوثيقة"
+                          >
+                            <Trash2 className="w-5 h-5 text-red-600 hover:text-red-800" />
+                          </Button>
                         )}
                       </div>
                     </TableCell>
@@ -624,59 +767,77 @@ export default function LegalArchive() {
         </DialogContent>
       </Dialog>
 
-      {/* Preview Dialog (embedded PDF/Image) */}
+      {/* Preview Dialog (High-Resolution Modal) */}
       <Dialog open={!!previewDocument} onOpenChange={() => setPreviewDocument(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>معاينة الوثيقة</DialogTitle>
+        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto p-0" style={{ maxWidth: "90vw", maxHeight: "95vh" }}>
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle className="text-right">{previewDocument?.title_ar}</DialogTitle>
           </DialogHeader>
-          {previewDocument && (
-            <div>
-              {previewDocument.file_url ? (
-                previewDocument.file_url.endsWith('.pdf') || previewDocument.file_url.includes('application/pdf') ? (
-                  <iframe src={previewDocument.file_url} title="PDF Preview" className="w-full h-[80vh]" />
-                ) : (
-                  <img src={previewDocument.file_url} alt={previewDocument.title_ar} className="w-full h-auto object-contain max-h-[80vh]" />
-                )
+          <div className="flex-1 overflow-auto p-4 bg-gradient-to-b from-slate-50 to-white min-h-96 flex items-center justify-center">
+            {previewDocument?.file_url ? (
+              previewDocument.file_url.endsWith('.pdf') || previewDocument.file_url.includes('application/pdf') ? (
+                <iframe
+                  src={previewDocument.file_url}
+                  title="PDF Preview"
+                  className="w-full h-[85vh] border rounded-lg shadow-lg"
+                  style={{ minHeight: "600px" }}
+                />
               ) : (
-                <p className="text-center text-muted-foreground">لا توجد معاينة للوثيقة</p>
-              )}
-            </div>
-          )}
+                <div className="flex items-center justify-center w-full">
+                  <img
+                    src={previewDocument.file_url}
+                    alt={previewDocument.title_ar}
+                    className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-lg"
+                  />
+                </div>
+              )
+            ) : (
+              <div className="text-center text-muted-foreground space-y-2">
+                <AlertCircle className="w-12 h-12 mx-auto opacity-50" />
+                <p>لا توجد معاينة متاحة للوثيقة</p>
+                <p className="text-sm">لم يتم تحميل أي ملف مع هذه الوثيقة</p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!docToDelete} onOpenChange={() => setDocToDelete(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>تأكيد الحذف</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p>هل أنت متأكد أنك تريد حذف هذه الوثيقة؟ هذا الإجراء لا يمكن التراجع عنه.</p>
-          </div>
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setDocToDelete(null)}>إلغاء</Button>
-            <Button
-              className="bg-destructive text-destructive-foreground"
-              onClick={async () => {
-                if (!docToDelete) return;
-                // attempt to remove storage file if present
-                try {
-                  await removeFromStorage(docToDelete.file_name || null);
-                } catch (err) {
-                  console.warn('Storage removal error', err);
+      {/* Delete Confirmation Dialog (Arabic) */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">تأكيد الحذف</AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              هل أنت متأكد من حذف هذا الملف؟
+              <br />
+              <span className="font-semibold text-foreground mt-2 block">{docToDelete?.title_ar}</span>
+              <br />
+              <span className="text-sm text-destructive">هذا الإجراء لا يمكن التراجع عنه. سيتم حذف الملف من الخادم والقاعدة البيانية.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-2 justify-end mt-4">
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (docToDelete) {
+                  deleteMutation.mutate(docToDelete.id);
                 }
-                // delete DB record
-                deleteMutation.mutate(docToDelete.id);
-                setDocToDelete(null);
               }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
             >
-              حذف
-            </Button>
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  جاري الحذف...
+                </>
+              ) : (
+                "حذف الملف"
+              )}
+            </AlertDialogAction>
           </div>
-        </DialogContent>
-      </Dialog>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
