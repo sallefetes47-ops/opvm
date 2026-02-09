@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,8 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Download, Upload, FolderSync, FileJson, FileSpreadsheet, FileCode, Loader2, AlertTriangle, FileText, Database as DatabaseIcon } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Download, Upload, FolderSync, FileJson, FileSpreadsheet, FileCode, Loader2, AlertTriangle, FileText, Database as DatabaseIcon, CheckCircle, AlertCircle, FileImage } from "lucide-react";
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+interface ExportStats {
+  files: number;
+  file_studies: number;
+  meeting_minutes: number;
+  summons: number;
+  legal_documents: number;
+  total: number;
+}
 
 export default function Backup() {
   const { role, isViewer } = useAuth();
@@ -18,13 +30,20 @@ export default function Backup() {
   const [isImporting, setIsImporting] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [importFileType, setImportFileType] = useState<'json' | 'csv' | null>(null);
+  const [importTargetTable, setImportTargetTable] = useState<string>('files');
+  const dropRef = useRef<HTMLDivElement | null>(null);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [importProgress, setImportProgress] = useState(0);
+  const [exportStats, setExportStats] = useState<ExportStats | null>(null);
 
-  const canEdit = !isViewer && role === "admin";
+  const canEdit = !isViewer && !!role; // allow any non-viewer authenticated user (admin or employee)
 
   // Fetch all data for export
   const { data: allData, refetch } = useQuery({
     queryKey: ["backup-data"],
     queryFn: async () => {
+      setExportProgress(0);
       const [files, fileStudies, minutes, summons, legalDocs] = await Promise.all([
         supabase.from("files").select("*"),
         supabase.from("file_studies").select("*"),
@@ -32,6 +51,16 @@ export default function Backup() {
         supabase.from("summons").select("*"),
         supabase.from("legal_documents").select("*"),
       ]);
+
+      const stats: ExportStats = {
+        files: files.data?.length || 0,
+        file_studies: fileStudies.data?.length || 0,
+        meeting_minutes: minutes.data?.length || 0,
+        summons: summons.data?.length || 0,
+        legal_documents: legalDocs.data?.length || 0,
+        total: (files.data?.length || 0) + (fileStudies.data?.length || 0) + (minutes.data?.length || 0) + (summons.data?.length || 0) + (legalDocs.data?.length || 0),
+      };
+      setExportStats(stats);
 
       return {
         files: files.data || [],
@@ -57,126 +86,384 @@ export default function Backup() {
     URL.revokeObjectURL(url);
   };
 
-  const exportToJSON = async () => {
-    setIsExporting(true);
-    try {
-      const result = await refetch();
-      if (result.data) {
-        const json = JSON.stringify(result.data, null, 2);
-        downloadFile(json, `opvm_backup_${new Date().toISOString().split("T")[0]}.json`, "application/json");
-        toast({ title: "تم التصدير", description: "تم تصدير البيانات بصيغة JSON" });
-      }
-    } catch (error) {
-      toast({ title: "خطأ", description: "فشل في تصدير البيانات", variant: "destructive" });
-    }
-    setIsExporting(false);
+  const validateJsonStructure = (data: any): boolean => {
+    if (typeof data !== 'object' || data === null) return false;
+    const requiredFields = ['files', 'file_studies', 'meeting_minutes', 'summons', 'legal_documents'];
+    return requiredFields.every(field => Array.isArray(data[field]));
   };
 
-  const exportToCSV = async () => {
+  const parseCSV = (text: string) => {
+    // Simple CSV parser that handles quoted fields
+    const rows: string[][] = [];
+    const re = /(?:\s*\"((?:\\\"|[^"])*?)\"\s*|([^,]+)|)(?:,|$)/g;
+    const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+    for (const line of lines) {
+      const row: string[] = [];
+      let match: RegExpExecArray | null;
+      re.lastIndex = 0;
+      while ((match = re.exec(line)) && match[0] !== '') {
+        const val = match[1] ?? match[2] ?? '';
+        row.push(val.replace(/\\\"/g, '"'));
+      }
+      // If regex fails to parse, fallback to naive split
+      if (row.length === 0) {
+        rows.push(line.split(',').map(c => c.trim()));
+      } else {
+        rows.push(row);
+      }
+    }
+    const headers = rows[0] || [];
+    const records = rows.slice(1).map(r => {
+      const obj: Record<string, any> = {};
+      headers.forEach((h, i) => { obj[h] = r[i] ?? ''; });
+      return obj;
+    });
+    return { headers, records };
+  };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (file.name.endsWith('.json')) {
+      setImportFileType('json');
+      setImportFile(file);
+    } else if (file.name.endsWith('.csv')) {
+      setImportFileType('csv');
+      setImportFile(file);
+    } else {
+      toast({ title: '❌ خطأ', description: 'الملف يجب أن يكون JSON أو CSV', variant: 'destructive' });
+    }
+  }, [toast]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const exportToJSON = async () => {
     setIsExporting(true);
+    setExportProgress(0);
     try {
+      setExportProgress(30);
       const result = await refetch();
+      
       if (result.data) {
-        // Export files table as CSV
-        const files = result.data.files;
-        if (files.length > 0) {
-          const headers = Object.keys(files[0]).join(",");
-          const rows = files.map(row => 
-            Object.values(row).map(v => 
-              typeof v === "string" ? `"${v.replace(/"/g, '""')}"` : v
-            ).join(",")
-          );
-          const csv = "\uFEFF" + [headers, ...rows].join("\n");
-          downloadFile(csv, `opvm_files_${new Date().toISOString().split("T")[0]}.csv`, "text/csv;charset=utf-8");
-        }
-        toast({ title: "تم التصدير", description: "تم تصدير الملفات بصيغة CSV" });
+        setExportProgress(70);
+        const json = JSON.stringify(result.data, null, 2);
+        setExportProgress(90);
+        
+        downloadFile(json, `opvm_backup_${new Date().toISOString().split("T")[0]}.json`, "application/json");
+        setExportProgress(100);
+        
+        toast({ 
+          title: "✅ تم التصدير", 
+          description: `تم تصدير ${exportStats?.total || 0} سجل بصيغة JSON` 
+        });
       }
     } catch (error) {
-      toast({ title: "خطأ", description: "فشل في تصدير البيانات", variant: "destructive" });
+      toast({ title: "❌ خطأ", description: "فشل في تصدير البيانات", variant: "destructive" });
     }
+    setTimeout(() => setExportProgress(0), 1000);
     setIsExporting(false);
   };
 
   const exportToExcel = async () => {
     setIsExporting(true);
+    setExportProgress(0);
     try {
+      setExportProgress(20);
       const result = await refetch();
+      
       if (result.data) {
         const workbook = XLSX.utils.book_new();
+        let sheetCount = 0;
+        
+        // Summary sheet
+        const summarySheet = XLSX.utils.json_to_sheet([{
+          'البيان': 'عدد الملفات',
+          'القيمة': result.data.files.length,
+          'التاريخ': new Date().toLocaleDateString('ar-EG'),
+        }, {
+          'البيان': 'سجلات الدراسات',
+          'القيمة': result.data.file_studies.length,
+        }, {
+          'البيان': 'محاضر الجلسات',
+          'القيمة': result.data.meeting_minutes.length,
+        }, {
+          'البيان': 'الاستدعاءات',
+          'القيمة': result.data.summons.length,
+        }, {
+          'البيان': 'المراسيم والتعليمات',
+          'القيمة': result.data.legal_documents.length,
+        }, {
+          'البيان': 'المجموع',
+          'القيمة': exportStats?.total || 0,
+        }]);
+        XLSX.utils.book_append_sheet(workbook, summarySheet, "ملخص");
+        sheetCount++;
+
+        setExportProgress(40);
         
         // Files sheet
         if (result.data.files.length > 0) {
           const filesSheet = XLSX.utils.json_to_sheet(result.data.files);
           XLSX.utils.book_append_sheet(workbook, filesSheet, "الملفات");
+          sheetCount++;
         }
+        
+        setExportProgress(55);
         
         // File studies sheet
         if (result.data.file_studies.length > 0) {
           const studiesSheet = XLSX.utils.json_to_sheet(result.data.file_studies);
           XLSX.utils.book_append_sheet(workbook, studiesSheet, "سجل الدراسات");
+          sheetCount++;
         }
+        
+        setExportProgress(70);
         
         // Meeting minutes sheet
         if (result.data.meeting_minutes.length > 0) {
           const minutesSheet = XLSX.utils.json_to_sheet(result.data.meeting_minutes);
           XLSX.utils.book_append_sheet(workbook, minutesSheet, "محاضر الجلسات");
+          sheetCount++;
         }
         
         // Summons sheet
         if (result.data.summons.length > 0) {
           const summonsSheet = XLSX.utils.json_to_sheet(result.data.summons);
           XLSX.utils.book_append_sheet(workbook, summonsSheet, "الاستدعاءات");
+          sheetCount++;
         }
+        
+        setExportProgress(85);
         
         // Legal documents sheet
         if (result.data.legal_documents.length > 0) {
           const legalSheet = XLSX.utils.json_to_sheet(result.data.legal_documents);
           XLSX.utils.book_append_sheet(workbook, legalSheet, "المراسيم والتعليمات");
+          sheetCount++;
         }
         
+        setExportProgress(95);
         XLSX.writeFile(workbook, `opvm_backup_${new Date().toISOString().split("T")[0]}.xlsx`);
-        toast({ title: "تم التصدير", description: "تم تصدير البيانات بصيغة Excel" });
+        setExportProgress(100);
+        
+        toast({ 
+          title: "✅ تم التصدير", 
+          description: `تم تصدير ${sheetCount} ورقة عمل بصيغة Excel` 
+        });
       }
     } catch (error) {
-      toast({ title: "خطأ", description: "فشل في تصدير البيانات", variant: "destructive" });
+      toast({ title: "❌ خطأ", description: "فشل في تصدير البيانات", variant: "destructive" });
     }
+    setTimeout(() => setExportProgress(0), 1000);
     setIsExporting(false);
   };
 
-  const exportToSQL = async () => {
+  const generatePDFReport = async () => {
     setIsExporting(true);
+    setExportProgress(0);
     try {
+      setExportProgress(20);
       const result = await refetch();
+      
       if (result.data) {
-        let sql = "-- OPVM Database Backup\n";
-        sql += `-- Exported at: ${result.data.exported_at}\n\n`;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const timestamp = new Date().toLocaleDateString('ar-EG');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        let yPosition = 15;
 
-        // Generate INSERT statements for files
-        result.data.files.forEach(file => {
-          const columns = Object.keys(file).join(", ");
-          const values = Object.values(file).map(v => {
-            if (v === null) return "NULL";
-            if (typeof v === "string") return `'${v.replace(/'/g, "''")}'`;
-            return v;
-          }).join(", ");
-          sql += `INSERT INTO files (${columns}) VALUES (${values});\n`;
+        // Set RTL mode for Arabic text
+        doc.setR2L(true);
+
+        // Add high-resolution Bureau Logo at the top center
+        try {
+          setExportProgress(30);
+          const logoUrl = '/Capture.PNG'; // High-resolution logo in public
+          const logoWidth = 40;
+          const logoHeight = 30;
+          const logoX = (pageWidth - logoWidth) / 2;
+          // Fetch image and convert to data URL for jsPDF
+          try {
+            const resp = await fetch(logoUrl);
+            if (resp.ok) {
+              const blob = await resp.blob();
+              const dataUrl: string = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+              doc.addImage(dataUrl, 'PNG', logoX, yPosition, logoWidth, logoHeight);
+              yPosition += 35;
+            }
+          } catch (innerErr) {
+            console.warn('Could not fetch logo for PDF:', innerErr);
+          }
+        } catch (logoError) {
+          console.warn('Logo not available, continuing without it:', logoError);
+        }
+
+        // Title
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('تقرير النسخة الاحتياطية', pageWidth / 2, yPosition, { align: 'center' });
+        yPosition += 8;
+
+        // Subtitle
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text('نظام إدارة ملفات التعمير', pageWidth / 2, yPosition, { align: 'center' });
+        yPosition += 12;
+
+        // Report metadata
+        doc.setFontSize(10);
+        doc.text(`التاريخ: ${timestamp}`, pageWidth - 15, yPosition, { align: 'right' });
+        yPosition += 6;
+        doc.text(`الوقت: ${new Date().toLocaleTimeString('ar-EG')}`, pageWidth - 15, yPosition, { align: 'right' });
+        yPosition += 10;
+
+        // Summary table
+        setExportProgress(50);
+        const summaryData = [
+          ['البيان', 'العدد'],
+          ['الملفات', String(result.data.files.length)],
+          ['سجلات الدراسات', String(result.data.file_studies.length)],
+          ['محاضر الجلسات', String(result.data.meeting_minutes.length)],
+          ['الاستدعاءات', String(result.data.summons.length)],
+          ['المراسيم والتعليمات', String(result.data.legal_documents.length)],
+          ['المجموع', String(exportStats?.total || 0)],
+        ];
+
+        autoTable(doc, {
+          head: [summaryData[0]],
+          body: summaryData.slice(1),
+          startY: yPosition,
+          theme: 'grid',
+          styles: {
+            font: 'arial',
+            fontSize: 10,
+            textColor: [0, 0, 0],
+            fillColor: [212, 175, 55], // Gold color
+            lineColor: [212, 175, 55],
+            halign: 'right',
+            valign: 'middle',
+            cellPadding: 4,
+          },
+          headStyles: {
+            fillColor: [212, 175, 55],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            halign: 'right',
+          },
+          alternateRowStyles: {
+            fillColor: [245, 245, 245],
+          },
+          margin: { left: 15, right: 15 },
         });
 
-        downloadFile(sql, `opvm_backup_${new Date().toISOString().split("T")[0]}.sql`, "text/plain");
-        toast({ title: "تم التصدير", description: "تم تصدير البيانات بصيغة SQL" });
+        yPosition = (doc as any).lastAutoTable.finalY + 10;
+
+        // Files sheet (if records exist)
+        setExportProgress(60);
+        if (result.data.files.length > 0) {
+          if (yPosition > pageHeight - 40) {
+            doc.addPage();
+            yPosition = 15;
+          }
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text('قائمة الملفات', pageWidth / 2, yPosition, { align: 'center' });
+          yPosition += 8;
+
+          const filesHeaders = Object.keys(result.data.files[0] || {}).slice(0, 5);
+          const filesData = result.data.files.slice(0, 20). map(f => filesHeaders.map(h => String(f[h as keyof typeof f] || '')));
+
+          autoTable(doc, {
+            head: [filesHeaders],
+            body: filesData,
+            startY: yPosition,
+            theme: 'striped',
+            styles: { fontSize: 8, halign: 'right' },
+            margin: { left: 15, right: 15 },
+          });
+
+          yPosition = (doc as any).lastAutoTable.finalY + 8;
+        }
+
+        // Meeting minutes (if records exist)
+        setExportProgress(75);
+        if (result.data.meeting_minutes.length > 0) {
+          if (yPosition > pageHeight - 40) {
+            doc.addPage();
+            yPosition = 15;
+          }
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text('محاضر الجلسات', pageWidth / 2, yPosition, { align: 'center' });
+          yPosition += 8;
+
+          const minutesHeaders = Object.keys(result.data.meeting_minutes[0] || {}).slice(0, 5);
+          const minutesData = result.data.meeting_minutes.slice(0, 15).map(m => minutesHeaders.map(h => String(m[h as keyof typeof m] || '')));
+
+          autoTable(doc, {
+            head: [minutesHeaders],
+            body: minutesData,
+            startY: yPosition,
+            theme: 'striped',
+            styles: { fontSize: 8, halign: 'right' },
+            margin: { left: 15, right: 15 },
+          });
+        }
+
+        // Footer with timestamp
+        setExportProgress(85);
+        const pageCount = doc.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(150, 150, 150);
+          doc.text(
+            `الصفحة ${i} من ${pageCount}`,
+            pageWidth / 2,
+            pageHeight - 8,
+            { align: 'center' }
+          );
+        }
+
+        setExportProgress(95);
+        doc.save(`opvm_backup_${new Date().toISOString().split('T')[0]}.pdf`);
+        setExportProgress(100);
+        
+        toast({ 
+          title: "✅ تم الإنشاء", 
+          description: "تم إنشاء تقرير PDF بنجاح مع شعار المكتب بدقة عالية" 
+        });
       }
     } catch (error) {
-      toast({ title: "خطأ", description: "فشل في تصدير البيانات", variant: "destructive" });
+      console.error('PDF generation error:', error);
+      toast({ title: "❌ خطأ", description: "فشل في إنشاء التقرير. تأكد من أن الشعار موجود", variant: "destructive" });
     }
+    setTimeout(() => setExportProgress(0), 1000);
     setIsExporting(false);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type === "application/json") {
-      setImportFile(file);
-    } else {
-      toast({ title: "خطأ", description: "يرجى اختيار ملف JSON صالح", variant: "destructive" });
+    if (file) {
+      if (file.name.endsWith('.json')) {
+        setImportFileType('json');
+        setImportFile(file);
+      } else if (file.name.endsWith('.csv')) {
+        setImportFileType('csv');
+        setImportFile(file);
+      } else {
+        toast({ title: "❌ خطأ", description: "يرجى اختيار ملف JSON أو CSV صالح", variant: "destructive" });
+      }
     }
   };
 
@@ -184,55 +471,71 @@ export default function Backup() {
     if (!importFile) return;
 
     setIsImporting(true);
+    setImportProgress(0);
     try {
+      setImportProgress(10);
       const text = await importFile.text();
-      const data = JSON.parse(text);
 
-      // Validate structure
-      if (!data.files || !Array.isArray(data.files)) {
-        throw new Error("Invalid backup file structure");
-      }
+      if (importFileType === 'json') {
+        const data = JSON.parse(text);
+        setImportProgress(20);
 
-      // Import files (skip existing by id)
-      for (const file of data.files) {
-        const { error } = await supabase.from("files").upsert(file, { onConflict: "id" });
-        if (error) console.error("Error importing file:", error);
-      }
-
-      // Import file_studies
-      if (data.file_studies) {
-        for (const study of data.file_studies) {
-          await supabase.from("file_studies").upsert(study, { onConflict: "id" });
+        // Validate structure
+        if (!validateJsonStructure(data)) {
+          throw new Error("صيغة الملف غير صحيحة. تأكد من أن الملف يحتوي على جميع الجداول المطلوبة");
         }
-      }
 
-      // Import meeting_minutes
-      if (data.meeting_minutes) {
-        for (const minute of data.meeting_minutes) {
-          await supabase.from("meeting_minutes").upsert(minute, { onConflict: "id" });
+        let importedRecords = 0;
+        const totalRecords = (data.files?.length || 0) + (data.file_studies?.length || 0) + (data.meeting_minutes?.length || 0) + (data.summons?.length || 0) + (data.legal_documents?.length || 0) || 1;
+
+        // Import each table by upserting on id
+        const tables = ['files','file_studies','meeting_minutes','summons','legal_documents'];
+        for (const table of tables) {
+          const rows = data[table];
+          if (Array.isArray(rows) && rows.length > 0) {
+            for (const row of rows) {
+              await supabase.from(table).upsert(row, { onConflict: 'id' });
+              importedRecords++;
+              setImportProgress(20 + (importedRecords / totalRecords) * 60);
+            }
+          }
         }
-      }
 
-      // Import summons
-      if (data.summons) {
-        for (const summon of data.summons) {
-          await supabase.from("summons").upsert(summon, { onConflict: "id" });
+        setImportProgress(95);
+        toast({ title: "✅ تم الاستيراد", description: `تم استيراد ${importedRecords} سجل بنجاح` });
+        setImportProgress(100);
+        setTimeout(() => {
+          setImportDialogOpen(false);
+          setImportFile(null);
+          setImportFileType(null);
+          setImportProgress(0);
+        }, 1000);
+      } else if (importFileType === 'csv') {
+        // CSV import - requires the user to select the target table
+        const parsed = parseCSV(text);
+        if (!parsed.headers || parsed.headers.length === 0) throw new Error('CSV بدون رؤوس أعمدة صحيحة');
+        setImportProgress(30);
+        const total = parsed.records.length || 1;
+        let count = 0;
+        for (const rec of parsed.records) {
+          await supabase.from(importTargetTable).upsert(rec, { onConflict: 'id' });
+          count++;
+          setImportProgress(30 + (count / total) * 60);
         }
+        setImportProgress(95);
+        toast({ title: "✅ تم الاستيراد", description: `تم استيراد ${count} سجل إلى جدول ${importTargetTable}` });
+        setImportProgress(100);
+        setTimeout(() => {
+          setImportDialogOpen(false);
+          setImportFile(null);
+          setImportFileType(null);
+          setImportProgress(0);
+        }, 1000);
       }
-
-      // Import legal_documents
-      if (data.legal_documents) {
-        for (const doc of data.legal_documents) {
-          await supabase.from("legal_documents").upsert(doc, { onConflict: "id" });
-        }
-      }
-
-      toast({ title: "تم الاستيراد", description: "تم استيراد البيانات بنجاح" });
-      setImportDialogOpen(false);
-      setImportFile(null);
     } catch (error) {
       console.error("Import error:", error);
-      toast({ title: "خطأ", description: "فشل في استيراد البيانات. تأكد من صحة الملف", variant: "destructive" });
+      toast({ title: "❌ خطأ في الاستيراد", description: error instanceof Error ? error.message : "فشل في استيراد البيانات. تأكد من صحة الملف", variant: "destructive" });
+      setImportProgress(0);
     }
     setIsImporting(false);
   };
@@ -243,7 +546,7 @@ export default function Backup() {
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
             <AlertTriangle className="w-12 h-12 text-warning mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">غير مصرح</h2>
+            <h2 className="text-xl font-bold mb-2">🔒 غير مصرح</h2>
             <p className="text-muted-foreground">هذه الصفحة متاحة للمدير فقط</p>
           </CardContent>
         </Card>
@@ -254,120 +557,198 @@ export default function Backup() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-          <FolderSync className="w-5 h-5 text-primary" />
+        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+          <DatabaseIcon className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">تسيير البيانات</h1>
-          <p className="text-muted-foreground">تصدير واستيراد بيانات النظام</p>
+          <h1 className="text-3xl font-bold">📊 إدارة النسخ الاحتياطية</h1>
+          <p className="text-muted-foreground">تصدير واستيراد بيانات النظام بأمان</p>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Export Section */}
-        <Card>
+        <Card className="border-l-4 border-l-blue-500">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Download className="w-5 h-5" />
-              تصدير البيانات
+              <Download className="w-5 h-5 text-blue-500" />
+              📥 تصدير البيانات
             </CardTitle>
-            <CardDescription>قم بتنزيل نسخة احتياطية من جميع البيانات</CardDescription>
+            <CardDescription>تحميل نسخة احتياطية من جميع بيانات النظام</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            {exportProgress > 0 && (
+              <div className="space-y-2 mb-4 p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">جاري التصدير...</span>
+                  <span className="text-blue-600 font-bold">{exportProgress}%</span>
+                </div>
+                <Progress value={exportProgress} className="h-2" />
+              </div>
+            )}
+            
             <Button
               onClick={exportToJSON}
               disabled={isExporting}
-              className="w-full justify-start"
+              className="w-full justify-start hover:bg-blue-50"
               variant="outline"
             >
-              <FileJson className="w-4 h-4 ml-2" />
+              <FileJson className="w-4 h-4 ml-2 text-blue-600" />
               تصدير JSON (كامل)
               {isExporting && <Loader2 className="w-4 h-4 mr-auto animate-spin" />}
             </Button>
-            <Button
-              onClick={exportToCSV}
-              disabled={isExporting}
-              className="w-full justify-start"
-              variant="outline"
-            >
-              <FileSpreadsheet className="w-4 h-4 ml-2" />
-              تصدير CSV (الملفات فقط)
-              {isExporting && <Loader2 className="w-4 h-4 mr-auto animate-spin" />}
-            </Button>
+
             <Button
               onClick={exportToExcel}
               disabled={isExporting}
-              className="w-full justify-start"
+              className="w-full justify-start hover:bg-green-50"
               variant="outline"
             >
-              <FileText className="w-4 h-4 ml-2" />
+              <FileSpreadsheet className="w-4 h-4 ml-2 text-green-600" />
               تصدير Excel (.xlsx)
               {isExporting && <Loader2 className="w-4 h-4 mr-auto animate-spin" />}
             </Button>
+
             <Button
-              onClick={exportToSQL}
+              onClick={generatePDFReport}
               disabled={isExporting}
-              className="w-full justify-start"
+              className="w-full justify-start hover:bg-red-50"
               variant="outline"
             >
-              <FileCode className="w-4 h-4 ml-2" />
-              تصدير MDB (SQL)
+              <FileImage className="w-4 h-4 ml-2 text-red-600" />
+              تقرير PDF عالي الدقة 📊
               {isExporting && <Loader2 className="w-4 h-4 mr-auto animate-spin" />}
             </Button>
+
+            {exportStats && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm space-y-1 border border-gray-200">
+                <div className="font-semibold text-gray-700">📈 ملخص البيانات:</div>
+                <div className="text-gray-600">
+                  • الملفات: <span className="font-bold">{exportStats.files}</span><br/>
+                  • الدراسات: <span className="font-bold">{exportStats.file_studies}</span><br/>
+                  • الجلسات: <span className="font-bold">{exportStats.meeting_minutes}</span><br/>
+                  • الاستدعاءات: <span className="font-bold">{exportStats.summons}</span><br/>
+                  • المراسيم: <span className="font-bold">{exportStats.legal_documents}</span><br/>
+                  <span className="text-lg font-bold text-primary">المجموع: {exportStats.total}</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Import Section */}
-        <Card>
+        <Card className="border-l-4 border-l-green-500">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              استيراد البيانات
+              <Upload className="w-5 h-5 text-green-500" />
+              📤 استيراد البيانات
             </CardTitle>
-            <CardDescription>استعادة البيانات من نسخة احتياطية JSON</CardDescription>
+            <CardDescription>استعادة البيانات من نسخة احتياطية صالحة</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {importProgress > 0 && (
+              <div className="space-y-2 p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">جاري الاستيراد...</span>
+                  <span className="text-green-600 font-bold">{importProgress}%</span>
+                </div>
+                <Progress value={importProgress} className="h-2" />
+              </div>
+            )}
+            
             <Button
               onClick={() => setImportDialogOpen(true)}
               className="w-full"
               style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}
             >
               <Upload className="w-4 h-4 ml-2" />
-              رفع ملف النسخة الاحتياطية
+              📂 اختر ملف النسخة الاحتياطية
             </Button>
-            <p className="text-sm text-muted-foreground mt-4">
-              ⚠️ سيتم دمج البيانات المستوردة مع البيانات الحالية. السجلات الموجودة بنفس المعرف سيتم تحديثها.
-            </p>
+
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <div className="text-yellow-800">
+                  <div className="font-semibold mb-1">⚠️ تنبيهات مهمة:</div>
+                  <ul className="space-y-1 text-xs">
+                    <li>• سيتم دمج البيانات مع السجلات الموجودة</li>
+                    <li>• السجلات بنفس المعرف سيتم تحديثها</li>
+                    <li>• تأكد من ملف JSON قبل الاستيراد</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Import Dialog */}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>استيراد النسخة الاحتياطية</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5" />
+              استيراد النسخة الاحتياطية
+            </DialogTitle>
             <DialogDescription>
-              اختر ملف JSON للنسخة الاحتياطية لاستيراده
+              اسحب وأفلت ملف JSON أو CSV أو اختره يدوياً لاستعادته إلى النظام
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>ملف النسخة الاحتياطية (JSON)</Label>
-              <Input
-                type="file"
-                accept=".json"
-                onChange={handleFileSelect}
-              />
+            <div
+              ref={dropRef}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer"
+            >
+              <div className="flex items-center justify-center gap-2">
+                <FileCode className="w-5 h-5 text-muted-foreground" />
+                <div className="text-sm">
+                  اسحب وأفلت ملف JSON أو CSV هنا، أو استخدم الزر لاختياره.
+                </div>
+              </div>
+              <div className="mt-3">
+                <Input
+                  id="backup-file"
+                  type="file"
+                  accept=".json,.csv"
+                  onChange={handleFileSelect}
+                  disabled={isImporting}
+                  className="mx-auto cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground">الملفات المدعومة: JSON, CSV</p>
+              </div>
             </div>
+
             {importFile && (
-              <p className="text-sm text-muted-foreground">
-                الملف المحدد: {importFile.name}
-              </p>
+              <div className="p-3 bg-green-50 rounded-lg flex items-start gap-2 border border-green-200">
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm flex-1">
+                  <div className="font-semibold text-green-900">تم تحديد الملف:</div>
+                  <div className="text-green-800 break-all">{importFile.name}</div>
+                  {importFileType === 'csv' && (
+                    <div className="mt-2">
+                      <Label className="text-xs">استيراد CSV إلى جدول:</Label>
+                      <select
+                        value={importTargetTable}
+                        onChange={(e) => setImportTargetTable(e.target.value)}
+                        className="mt-1 w-full border rounded px-2 py-1 text-sm"
+                      >
+                        <option value="files">الملفات</option>
+                        <option value="file_studies">سجل الدراسات</option>
+                        <option value="meeting_minutes">محاضر الجلسات</option>
+                        <option value="summons">الاستدعاءات</option>
+                        <option value="legal_documents">المراسيم والتعليمات</option>
+                      </select>
+                      <p className="text-xs text-muted-foreground mt-1">تأكد أن رؤوس CSV تطابق أسماء الحقول في الجدول المستهدف</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setImportDialogOpen(false)} disabled={isImporting}>
               إلغاء
             </Button>
             <Button
@@ -375,7 +756,17 @@ export default function Backup() {
               disabled={!importFile || isImporting}
               style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}
             >
-              {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : "استيراد"}
+              {isImporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  جاري الاستيراد...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 ml-2" />
+                  ابدأ الاستيراد
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

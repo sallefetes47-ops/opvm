@@ -114,7 +114,10 @@ export default function LegalArchive() {
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewDocument, setViewDocument] = useState<any>(null);
+  const [previewDocument, setPreviewDocument] = useState<any>(null);
+  const [docToDelete, setDocToDelete] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<DocumentFormData>({
     title_ar: "",
@@ -227,6 +230,25 @@ export default function LegalArchive() {
     },
   });
 
+  // Helper to remove file from likely storage buckets
+  const removeFromStorage = async (fileName: string | null) => {
+    if (!fileName) return;
+    const buckets = ["documents", "legal_documents", "files", "public"];
+    for (const b of buckets) {
+      try {
+        const { error } = await supabase.storage.from(b).remove([fileName]);
+        if (!error) {
+          return; // removed successfully
+        }
+        // ignore not found - continue
+      } catch (err) {
+        // ignore and continue
+        console.warn(`Storage remove attempt failed for bucket ${b}:`, err);
+      }
+    }
+  };
+
+
   const resetForm = () => {
     setFormData({
       title_ar: "",
@@ -254,13 +276,17 @@ export default function LegalArchive() {
     createMutation.mutate(formData);
   };
 
-  const filteredDocuments = documents?.filter(d => 
-    d.title_ar?.includes(searchTerm) || 
-    d.title_fr?.includes(searchTerm) ||
-    d.document_number?.includes(searchTerm) ||
-    d.keywords?.some((k: string) => k.includes(searchTerm)) ||
-    d.content_text?.includes(searchTerm)
-  );
+  const filteredDocuments = documents?.filter(d => {
+    const term = searchTerm?.trim();
+    if (term) {
+      const matches = d.title_ar?.includes(term) || d.title_fr?.includes(term) || d.document_number?.includes(term) || d.content_text?.includes(term) || d.keywords?.some((k: string) => k.includes(term));
+      if (!matches) return false;
+    }
+    if (typeFilter && typeFilter !== 'all') {
+      if (d.document_type !== typeFilter) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -413,17 +439,35 @@ export default function LegalArchive() {
           </div>
         )}
       </div>
-      {/* Search */}
+      {/* Search & Filter */}
       <Card>
         <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="بحث في الوثائق (العنوان، الرقم، الكلمات المفتاحية، المحتوى)..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-10"
-            />
+          <div className="flex gap-3 flex-col md:flex-row">
+            <div className="relative flex-1 md:flex-none">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="بحث في الوثائق (العنوان، الرقم، الكلمات المفتاحية، المحتوى)..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-10"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-sm">النوع:</Label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value="all">الكل</option>
+                <option value="مرسوم">مرسوم</option>
+                <option value="قرار">قرار</option>
+                <option value="تعليمة">تعليمة</option>
+                <option value="منشور">منشور</option>
+                <option value="قانون">قانون</option>
+                <option value="أمر">أمر</option>
+              </select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -431,7 +475,10 @@ export default function LegalArchive() {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>قائمة الوثائق القانونية</CardTitle>
+          <div className="flex items-center gap-4">
+            <img src="/Capture.PNG" alt="Bureau Logo" className="h-16 object-contain" />
+            <CardTitle>قائمة الوثائق القانونية</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -469,19 +516,22 @@ export default function LegalArchive() {
                       {doc.language === "ar" ? "عربي" : doc.language === "fr" ? "فرنسي" : "ثنائي"}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="icon" variant="ghost" onClick={() => setViewDocument(doc)}>
-                          <Eye className="w-4 h-4" />
+                              <div className="flex gap-2">
+                        <Button size="icon" variant="ghost" onClick={() => setPreviewDocument(doc)} title="عرض المعاينة">
+                          <Eye className="w-5 h-5" />
                         </Button>
                         {canEdit && role === "admin" && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-destructive"
-                            onClick={() => deleteMutation.mutate(doc.id)}
-                          >
-                            <Trash className="w-4 h-4" />
-                          </Button>
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-destructive"
+                              onClick={() => setDocToDelete(doc)}
+                              title="حذف الوثيقة"
+                            >
+                              <Trash className="w-5 h-5" />
+                            </Button>
+                          </>
                         )}
                       </div>
                     </TableCell>
@@ -499,7 +549,7 @@ export default function LegalArchive() {
           <DialogHeader>
             <DialogTitle>تفاصيل الوثيقة</DialogTitle>
           </DialogHeader>
-          {viewDocument && (
+              {viewDocument && (
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
@@ -555,8 +605,76 @@ export default function LegalArchive() {
                   </div>
                 </div>
               )}
+
+              {/* File preview if available */}
+              {viewDocument.file_url && (
+                <div>
+                  <Label className="text-muted-foreground">المعاينة</Label>
+                  <div className="border rounded p-2 mt-2">
+                    {viewDocument.file_url.endsWith('.pdf') || viewDocument.file_url.includes('application/pdf') ? (
+                      <iframe src={viewDocument.file_url} className="w-full h-[60vh]" title="PDF Preview" />
+                    ) : (
+                      <img src={viewDocument.file_url} alt={viewDocument.title_ar} className="w-full h-auto object-contain max-h-[60vh]" />
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog (embedded PDF/Image) */}
+      <Dialog open={!!previewDocument} onOpenChange={() => setPreviewDocument(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>معاينة الوثيقة</DialogTitle>
+          </DialogHeader>
+          {previewDocument && (
+            <div>
+              {previewDocument.file_url ? (
+                previewDocument.file_url.endsWith('.pdf') || previewDocument.file_url.includes('application/pdf') ? (
+                  <iframe src={previewDocument.file_url} title="PDF Preview" className="w-full h-[80vh]" />
+                ) : (
+                  <img src={previewDocument.file_url} alt={previewDocument.title_ar} className="w-full h-auto object-contain max-h-[80vh]" />
+                )
+              ) : (
+                <p className="text-center text-muted-foreground">لا توجد معاينة للوثيقة</p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!docToDelete} onOpenChange={() => setDocToDelete(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>تأكيد الحذف</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>هل أنت متأكد أنك تريد حذف هذه الوثيقة؟ هذا الإجراء لا يمكن التراجع عنه.</p>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setDocToDelete(null)}>إلغاء</Button>
+            <Button
+              className="bg-destructive text-destructive-foreground"
+              onClick={async () => {
+                if (!docToDelete) return;
+                // attempt to remove storage file if present
+                try {
+                  await removeFromStorage(docToDelete.file_name || null);
+                } catch (err) {
+                  console.warn('Storage removal error', err);
+                }
+                // delete DB record
+                deleteMutation.mutate(docToDelete.id);
+                setDocToDelete(null);
+              }}
+            >
+              حذف
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

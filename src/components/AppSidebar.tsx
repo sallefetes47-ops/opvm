@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { 
   LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
-  FileText, Users2, Scale, FolderSync, Trash2
+  FileText, Users2, Scale, FolderSync, Trash2, Database as DatabaseIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,7 @@ const publicModulesItems = [
 
 // Data Management - hidden from viewers
 const dataManagementItems = [
-  { title: "تسيير البيانات", url: "/backup", icon: FolderSync },
+  { title: "النسخة الاحتياطية", url: "/backup", icon: DatabaseIcon },
   { title: "سلة المحذوفات", url: "/trash", icon: Trash2, adminOnly: true },
 ];
 

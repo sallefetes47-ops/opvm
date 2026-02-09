@@ -105,10 +105,27 @@ export default function Login() {
       {/* Glassmorphism Card */}
       <Card className="w-full max-w-md relative z-10 backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
         <CardHeader className="text-center space-y-4">
-          <div>
-            <CardTitle className="text-2xl font-bold text-white">ديوان حماية وادي ميزاب وترقيته</CardTitle>
-            <CardDescription className="mt-2 text-white/80">نظام إدارة ملفات التعمير</CardDescription>
-            <p className="text-sm text-white/60 mt-1">المرسوم التنفيذي 15-19</p>
+          <div className="flex flex-col items-center">
+            <img
+              src="/Capture.PNG"
+              alt="شعار ديوان حماية وادي ميزاب وترقيته - Bureau Logo"
+              className="w-72 max-w-md h-auto object-contain mb-6 rounded-lg shadow-2xl border-2 border-white/20"
+              loading="eager"
+              decoding="async"
+              quality="95"
+              style={{ 
+                imageRendering: 'crisp-edges',
+                WebkitFontSmoothing: 'antialiased',
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+              }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+            <div>
+              <CardTitle className="text-2xl font-bold text-white">ديوان حماية وادي ميزاب وترقيته</CardTitle>
+              <CardDescription className="mt-2 text-white/80">نظام إدارة ملفات التعمير</CardDescription>
+              <p className="text-sm text-white/60 mt-1">المرسوم التنفيذي 15-19</p>
+            </div>
           </div>
         </CardHeader>
 

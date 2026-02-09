@@ -9,15 +9,24 @@ export function DashboardLayout() {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex-1 flex flex-col">
-          <header className="h-16 border-b bg-card flex items-center px-4 sticky top-0 z-10">
+          <header className="h-20 border-b bg-card flex items-center px-4 sticky top-0 z-10">
             <SidebarTrigger className="md:hidden">
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
             <div className="flex items-center gap-3 mr-4">
-              <img 
-                src="/images/opvm-logo.png" 
-                alt="OPVM Logo" 
-                className="w-10 h-10 object-contain"
+              <img
+                src="/Capture.PNG"
+                alt="OPVM Header - شعار ديوان حماية وادي ميزاب"
+                className="h-20 w-auto object-contain max-h-20 min-h-20"
+                loading="eager"
+                decoding="async"
+                quality="95"
+                style={{ 
+                  imageRendering: 'crisp-edges',
+                  WebkitFontSmoothing: 'antialiased',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                }}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
