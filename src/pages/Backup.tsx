@@ -13,6 +13,7 @@ import { Download, Upload, FolderSync, FileJson, FileSpreadsheet, FileCode, Load
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AMIRI_FONT_BASE64 } from "@/lib/fonts";
 
 interface ExportStats {
   files: number;
@@ -148,18 +149,18 @@ export default function Backup() {
     try {
       setExportProgress(30);
       const result = await refetch();
-      
+
       if (result.data) {
         setExportProgress(70);
         const json = JSON.stringify(result.data, null, 2);
         setExportProgress(90);
-        
+
         downloadFile(json, `opvm_backup_${new Date().toISOString().split("T")[0]}.json`, "application/json");
         setExportProgress(100);
-        
-        toast({ 
-          title: "✅ تم التصدير", 
-          description: `تم تصدير ${exportStats?.total || 0} سجل بصيغة JSON` 
+
+        toast({
+          title: "✅ تم التصدير",
+          description: `تم تصدير ${exportStats?.total || 0} سجل بصيغة JSON`
         });
       }
     } catch (error) {
@@ -175,11 +176,11 @@ export default function Backup() {
     try {
       setExportProgress(20);
       const result = await refetch();
-      
+
       if (result.data) {
         const workbook = XLSX.utils.book_new();
         let sheetCount = 0;
-        
+
         // Summary sheet
         const summarySheet = XLSX.utils.json_to_sheet([{
           'البيان': 'عدد الملفات',
@@ -205,55 +206,55 @@ export default function Backup() {
         sheetCount++;
 
         setExportProgress(40);
-        
+
         // Files sheet
         if (result.data.files.length > 0) {
           const filesSheet = XLSX.utils.json_to_sheet(result.data.files);
           XLSX.utils.book_append_sheet(workbook, filesSheet, "الملفات");
           sheetCount++;
         }
-        
+
         setExportProgress(55);
-        
+
         // File studies sheet
         if (result.data.file_studies.length > 0) {
           const studiesSheet = XLSX.utils.json_to_sheet(result.data.file_studies);
           XLSX.utils.book_append_sheet(workbook, studiesSheet, "سجل الدراسات");
           sheetCount++;
         }
-        
+
         setExportProgress(70);
-        
+
         // Meeting minutes sheet
         if (result.data.meeting_minutes.length > 0) {
           const minutesSheet = XLSX.utils.json_to_sheet(result.data.meeting_minutes);
           XLSX.utils.book_append_sheet(workbook, minutesSheet, "محاضر الجلسات");
           sheetCount++;
         }
-        
+
         // Summons sheet
         if (result.data.summons.length > 0) {
           const summonsSheet = XLSX.utils.json_to_sheet(result.data.summons);
           XLSX.utils.book_append_sheet(workbook, summonsSheet, "الاستدعاءات");
           sheetCount++;
         }
-        
+
         setExportProgress(85);
-        
+
         // Legal documents sheet
         if (result.data.legal_documents.length > 0) {
           const legalSheet = XLSX.utils.json_to_sheet(result.data.legal_documents);
           XLSX.utils.book_append_sheet(workbook, legalSheet, "المراسيم والتعليمات");
           sheetCount++;
         }
-        
+
         setExportProgress(95);
         XLSX.writeFile(workbook, `opvm_backup_${new Date().toISOString().split("T")[0]}.xlsx`);
         setExportProgress(100);
-        
-        toast({ 
-          title: "✅ تم التصدير", 
-          description: `تم تصدير ${sheetCount} ورقة عمل بصيغة Excel` 
+
+        toast({
+          title: "✅ تم التصدير",
+          description: `تم تصدير ${sheetCount} ورقة عمل بصيغة Excel`
         });
       }
     } catch (error) {
@@ -269,7 +270,7 @@ export default function Backup() {
     try {
       setExportProgress(20);
       const result = await refetch();
-      
+
       if (result.data) {
         const doc = new jsPDF('p', 'mm', 'a4');
         const timestamp = new Date().toLocaleDateString('ar-EG');
@@ -278,6 +279,9 @@ export default function Backup() {
         let yPosition = 15;
 
         // Set RTL mode for Arabic text
+        doc.addFileToVFS('Amiri-Regular.ttf', AMIRI_FONT_BASE64);
+        doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+        doc.setFont('Amiri');
         doc.setR2L(true);
 
         // Add high-resolution Bureau Logo at the top center
@@ -310,13 +314,13 @@ export default function Backup() {
 
         // Title
         doc.setFontSize(16);
-        doc.setFont(undefined, 'bold');
+        doc.setFont('Amiri', 'normal');
         doc.text('تقرير النسخة الاحتياطية', pageWidth / 2, yPosition, { align: 'center' });
         yPosition += 8;
 
         // Subtitle
         doc.setFontSize(12);
-        doc.setFont(undefined, 'normal');
+        doc.setFont('Amiri', 'normal');
         doc.text('نظام إدارة ملفات التعمير', pageWidth / 2, yPosition, { align: 'center' });
         yPosition += 12;
 
@@ -345,7 +349,7 @@ export default function Backup() {
           startY: yPosition,
           theme: 'grid',
           styles: {
-            font: 'arial',
+            font: 'Amiri',
             fontSize: 10,
             textColor: [0, 0, 0],
             fillColor: [212, 175, 55], // Gold color
@@ -357,7 +361,8 @@ export default function Backup() {
           headStyles: {
             fillColor: [212, 175, 55],
             textColor: [255, 255, 255],
-            fontStyle: 'bold',
+            fontStyle: 'normal', // Use normal as we only embedded regular
+            font: 'Amiri',
             halign: 'right',
           },
           alternateRowStyles: {
@@ -376,19 +381,20 @@ export default function Backup() {
             yPosition = 15;
           }
           doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
+          doc.setFont('Amiri', 'normal');
           doc.text('قائمة الملفات', pageWidth / 2, yPosition, { align: 'center' });
           yPosition += 8;
 
           const filesHeaders = Object.keys(result.data.files[0] || {}).slice(0, 5);
-          const filesData = result.data.files.slice(0, 20). map(f => filesHeaders.map(h => String(f[h as keyof typeof f] || '')));
+          const filesData = result.data.files.slice(0, 20).map(f => filesHeaders.map(h => String(f[h as keyof typeof f] || '')));
 
           autoTable(doc, {
             head: [filesHeaders],
             body: filesData,
             startY: yPosition,
             theme: 'striped',
-            styles: { fontSize: 8, halign: 'right' },
+            styles: { font: 'Amiri', fontSize: 8, halign: 'right' },
+            headStyles: { fontStyle: 'normal', font: 'Amiri' },
             margin: { left: 15, right: 15 },
           });
 
@@ -403,7 +409,7 @@ export default function Backup() {
             yPosition = 15;
           }
           doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
+          doc.setFont('Amiri', 'normal');
           doc.text('محاضر الجلسات', pageWidth / 2, yPosition, { align: 'center' });
           yPosition += 8;
 
@@ -415,7 +421,8 @@ export default function Backup() {
             body: minutesData,
             startY: yPosition,
             theme: 'striped',
-            styles: { fontSize: 8, halign: 'right' },
+            styles: { font: 'Amiri', fontSize: 8, halign: 'right' },
+            headStyles: { fontStyle: 'normal', font: 'Amiri' },
             margin: { left: 15, right: 15 },
           });
         }
@@ -438,10 +445,10 @@ export default function Backup() {
         setExportProgress(95);
         doc.save(`opvm_backup_${new Date().toISOString().split('T')[0]}.pdf`);
         setExportProgress(100);
-        
-        toast({ 
-          title: "✅ تم الإنشاء", 
-          description: "تم إنشاء تقرير PDF بنجاح مع شعار المكتب بدقة عالية" 
+
+        toast({
+          title: "✅ تم الإنشاء",
+          description: "تم إنشاء تقرير PDF بنجاح مع شعار المكتب بدقة عالية"
         });
       }
     } catch (error) {
@@ -489,7 +496,7 @@ export default function Backup() {
         const totalRecords = (data.files?.length || 0) + (data.file_studies?.length || 0) + (data.meeting_minutes?.length || 0) + (data.summons?.length || 0) + (data.legal_documents?.length || 0) || 1;
 
         // Import each table by upserting on id
-        const tables = ['files','file_studies','meeting_minutes','summons','legal_documents'];
+        const tables = ['files', 'file_studies', 'meeting_minutes', 'summons', 'legal_documents'];
         for (const table of tables) {
           const rows = data[table];
           if (Array.isArray(rows) && rows.length > 0) {
@@ -586,7 +593,7 @@ export default function Backup() {
                 <Progress value={exportProgress} className="h-2" />
               </div>
             )}
-            
+
             <Button
               onClick={exportToJSON}
               disabled={isExporting}
@@ -624,11 +631,11 @@ export default function Backup() {
               <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm space-y-1 border border-gray-200">
                 <div className="font-semibold text-gray-700">📈 ملخص البيانات:</div>
                 <div className="text-gray-600">
-                  • الملفات: <span className="font-bold">{exportStats.files}</span><br/>
-                  • الدراسات: <span className="font-bold">{exportStats.file_studies}</span><br/>
-                  • الجلسات: <span className="font-bold">{exportStats.meeting_minutes}</span><br/>
-                  • الاستدعاءات: <span className="font-bold">{exportStats.summons}</span><br/>
-                  • المراسيم: <span className="font-bold">{exportStats.legal_documents}</span><br/>
+                  • الملفات: <span className="font-bold">{exportStats.files}</span><br />
+                  • الدراسات: <span className="font-bold">{exportStats.file_studies}</span><br />
+                  • الجلسات: <span className="font-bold">{exportStats.meeting_minutes}</span><br />
+                  • الاستدعاءات: <span className="font-bold">{exportStats.summons}</span><br />
+                  • المراسيم: <span className="font-bold">{exportStats.legal_documents}</span><br />
                   <span className="text-lg font-bold text-primary">المجموع: {exportStats.total}</span>
                 </div>
               </div>
@@ -655,7 +662,7 @@ export default function Backup() {
                 <Progress value={importProgress} className="h-2" />
               </div>
             )}
-            
+
             <Button
               onClick={() => setImportDialogOpen(true)}
               className="w-full"
