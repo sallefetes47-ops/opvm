@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
-  FileText, Users2, Scale, FolderSync, Trash2, Database as DatabaseIcon, MapPin
+  FileText, Users2, Scale, FolderSync, Trash2, Database as DatabaseIcon, MapPin, FileSearch
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ const newModulesItems = [
 // Legal archive is visible to all
 const publicModulesItems = [
   { title: "المراسيم والتعليمات", url: "/legal-archive", icon: Scale },
+  { title: "تحليل الوثائق", url: "/document-analyzer", icon: FileSearch },
 ];
 
 // Data Management - hidden from viewers
