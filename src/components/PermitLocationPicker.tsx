@@ -1,92 +1,144 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-    GoogleMap,
-    useJsApiLoader,
-    Marker,
-    Autocomplete,
-} from '@react-google-maps/api';
+    MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents,
+} from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, X, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, X, ChevronDown, ChevronUp } from 'lucide-react';
 
-const libraries: ('places')[] = ['places'];
+/* ─── Fix Leaflet default icons ─── */
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
-const mapContainerStyle = {
-    width: '100%',
-    height: '300px',
-    borderRadius: '8px',
+/* ─── Custom Icons ─── */
+
+/** Red icon for the selected / active position */
+const activeIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+});
+
+/** Color-coded icon per permit type for existing contracts */
+const permitColors: Record<string, string> = {
+    'رخصة بناء': '#2563eb',
+    'رخصة تجزئة': '#16a34a',
+    'رخصة هدم': '#dc2626',
+    'شهادة تقسيم': '#9333ea',
 };
 
-const defaultCenter = { lat: 32.4810, lng: 3.6900 };
+function getContractIcon(permitType: string | null) {
+    const color = permitColors[permitType || ''] || '#6b7280';
+    return new L.DivIcon({
+        className: 'plp-contract-marker',
+        html: `<div style="
+            width: 18px; height: 18px; border-radius: 50%;
+            background: ${color}; border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        "></div>`,
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+        popupAnchor: [0, -12],
+    });
+}
 
-interface PermitLocationPickerProps {
+/* ─── Constants ─── */
+
+const DEFAULT_CENTER: [number, number] = [32.4810, 3.6900];
+const MAX_BOUNDS: L.LatLngBoundsExpression = [[32.42, 3.58], [32.55, 3.80]];
+
+/* ─── Map child: click to select location ─── */
+
+function ClickCapture({ onCapture }: { onCapture: (lat: number, lng: number) => void }) {
+    useMapEvents({
+        click(e) {
+            onCapture(e.latlng.lat, e.latlng.lng);
+        },
+    });
+    return null;
+}
+
+/* ─── Map child: flyTo on value change ─── */
+
+function FlyToValue({ lat, lng }: { lat: number; lng: number }) {
+    const map = useMap();
+    useEffect(() => {
+        map.flyTo([lat, lng], 17, { duration: 0.8 });
+    }, [map, lat, lng]);
+    return null;
+}
+
+/* ─── Contract type for the list ─── */
+
+interface ContractMarker {
+    id: string;
+    full_name: string;
+    file_number: string;
+    address: string;
+    permit_type: string | null;
+    location_lat: number;
+    location_lng: number;
+}
+
+/* ═══════════════════════════════════════════
+   COMPONENT
+   ═══════════════════════════════════════════ */
+
+export interface PermitLocationPickerProps {
     value: { lat: number; lng: number } | null;
     onChange: (location: { lat: number; lng: number } | null) => void;
 }
 
 export default function PermitLocationPicker({ value, onChange }: PermitLocationPickerProps) {
-    const { isLoaded, loadError } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-        libraries,
+    const [isOpen, setIsOpen] = useState(false);
+
+    /* ── Fetch existing contracts with locations ── */
+    const { data: contracts } = useQuery({
+        queryKey: ['picker-contracts'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('files')
+                .select('id, full_name, file_number, address, permit_type, location_lat, location_lng')
+                .not('location_lat', 'is', null)
+                .not('location_lng', 'is', null)
+                .or('is_deleted.is.null,is_deleted.eq.false')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return (data || []) as ContractMarker[];
+        },
+        enabled: isOpen, // only fetch when map is open
     });
 
-    const [isOpen, setIsOpen] = useState(false);
-    const [map, setMap] = useState<google.maps.Map | null>(null);
-    const [searchAddress, setSearchAddress] = useState('');
-    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+    /* ── Handlers ── */
 
-    const onLoad = useCallback((mapInstance: google.maps.Map) => {
-        setMap(mapInstance);
-    }, []);
-
-    const onUnmount = useCallback(() => {
-        setMap(null);
-    }, []);
-
-    const onMarkerDragEnd = (e: google.maps.MapMouseEvent) => {
-        if (e.latLng) {
-            onChange({ lat: e.latLng.lat(), lng: e.latLng.lng() });
-        }
-    };
-
-    const onMapClick = (e: google.maps.MapMouseEvent) => {
-        if (e.latLng) {
-            onChange({ lat: e.latLng.lat(), lng: e.latLng.lng() });
-        }
-    };
-
-    const onPlaceChanged = () => {
-        const place = autocompleteRef.current?.getPlace();
-        if (place?.geometry?.location) {
-            const newPos = {
-                lat: place.geometry.location.lat(),
-                lng: place.geometry.location.lng(),
-            };
-            onChange(newPos);
-            setSearchAddress(place.formatted_address || '');
-            if (map) {
-                map.panTo(newPos);
-                map.setZoom(16);
-            }
-        }
+    const handleMapClick = (lat: number, lng: number) => {
+        onChange({ lat, lng });
     };
 
     const handleRemoveLocation = () => {
         onChange(null);
-        setSearchAddress('');
     };
 
-    const toggleOpen = () => {
-        setIsOpen(!isOpen);
-    };
+    const mapCenter: [number, number] = value
+        ? [value.lat, value.lng]
+        : DEFAULT_CENTER;
 
-    // If Google Maps API key is missing, show a simple coordinate input fallback
-    const apiKeyMissing = !import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const mapZoom = value ? 16 : 13;
 
     return (
         <div className="space-y-3">
+            {/* ── Header label ── */}
             <div className="flex items-center justify-between">
                 <Label className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-primary" />
@@ -107,7 +159,7 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                 )}
             </div>
 
-            {/* Current coordinates display */}
+            {/* ── Current coordinates display ── */}
             {value && (
                 <div className="flex items-center gap-3 p-2 bg-primary/5 rounded-lg border border-primary/20 text-sm">
                     <MapPin className="w-4 h-4 text-primary shrink-0" />
@@ -118,12 +170,12 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                 </div>
             )}
 
-            {/* Toggle button */}
+            {/* ── Toggle button ── */}
             <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={toggleOpen}
+                onClick={() => setIsOpen(!isOpen)}
                 className="w-full justify-between gap-2 text-sm"
             >
                 <span className="flex items-center gap-2">
@@ -133,79 +185,88 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                 {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </Button>
 
-            {/* Map panel */}
+            {/* ── Map panel ── */}
             {isOpen && (
                 <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
-                    {apiKeyMissing ? (
-                        <div className="p-4 border-2 border-dashed border-yellow-300 bg-yellow-50 rounded-lg text-center text-sm text-yellow-700">
-                            <MapPin className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-                            <p>مفتاح Google Maps API غير متوفر</p>
-                            <p className="text-xs mt-1">يرجى إضافة VITE_GOOGLE_MAPS_API_KEY في ملف .env</p>
-                        </div>
-                    ) : loadError ? (
-                        <div className="p-4 border-2 border-dashed border-red-300 bg-red-50 rounded-lg text-center text-sm text-red-600">
-                            <p>خطأ في تحميل الخريطة</p>
-                            <code className="text-xs">{loadError.message}</code>
-                        </div>
-                    ) : !isLoaded ? (
-                        <div className="flex items-center justify-center p-8">
-                            <div className="w-6 h-6 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-                            <span className="mr-2 text-sm text-muted-foreground">جاري تحميل الخريطة…</span>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Search bar */}
-                            <div className="relative">
-                                <Autocomplete
-                                    onLoad={(ac) => (autocompleteRef.current = ac)}
-                                    onPlaceChanged={onPlaceChanged}
+                    <p className="text-xs text-muted-foreground">
+                        انقر على الخريطة لتحديد الموقع │ النقاط الملونة = عقود موجودة
+                    </p>
+
+                    <div style={{ height: '300px', borderRadius: '8px', overflow: 'hidden' }}>
+                        <MapContainer
+                            center={mapCenter}
+                            zoom={mapZoom}
+                            scrollWheelZoom={true}
+                            style={{ width: '100%', height: '100%' }}
+                            zoomControl={true}
+                            maxBounds={MAX_BOUNDS}
+                            maxBoundsViscosity={1.0}
+                            minZoom={12}
+                        >
+                            {/* Clean OSM base layer — no API key required */}
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+
+                            {/* Click to capture coordinates */}
+                            <ClickCapture onCapture={handleMapClick} />
+
+                            {/* FlyTo on value change */}
+                            {value && <FlyToValue lat={value.lat} lng={value.lng} />}
+
+                            {/* Active selected position marker (red) */}
+                            {value && (
+                                <Marker position={[value.lat, value.lng]} icon={activeIcon}>
+                                    <Popup>
+                                        <div className="text-right text-xs" dir="rtl">
+                                            <p className="font-bold">📍 الموقع المحدد</p>
+                                            <p className="font-mono mt-1">{value.lat.toFixed(6)}°N, {value.lng.toFixed(6)}°E</p>
+                                        </div>
+                                    </Popup>
+                                </Marker>
+                            )}
+
+                            {/* Existing contracts from DB (small colored dots) */}
+                            {contracts?.map((c) => (
+                                <Marker
+                                    key={c.id}
+                                    position={[c.location_lat, c.location_lng]}
+                                    icon={getContractIcon(c.permit_type)}
                                 >
-                                    <Input
-                                        placeholder="ابحث عن موقع..."
-                                        className="pl-9 text-sm h-8"
-                                        value={searchAddress}
-                                        onChange={(e) => setSearchAddress(e.target.value)}
-                                    />
-                                </Autocomplete>
-                                <Search className="absolute left-3 top-2 h-4 w-4 text-muted-foreground" />
-                            </div>
+                                    <Popup>
+                                        <div className="text-right text-xs min-w-[160px]" dir="rtl">
+                                            <p className="font-bold">{c.full_name}</p>
+                                            <p className="text-gray-500">📁 {c.file_number}</p>
+                                            <p className="text-gray-500">📍 {c.address}</p>
+                                            {c.permit_type && (
+                                                <span
+                                                    className="inline-block mt-1 px-1.5 py-0.5 rounded-full text-[10px] text-white"
+                                                    style={{ backgroundColor: permitColors[c.permit_type] || '#6b7280' }}
+                                                >
+                                                    {c.permit_type}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </Popup>
+                                </Marker>
+                            ))}
+                        </MapContainer>
+                    </div>
 
-                            <p className="text-xs text-muted-foreground">
-                                انقر على الخريطة أو اسحب المؤشر لتحديد الموقع
-                            </p>
-
-                            {/* Mini map */}
-                            <GoogleMap
-                                mapContainerStyle={mapContainerStyle}
-                                center={value || defaultCenter}
-                                zoom={value ? 16 : 13}
-                                onLoad={onLoad}
-                                onUnmount={onUnmount}
-                                onClick={onMapClick}
-                                options={{
-                                    mapTypeId: 'satellite',
-                                    mapTypeControl: false,
-                                    fullscreenControl: true,
-                                    streetViewControl: false,
-                                    scaleControl: true,
-                                    zoomControl: true,
-                                    tilt: 0,
-                                    rotateControl: false,
-                                }}
-                            >
-                                {value && (
-                                    <Marker
-                                        position={value}
-                                        draggable
-                                        onDragEnd={onMarkerDragEnd}
-                                        icon={{
-                                            url: 'https://maps.google.com/mapfiles/ms/icons/red-pushpin.png',
-                                        }}
-                                    />
-                                )}
-                            </GoogleMap>
-                        </>
-                    )}
+                    {/* Mini legend */}
+                    <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground pt-1">
+                        {Object.entries(permitColors).map(([label, color]) => (
+                            <span key={label} className="flex items-center gap-1">
+                                <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: color }} />
+                                {label}
+                            </span>
+                        ))}
+                        <span className="flex items-center gap-1">
+                            <span className="w-2.5 h-2.5 rounded-full inline-block bg-red-500" />
+                            الموقع المحدد
+                        </span>
+                    </div>
                 </div>
             )}
         </div>
