@@ -14,6 +14,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AMIRI_FONT_BASE64 } from "@/lib/fonts";
+import { fixArabicText } from "@/lib/pdf-utils";
 
 interface ExportStats {
   files: number;
@@ -273,7 +274,7 @@ export default function Backup() {
 
       if (result.data) {
         const doc = new jsPDF('p', 'mm', 'a4');
-        const timestamp = new Date().toLocaleDateString('ar-EG');
+        const timestamp = new Date().toLocaleDateString('en-GB'); // Use Western numerals
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         let yPosition = 15;
@@ -315,32 +316,32 @@ export default function Backup() {
         // Title
         doc.setFontSize(16);
         doc.setFont('Amiri', 'normal');
-        doc.text('تقرير النسخة الاحتياطية', pageWidth / 2, yPosition, { align: 'center' });
+        doc.text(fixArabicText('تقرير النسخة الاحتياطية'), pageWidth / 2, yPosition, { align: 'center' });
         yPosition += 8;
 
         // Subtitle
         doc.setFontSize(12);
         doc.setFont('Amiri', 'normal');
-        doc.text('نظام إدارة ملفات التعمير', pageWidth / 2, yPosition, { align: 'center' });
+        doc.text(fixArabicText('نظام إدارة ملفات التعمير'), pageWidth / 2, yPosition, { align: 'center' });
         yPosition += 12;
 
         // Report metadata
         doc.setFontSize(10);
-        doc.text(`التاريخ: ${timestamp}`, pageWidth - 15, yPosition, { align: 'right' });
+        doc.text(`${fixArabicText('التاريخ')}: ${timestamp}`, pageWidth - 15, yPosition, { align: 'right' });
         yPosition += 6;
-        doc.text(`الوقت: ${new Date().toLocaleTimeString('ar-EG')}`, pageWidth - 15, yPosition, { align: 'right' });
+        doc.text(`${fixArabicText('الوقت')}: ${new Date().toLocaleTimeString('en-GB')}`, pageWidth - 15, yPosition, { align: 'right' });
         yPosition += 10;
 
         // Summary table
         setExportProgress(50);
         const summaryData = [
-          ['البيان', 'العدد'],
-          ['الملفات', String(result.data.files.length)],
-          ['سجلات الدراسات', String(result.data.file_studies.length)],
-          ['محاضر الجلسات', String(result.data.meeting_minutes.length)],
-          ['الاستدعاءات', String(result.data.summons.length)],
-          ['المراسيم والتعليمات', String(result.data.legal_documents.length)],
-          ['المجموع', String(exportStats?.total || 0)],
+          [fixArabicText('البيان'), fixArabicText('العدد')],
+          [fixArabicText('الملفات'), String(result.data.files.length)],
+          [fixArabicText('سجلات الدراسات'), String(result.data.file_studies.length)],
+          [fixArabicText('محاضر الجلسات'), String(result.data.meeting_minutes.length)],
+          [fixArabicText('الاستدعاءات'), String(result.data.summons.length)],
+          [fixArabicText('المراسيم والتعليمات'), String(result.data.legal_documents.length)],
+          [fixArabicText('المجموع'), String(exportStats?.total || 0)],
         ];
 
         autoTable(doc, {
@@ -382,11 +383,14 @@ export default function Backup() {
           }
           doc.setFontSize(12);
           doc.setFont('Amiri', 'normal');
-          doc.text('قائمة الملفات', pageWidth / 2, yPosition, { align: 'center' });
+          doc.text(fixArabicText('قائمة الملفات'), pageWidth / 2, yPosition, { align: 'center' });
           yPosition += 8;
 
-          const filesHeaders = Object.keys(result.data.files[0] || {}).slice(0, 5);
-          const filesData = result.data.files.slice(0, 20).map(f => filesHeaders.map(h => String(f[h as keyof typeof f] || '')));
+          const filesHeaders = Object.keys(result.data.files[0] || {}).slice(0, 5).map(h => fixArabicText(h));
+          const filesData = result.data.files.slice(0, 20).map(f => filesHeaders.map((_, i) => {
+            const keys = Object.keys(result.data.files[0] || {}).slice(0, 5);
+            return fixArabicText(String(f[keys[i] as keyof typeof f] || ''));
+          }));
 
           autoTable(doc, {
             head: [filesHeaders],
@@ -410,11 +414,14 @@ export default function Backup() {
           }
           doc.setFontSize(12);
           doc.setFont('Amiri', 'normal');
-          doc.text('محاضر الجلسات', pageWidth / 2, yPosition, { align: 'center' });
+          doc.text(fixArabicText('محاضر الجلسات'), pageWidth / 2, yPosition, { align: 'center' });
           yPosition += 8;
 
-          const minutesHeaders = Object.keys(result.data.meeting_minutes[0] || {}).slice(0, 5);
-          const minutesData = result.data.meeting_minutes.slice(0, 15).map(m => minutesHeaders.map(h => String(m[h as keyof typeof m] || '')));
+          const minutesHeaders = Object.keys(result.data.meeting_minutes[0] || {}).slice(0, 5).map(h => fixArabicText(h));
+          const minutesData = result.data.meeting_minutes.slice(0, 15).map(m => minutesHeaders.map((_, i) => {
+            const keys = Object.keys(result.data.meeting_minutes[0] || {}).slice(0, 5);
+            return fixArabicText(String(m[keys[i] as keyof typeof m] || ''));
+          }));
 
           autoTable(doc, {
             head: [minutesHeaders],
@@ -435,7 +442,7 @@ export default function Backup() {
           doc.setFontSize(8);
           doc.setTextColor(150, 150, 150);
           doc.text(
-            `الصفحة ${i} من ${pageCount}`,
+            fixArabicText(`الصفحة ${i} من ${pageCount}`),
             pageWidth / 2,
             pageHeight - 8,
             { align: 'center' }
@@ -501,7 +508,7 @@ export default function Backup() {
           const rows = data[table];
           if (Array.isArray(rows) && rows.length > 0) {
             for (const row of rows) {
-              await supabase.from(table).upsert(row, { onConflict: 'id' });
+              await supabase.from(table as any).upsert(row, { onConflict: 'id' });
               importedRecords++;
               setImportProgress(20 + (importedRecords / totalRecords) * 60);
             }
@@ -525,7 +532,7 @@ export default function Backup() {
         const total = parsed.records.length || 1;
         let count = 0;
         for (const rec of parsed.records) {
-          await supabase.from(importTargetTable).upsert(rec, { onConflict: 'id' });
+          await supabase.from(importTargetTable as any).upsert(rec, { onConflict: 'id' });
           count++;
           setImportProgress(30 + (count / total) * 60);
         }

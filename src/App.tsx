@@ -21,6 +21,7 @@ import Summons from "@/pages/Summons";
 import LegalArchive from "@/pages/LegalArchive";
 import Backup from "@/pages/Backup";
 import TrashBin from "@/pages/TrashBin";
+import UrbanMap from "@/pages/UrbanMap";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
                   }
                 />
                 <Route path="/backup" element={<Backup />} />
+                <Route path="/urban-map" element={<UrbanMap />} />
                 <Route
                   path="/trash"
                   element={

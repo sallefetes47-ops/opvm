@@ -12,9 +12,9 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { 
+import {
   LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
-  FileText, Users2, Scale, FolderSync, Trash2, Database as DatabaseIcon
+  FileText, Users2, Scale, FolderSync, Trash2, Database as DatabaseIcon, MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ const mainMenuItems = [
   { title: "ملف جديد", url: "/new-file", icon: FilePlus, requiresEdit: true },
   { title: "إعادة الدراسة", url: "/restudy", icon: RefreshCw, requiresEdit: true },
   { title: "الأرشيف", url: "/archive", icon: Archive },
+  { title: "الخريطة العمرانية", url: "/urban-map", icon: MapPin },
 ];
 
 // These modules are hidden from viewers (requires edit permissions)
@@ -59,9 +60,9 @@ export function AppSidebar() {
     <Sidebar className="border-l-0 border-r border-sidebar-border" side="right">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <img 
-            src="/images/opvm-logo.png" 
-            alt="OPVM Logo" 
+          <img
+            src="/images/opvm-logo.png"
+            alt="OPVM Logo"
             className="w-12 h-12 object-contain"
             onError={(e) => {
               // Fallback if logo not loaded yet
@@ -165,24 +166,24 @@ export function AppSidebar() {
               {canEdit && dataManagementItems
                 .filter(item => !item.adminOnly || role === "admin")
                 .map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to={item.url}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
-                        isActive(item.url)
-                          ? "text-[#2D2926]"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent"
-                      )}
-                      style={isActive(item.url) ? { backgroundColor: '#D4AF37' } : undefined}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <Link
+                        to={item.url}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
+                          isActive(item.url)
+                            ? "text-[#2D2926]"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent"
+                        )}
+                        style={isActive(item.url) ? { backgroundColor: '#D4AF37' } : undefined}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
