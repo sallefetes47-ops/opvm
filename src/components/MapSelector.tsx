@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useOverpassBuildings } from '@/hooks/useOverpassBuildings';
 import {
     GoogleMap,
@@ -347,7 +347,18 @@ const mapStyles: google.maps.MapTypeStyle[] = [
    COMPONENT
    ══════════════════════════════════════════════════════ */
 
-export default function MapSelector() {
+export interface MapSelectorProps {
+    /** When set, the map auto-centers on this latitude */
+    focusLat?: number | null;
+    /** When set, the map auto-centers on this longitude */
+    focusLng?: number | null;
+    /** Zoom level when focusing on a contract location (default: 17) */
+    focusZoom?: number;
+}
+
+export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapSelectorProps = {}) {
+    // Determine if we're in "focus mode" (viewing a specific contract location)
+    const isFocusMode = focusLat != null && focusLng != null;
     const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -358,6 +369,12 @@ export default function MapSelector() {
     const [mapType, setMapType] = useState<string>('satellite');
     const [markerPos, setMarkerPos] = useState(center);
     const [address, setAddress] = useState('');
+
+    // Effective center: use focus coordinates if provided, otherwise default valley center
+    const effectiveCenter = isFocusMode
+        ? { lat: focusLat!, lng: focusLng! }
+        : center;
+    const effectiveZoom = isFocusMode ? focusZoom : 13;
 
     // Layer toggles
     const [showCadastre, setShowCadastre] = useState(false);
@@ -378,7 +395,20 @@ export default function MapSelector() {
 
     const onLoad = useCallback((mapInstance: google.maps.Map) => {
         setMap(mapInstance);
-    }, []);
+        // If in focus mode, immediately pan to the contract location
+        if (isFocusMode) {
+            mapInstance.panTo({ lat: focusLat!, lng: focusLng! });
+            mapInstance.setZoom(focusZoom);
+        }
+    }, [isFocusMode, focusLat, focusLng, focusZoom]);
+
+    // Pan to new coordinates when focus props change after initial load
+    useEffect(() => {
+        if (map && isFocusMode) {
+            map.panTo({ lat: focusLat!, lng: focusLng! });
+            map.setZoom(focusZoom);
+        }
+    }, [map, isFocusMode, focusLat, focusLng, focusZoom]);
 
     const onUnmount = useCallback(() => {
         setMap(null);
@@ -508,10 +538,10 @@ export default function MapSelector() {
 
                         {/* Building data status badge */}
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium ${buildingsLoading
-                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                                : isRealData
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                    : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                            : isRealData
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
                             }`}>
                             {buildingsLoading ? (
                                 <><span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" /> جاري التحميل…</>
@@ -528,8 +558,8 @@ export default function MapSelector() {
                 <div className="relative">
                     <GoogleMap
                         mapContainerStyle={mapContainerStyle}
-                        center={center}
-                        zoom={13}
+                        center={effectiveCenter}
+                        zoom={effectiveZoom}
                         onLoad={onLoad}
                         onUnmount={onUnmount}
                         options={{
@@ -543,13 +573,15 @@ export default function MapSelector() {
                             styles: mapType === 'roadmap' ? mapStyles : undefined,
                         }}
                     >
-                        {/* Draggable position marker */}
-                        <Marker
-                            position={markerPos}
-                            draggable
-                            onDragEnd={onMarkerDragEnd}
-                            icon={{ url: 'https://maps.google.com/mapfiles/ms/icons/red-pushpin.png' }}
-                        />
+                        {/* Draggable position marker — hidden in focus mode (no pins per requirement) */}
+                        {!isFocusMode && (
+                            <Marker
+                                position={markerPos}
+                                draggable
+                                onDragEnd={onMarkerDragEnd}
+                                icon={{ url: 'https://maps.google.com/mapfiles/ms/icons/red-pushpin.png' }}
+                            />
+                        )}
 
                         {/* ── Ksar city labels ── */}
                         {KSOUR.map((k) => (
@@ -714,13 +746,13 @@ export default function MapSelector() {
 
                 {/* ─── COORDINATES BAR ─── */}
                 <div className="p-3 grid grid-cols-2 md:grid-cols-5 gap-3 bg-gradient-to-r from-zinc-100 to-zinc-50 dark:from-zinc-900 dark:to-zinc-800 border-t text-xs">
-                    <CoordCell label="خط العرض (Lat)" value={`${markerPos.lat.toFixed(6)}°N`} />
-                    <CoordCell label="خط الطول (Lng)" value={`${markerPos.lng.toFixed(6)}°E`} />
+                    <CoordCell label="خط العرض (Lat)" value={`${(isFocusMode ? focusLat! : markerPos.lat).toFixed(6)}°N`} />
+                    <CoordCell label="خط الطول (Lng)" value={`${(isFocusMode ? focusLng! : markerPos.lng).toFixed(6)}°E`} />
                     <CoordCell label="Datum" value="WGS 84" />
                     <CoordCell label="CRS" value="EPSG:4326" />
                     <div className="flex items-center gap-1 text-[10px] text-muted-foreground italic col-span-2 md:col-span-1">
                         <MapPin className="h-3 w-3 shrink-0" />
-                        <span>وادي ميزاب — M'zab Valley</span>
+                        <span>{isFocusMode ? 'موقع العقد │ Contract Location' : 'وادي ميزاب — M\'zab Valley'}</span>
                     </div>
                 </div>
             </CardContent>
