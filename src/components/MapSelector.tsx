@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    MapContainer, WMSTileLayer, Marker, Popup, Polygon, Polyline,
+    MapContainer, TileLayer, WMSTileLayer, Marker, Popup, Polygon, Polyline,
     useMap, useMapEvents
 } from 'react-leaflet';
 import L from 'leaflet';
@@ -30,11 +30,11 @@ import {
     Plus,
     Loader2,
     X,
+    Satellite,
 } from 'lucide-react';
 
 /* ─────────────────── FIX LEAFLET DEFAULT ICONS ─────────────────── */
 
-// Fix the default marker icon issue with webpack/vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -55,12 +55,11 @@ const tempIcon = new L.Icon({
 
 /* ─────────────────── CONFIG ─────────────────── */
 
-const MAP_HEIGHT = '600px';
-const CENTER: [number, number] = [32.4810, 3.6900]; // Still centered on Ghardaia initially, but no restrictions
+// Default center (Ghardaia), but user is free to pan anywhere
+const CENTER: [number, number] = [32.4810, 3.6900];
 
 /* ─────────────────── OVERLAY DATA ─────────────────── */
 
-// Keeping the M'zab specific overlays as they are relevant to the primary use case, even if map is open
 interface KsarDef {
     name: string;
     nameAr: string;
@@ -98,9 +97,6 @@ const RING_STYLES = [
 const palmGroves: { paths: [number, number][] }[] = [
     { paths: [[32.4870, 3.6690], [32.4890, 3.6710], [32.4895, 3.6760], [32.4880, 3.6780], [32.4860, 3.6750], [32.4855, 3.6710]] },
     { paths: [[32.4700, 3.6830], [32.4715, 3.6860], [32.4720, 3.6900], [32.4705, 3.6910], [32.4690, 3.6880], [32.4685, 3.6845]] },
-    { paths: [[32.4865, 3.6790], [32.4878, 3.6810], [32.4882, 3.6845], [32.4870, 3.6850], [32.4858, 3.6825]] },
-    { paths: [[32.4785, 3.6890], [32.4800, 3.6910], [32.4805, 3.6955], [32.4790, 3.6960], [32.4778, 3.6930]] },
-    { paths: [[32.4720, 3.7450], [32.4738, 3.7470], [32.4742, 3.7510], [32.4728, 3.7520], [32.4715, 3.7490]] },
 ];
 
 const wadiPath: [number, number][] = [
@@ -113,7 +109,6 @@ const wadiPath: [number, number][] = [
 const expansionZones: { paths: [number, number][] }[] = [
     { paths: [[32.4940, 3.6660], [32.4970, 3.6700], [32.4960, 3.6810], [32.4920, 3.6820], [32.4900, 3.6690]] },
     { paths: [[32.4840, 3.6870], [32.4860, 3.6920], [32.4850, 3.6990], [32.4820, 3.6985], [32.4815, 3.6880]] },
-    { paths: [[32.4770, 3.7440], [32.4790, 3.7490], [32.4780, 3.7560], [32.4755, 3.7555], [32.4740, 3.7480]] },
 ];
 
 function generateGridLines(bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }, step: number) {
@@ -129,9 +124,8 @@ function generateGridLines(bounds: { minLat: number; maxLat: number; minLng: num
 
 const gridLines = generateGridLines({ minLat: 32.460, maxLat: 32.505, minLng: 3.640, maxLng: 3.770 }, 0.005);
 
-/* ═══════ MapUpdater — dynamic centering ═══════ */
+/* ═══════ MapUpdater ═══════ */
 
-// This component handles programmatic navigation (FlyTo) based on props
 function MapUpdater({
     flyToLocation
 }: {
@@ -142,7 +136,7 @@ function MapUpdater({
         if (flyToLocation) {
             map.flyTo(
                 [flyToLocation.lat, flyToLocation.lng],
-                flyToLocation.zoom || 17,
+                flyToLocation.zoom || 18,
                 { duration: 1.5, easeLinearity: 0.25 }
             );
         }
@@ -150,7 +144,7 @@ function MapUpdater({
     return null;
 }
 
-/* ═══════ ClickHandler — captures map clicks ═══════ */
+/* ═══════ ClickHandler ═══════ */
 
 function ClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
     useMapEvents({
@@ -172,21 +166,19 @@ const permitColors: Record<string, string> = {
 
 function getPermitIcon(permitType: string | null, isSelected: boolean = false) {
     const color = permitColors[permitType || ''] || '#D4AF37';
-    // If selected, make it larger and add distinct border/glow
-    // If not selected, standard size
-    const size = isSelected ? 42 : 28;
-    const anchor = isSelected ? 21 : 14;
+    const size = isSelected ? 50 : 32; // Larger icons for satellite view
+    const anchor = isSelected ? 25 : 16;
 
     return new L.DivIcon({
         className: 'custom-contract-marker',
         html: `<div style="
             width: ${size}px; height: ${size}px; border-radius: 50% 50% 50% 0;
             background: ${color}; 
-            border: ${isSelected ? '3px solid #FFFF00' : '2px solid white'};
+            border: ${isSelected ? '4px solid #FFFF00' : '2px solid white'};
             transform: rotate(-45deg);
-            box-shadow: ${isSelected ? '0 0 15px rgba(255, 255, 0, 0.8)' : '0 2px 6px rgba(0,0,0,0.3)'};
+            box-shadow: ${isSelected ? '0 0 20px rgba(255, 255, 0, 0.9)' : '0 2px 8px rgba(0,0,0,0.5)'};
             display: flex; align-items: center; justify-content: center;
-            z-index: ${isSelected ? 1000 : 'auto'};
+            z-index: ${isSelected ? 2000 : 1500};
         "><div style="
             width: ${size * 0.35}px; height: ${size * 0.35}px; border-radius: 50%;
             background: white; transform: rotate(45deg);
@@ -232,7 +224,7 @@ export default function MapSelector({
     const queryClient = useQueryClient();
     const canEdit = !isViewer && role !== 'viewer';
 
-    // Layer toggles — all OFF by default
+    // Layer toggles
     const [showTopography, setShowTopography] = useState(false);
     const [showExpansion, setShowExpansion] = useState(false);
     const [showGrid, setShowGrid] = useState(false);
@@ -300,7 +292,6 @@ export default function MapSelector({
     /* ── Handlers ── */
 
     const handleMapClick = (lat: number, lng: number) => {
-        // If clicking on empty map in edit mode, initiate add contract flow
         if (canEdit) {
             setTempMarker({ lat, lng });
             setIsModalOpen(true);
@@ -308,7 +299,6 @@ export default function MapSelector({
     };
 
     const handleMarkerClick = (contractId: string) => {
-        // Trigger the callback for sync
         if (onContractSelect) {
             onContractSelect(contractId);
         }
@@ -350,12 +340,12 @@ export default function MapSelector({
         <>
             <Card className="w-full mx-auto shadow-xl overflow-hidden border-0 h-full flex flex-col">
                 {/* ─── HEADER ─── */}
-                <CardHeader className="bg-gradient-to-r from-amber-900/90 to-amber-800/80 text-white py-3 px-4 border-b border-amber-700/50 shrink-0">
+                <CardHeader className="bg-gradient-to-r from-slate-900/90 to-slate-800/80 text-white py-3 px-4 border-b border-slate-700/50 shrink-0">
                     <CardTitle className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
-                            <MapIcon className="w-5 h-5 text-amber-300" />
+                            <Satellite className="w-5 h-5 text-blue-300" />
                             <span className="text-sm font-semibold tracking-wide">
-                                الخريطة العمرانية — فضاء الجزائر (Cadastre)
+                                نظام المعلومات الجغرافية &mdash; صور الأقمار الصناعية + المسح العقاري
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -393,23 +383,26 @@ export default function MapSelector({
                             scrollWheelZoom={true}
                             style={{ width: '100%', height: '100%' }}
                             zoomControl={true}
-                        // REMOVED MAXBOUNDS & MINZOOM to allow free navigation
                         >
-                            {/* 
-                                🚨 ALGERIAN CADASTRE MAP WMS START 🚨
-                                This replaces the OSM TileLayer. 
-                                Note: 'layers' is set to 'Cadastre' as a placeholder.
-                                You may need to verify the exact layer name from the WMS capabilities.
-                            */}
+                            {/* 1. LAYER: Google Satellite Hybrid (Base) */}
+                            <TileLayer
+                                url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                                maxZoom={20}
+                                attribution="Google Satellite"
+                            />
+
+                            {/* 2. LAYER: Algerian Cadastre WMS (Overlay) */}
+                            {/* Transparent overlay sitting on top of Satellite */}
                             <WMSTileLayer
                                 url="https://fadaeldjazair.mf.gov.dz/geoserver/wms"
                                 params={{
-                                    layers: 'Cadastre', // Placeholder layer name
+                                    layers: 'placeholder_layer_name', // To be updated by user
                                     format: 'image/png',
                                     transparent: true,
                                     version: '1.1.1',
                                 }}
-                                attribution='&copy; <a href="https://fadaeldjazair.mf.gov.dz">Fada El Djazair</a>'
+                                zIndex={10}
+                                opacity={0.7}
                             />
 
                             {/* Programmatic FlyTo Handler */}
@@ -418,7 +411,7 @@ export default function MapSelector({
                             {/* Click Handler (Add New) */}
                             <ClickHandler onMapClick={handleMapClick} />
 
-                            {/* Ksar quick-nav listener (legacy support) */}
+                            {/* Ksar quick-nav listener */}
                             <MapFlyToListener />
 
                             {/* ── Contracts Markers ── */}
@@ -720,8 +713,8 @@ function MapLegend({ onClose }: { onClose: () => void }) {
                         </div>
                     ))}
                     <div className="border-t border-white/10 pt-1.5 mt-1.5 text-[9px] text-white/50 space-y-0.5">
-                        <p>📍 WMT/Cadastre</p>
-                        <p>🗺️ Fada El Djazair</p>
+                        <p>📍 Google Satellite Base</p>
+                        <p>🗺️ WMS Cadastre Overlay</p>
                     </div>
                 </div>
             )}
