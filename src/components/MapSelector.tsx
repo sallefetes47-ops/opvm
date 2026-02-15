@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polygon } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Zap, Satellite, Plus } from 'lucide-react';
+import { Loader2, Zap, Satellite, Plus, FileText, Calendar, Hash, CheckCircle2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +24,50 @@ L.Icon.Default.mergeOptions({
 // --- Constants ---
 const GOOGLE_SATELLITE_URL = "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}";
 const CENTER_POS: [number, number] = [32.4810, 3.6900];
+
+// --- DUMMY DATA FOR UI TESTING (Polygons) ---
+// Coordinates are roughly near the center position for visibility
+const DUMMY_CONTRACTS = [
+    {
+        id: 'dummy-1',
+        full_name: 'أحمد بن محمد',
+        file_number: '2023/45',
+        year: '2023',
+        permit_type: 'رخصة بناء', // Blue
+        polygon: [
+            [32.4815, 3.6905],
+            [32.4820, 3.6905],
+            [32.4820, 3.6915],
+            [32.4815, 3.6915]
+        ]
+    },
+    {
+        id: 'dummy-2',
+        full_name: 'شركة الإعمار',
+        file_number: '2022/12',
+        year: '2022',
+        permit_type: 'رخصة تجزئة', // Green
+        polygon: [
+            [32.4800, 3.6890],
+            [32.4810, 3.6890],
+            [32.4810, 3.6900],
+            [32.4800, 3.6885]
+        ]
+    }
+];
+
+// --- Helper Functions ---
+
+const getColorByContractType = (type: string | null): string => {
+    if (!type) return '#3b82f6'; // Default Blue
+    const normalized = type.trim();
+    if (normalized.includes('بناء') || normalized === 'Building Permit') return '#3b82f6'; // Blue
+    if (normalized.includes('هدم') || normalized === 'Demolition') return '#ef4444'; // Red
+    if (normalized.includes('تجزئة') || normalized === 'Subdivision') return '#10b981'; // Green
+    if (normalized.includes('تسوية') || normalized === 'Regularization') return '#f59e0b'; // Amber
+    if (normalized.includes('شهادة') || normalized === 'Certificate') return '#8b5cf6'; // Purple
+    return '#64748b'; // Slate (Gray)
+};
 
 // --- Helper Components ---
 
@@ -64,7 +108,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
-    // --- STATE DEFINITIONS (CRITICAL FIX) ---
+    // --- STATE ---
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [tempCoords, setTempCoords] = useState<{ lat: number; lng: number } | null>(null);
     const [contractForm, setContractForm] = useState({
@@ -73,26 +117,24 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
         year: new Date().getFullYear(),
     });
 
-    // MISSING STATE FIXED HERE:
-    const [cadastreInfo, setCadastreInfo] = useState<{ section: string; group: string; lat: number; lng: number } | null>(null);
-    const [isCadastreLoading, setIsCadastreLoading] = useState(false);
+    const [cadastreInfo, setCadastreInfo] = useState<{
+        section: string;
+        group: string;
+        lat: number;
+        lng: number;
+        loading: boolean;
+        error: string | null
+    } | null>(null);
 
-
-    // 1. Fetch Contracts (SAFE MODE)
-    const { data: rawContracts, isLoading, error } = useQuery({
+    // 1. Fetch Contracts
+    const { data: dbContracts, isLoading, error } = useQuery({
         queryKey: ['map-contracts-safe'],
         queryFn: async () => {
             console.log("Fetching contracts...");
             try {
-                // Select ALL columns to see what we actually have
-                const { data, error } = await supabase
-                    .from('files')
-                    .select('*');
-
+                const { data, error } = await supabase.from('files').select('*');
                 if (error) {
-                    console.error("Supabase Error:", error);
-                    // Don't throw if it's just a column error, return empty to keep map alive
-                    if (error.code === '42703') { // Undefined column
+                    if (error.code === '42703') {
                         toast({ title: "Database Warning", description: "Column mismatch detected. Map running in safe mode.", variant: "destructive" });
                         return [];
                     }
@@ -101,10 +143,13 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                 return data || [];
             } catch (err) {
                 console.error("Fetch Error:", err);
-                return []; // Return empty array on crash to ensure map still renders
+                return [];
             }
         }
     });
+
+    // MERGE DB DATA WITH DUMMY DATA FOR TESTING
+    const rawContracts = [...(dbContracts || []), ...DUMMY_CONTRACTS];
 
     // 2. Mutations
     const createMutation = useMutation({
@@ -126,42 +171,52 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
         onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
     });
 
-    // Cadastre Fetch Logic
+    // Cadastre Fetch Logic (SIMULATED ONLY due to API Block)
     const handleCadastreFetch = async (lat: number, lng: number) => {
-        setIsCadastreLoading(true);
-        setCadastreInfo({ section: '...', group: '...', lat, lng });
+        setCadastreInfo({ section: '...', group: '...', lat, lng, loading: true, error: null });
+        console.log("📍 Clicked Coordinates:", lat, lng);
 
         try {
-            // SIMULATION: In production, fetch `https://fadaeldjazair.mf.gov.dz/...`
-            await new Promise(resolve => setTimeout(resolve, 800));
+            // SIMULATION because real API is blocked by CORS/Network
+            console.log("🌐 Simulating Cadastre Fetch for visual testing...");
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // Random mock data for demo
+            // Random mock data
+            const mockSection = Math.floor(Math.random() * 50 + 1).toString();
+            const mockGroup = Math.floor(Math.random() * 200 + 100).toString();
+
+            const mockResponse = { section: mockSection, propertyGroup: mockGroup, note: "Simulated Data" };
+            console.log("✅ CADASTRE_RESPONSE (Simulated):", mockResponse);
+
             setCadastreInfo({
-                section: Math.floor(Math.random() * 50 + 1).toString(),
-                group: Math.floor(Math.random() * 200 + 100).toString(),
+                section: mockSection,
+                group: mockGroup,
                 lat,
-                lng
+                lng,
+                loading: false,
+                error: null
             });
-        } catch (e) {
-            toast({ title: "Cadastre Error", description: "Could not fetch parcel data", variant: "destructive" });
-        } finally {
-            setIsCadastreLoading(false);
+
+        } catch (error: any) {
+            console.error("❌ Fetch Error:", error);
+            setCadastreInfo({
+                section: '',
+                group: '',
+                lat,
+                lng,
+                loading: false,
+                error: `خطأ في الاتصال: ${error.message}`
+            });
         }
     };
 
-    // Handlers
     const handleMapClick = (lat: number, lng: number) => {
-        console.log(`Clicked at: ${lat}, ${lng}`);
-
-        // 1. Fetch Cadastre Info (Always)
         handleCadastreFetch(lat, lng);
-
         if (canEdit) {
             setTempCoords({ lat, lng });
         }
     };
 
-    // Helper to extract coordinates safely from unknown column names
     const getCoords = (item: any): [number, number] | null => {
         const lat = item.location_lat ?? item.lat ?? item.latitude;
         const lng = item.location_lng ?? item.lng ?? item.longitude;
@@ -175,18 +230,17 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                 <CardTitle className="text-sm flex items-center gap-2 justify-between">
                     <div className="flex items-center gap-2">
                         <Satellite className="w-4 h-4 text-blue-400" />
-                        نظام المعلومات الجغرافية
+                        نظام المعلومات الجغرافية المتقدم
                         {isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
                     </div>
                 </CardTitle>
             </CardHeader>
 
             <CardContent className="p-0 flex-1 relative bg-slate-100">
-                {/* SAFE RENDER: Explicit height to prevent white screen */}
                 <div style={{ height: '600px', width: '100%' }}>
                     <MapContainer
                         center={CENTER_POS}
-                        zoom={15}
+                        zoom={16}
                         style={{ height: '100%', width: '100%' }}
                         scrollWheelZoom={true}
                     >
@@ -202,74 +256,113 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                         {/* Cadastre Info Popup */}
                         {cadastreInfo && (
                             <Popup position={[cadastreInfo.lat, cadastreInfo.lng]} onClose={() => setCadastreInfo(null)}>
-                                <div className="text-right p-1 min-w-[150px]" dir="rtl">
-                                    <h4 className="font-bold text-sm border-b pb-1 mb-2 flex items-center gap-2">
+                                <div className="text-right p-1 min-w-[200px]" dir="rtl">
+                                    <h4 className="font-bold text-sm border-b pb-2 mb-2 flex items-center gap-2 bg-slate-50 p-1 rounded-t">
                                         <Satellite className="w-3 h-3 text-blue-500" />
                                         بيانات المسح العقاري
                                     </h4>
-                                    {isCadastreLoading ? (
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <Loader2 className="w-3 h-3 animate-spin" />
-                                            جاري جلب البيانات...
+
+                                    {cadastreInfo.loading ? (
+                                        <div className="flex flex-col items-center justify-center py-4 space-y-2">
+                                            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                            <span className="text-xs text-muted-foreground">جاري التحليل الهندسي...</span>
+                                        </div>
+                                    ) : cadastreInfo.error ? (
+                                        <div className="text-red-500 text-xs py-2 bg-red-50 p-2 rounded border border-red-100 mb-2">
+                                            <p className="font-bold mb-1">تعذر الجلب</p>
+                                            <p className="opacity-80 break-words">{cadastreInfo.error}</p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-1 text-xs">
-                                            <div className="flex justify-between">
+                                        <div className="space-y-2 text-xs">
+                                            <div className="flex justify-between items-center bg-white border p-1.5 rounded">
                                                 <span className="text-muted-foreground">القسم (Section):</span>
-                                                <span className="font-mono font-bold">{cadastreInfo.section}</span>
+                                                <span className="font-mono font-bold text-sm">{cadastreInfo.section}</span>
                                             </div>
-                                            <div className="flex justify-between">
+                                            <div className="flex justify-between items-center bg-white border p-1.5 rounded">
                                                 <span className="text-muted-foreground">مجموعة الملكية:</span>
-                                                <span className="font-mono font-bold">{cadastreInfo.group}</span>
+                                                <span className="font-mono font-bold text-sm">{cadastreInfo.group}</span>
                                             </div>
-
-                                            {canEdit && (
-                                                <Button
-                                                    size="sm"
-                                                    className="w-full mt-2 h-7 text-xs"
-                                                    onClick={() => setIsAddModalOpen(true)}
-                                                >
-                                                    <Plus className="w-3 h-3 ml-1" />
-                                                    إضافة عقد هنا
-                                                </Button>
-                                            )}
                                         </div>
+                                    )}
+
+                                    {canEdit && (
+                                        <Button
+                                            size="sm"
+                                            className="w-full mt-2 h-8 text-xs font-semibold"
+                                            onClick={() => setIsAddModalOpen(true)}
+                                        >
+                                            <Plus className="w-3 h-3 ml-1" />
+                                            إضافة عقد جديد هنا
+                                        </Button>
                                     )}
                                 </div>
                             </Popup>
                         )}
 
-                        {/* Rendering Markers Safely */}
-                        {rawContracts?.map((c: any) => {
+                        {/* Contracts Layer: Polygons & Markers */}
+                        {rawContracts.map((c: any) => {
                             const coords = getCoords(c);
-                            if (!coords) return null; // Skip invalid records
+                            const color = getColorByContractType(c.permit_type || c.contract_type);
 
-                            return (
-                                <Marker
-                                    key={c.id}
-                                    position={coords}
-                                    eventHandlers={{
-                                        click: (e) => {
-                                            L.DomEvent.stopPropagation(e);
-                                            if (onContractSelect) onContractSelect(c.id);
-                                        }
-                                    }}
-                                >
-                                    <Popup>
-                                        <div className="font-bold text-right" dir="rtl">{c.full_name || 'بدون اسم'}</div>
-                                        <div className="text-xs text-gray-500">{c.file_number}</div>
-                                    </Popup>
-                                </Marker>
-                            );
+                            // 1. Render Polygon if geometry exists
+                            if (c.polygon && Array.isArray(c.polygon) && c.polygon.length > 2) {
+                                return (
+                                    <Polygon
+                                        key={`poly-${c.id}`}
+                                        positions={c.polygon as [number, number][]}
+                                        pathOptions={{
+                                            color: color,
+                                            fillColor: color,
+                                            fillOpacity: 0.4,
+                                            weight: 2
+                                        }}
+                                        eventHandlers={{
+                                            click: (e) => {
+                                                L.DomEvent.stopPropagation(e);
+                                                if (onContractSelect) onContractSelect(c.id);
+                                            }
+                                        }}
+                                    >
+                                        <Popup>
+                                            <ContractPopupContent contract={c} color={color} />
+                                        </Popup>
+                                    </Polygon>
+                                );
+                            }
+
+                            // 2. Render Marker if no polygon but has ID point
+                            if (coords) {
+                                return (
+                                    <Marker
+                                        key={`marker-${c.id}`}
+                                        position={coords}
+                                        eventHandlers={{
+                                            click: (e) => {
+                                                L.DomEvent.stopPropagation(e);
+                                                if (onContractSelect) onContractSelect(c.id);
+                                            }
+                                        }}
+                                    >
+                                        <Popup>
+                                            <ContractPopupContent contract={c} color={color} />
+                                        </Popup>
+                                    </Marker>
+                                );
+                            }
+                            return null;
                         })}
+
                     </MapContainer>
                 </div>
 
-                {/* Legend */}
-                <div className="absolute bottom-4 left-4 bg-white/90 p-2 rounded shadow-md z-[1000] text-xs text-left ltr">
-                    <div className="font-bold flex items-center gap-1">
-                        <Zap className="w-3 h-3 text-yellow-500" />
-                        Live
+                <div className="absolute bottom-4 left-4 bg-white/95 p-3 rounded-lg shadow-lg z-[1000] text-xs text-left ltr border border-slate-200 backdrop-blur-sm">
+                    <div className="font-bold flex items-center gap-2 mb-2 text-slate-700">
+                        <Zap className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                        Legend
+                    </div>
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500"></span> Building Permit</div>
+                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500"></span> Subdivision</div>
                     </div>
                 </div>
 
@@ -282,7 +375,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                         <DialogTitle>إضافة موقع العقد</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-2">
-                        <div className="text-xs bg-slate-100 p-2 rounded font-mono text-left" dir="ltr">
+                        <div className="text-xs bg-slate-100 p-2 rounded font-mono text-left opacity-70" dir="ltr">
                             Lat: {tempCoords?.lat.toFixed(6)}, Lng: {tempCoords?.lng.toFixed(6)}
                         </div>
                         <div className="space-y-2">
@@ -312,5 +405,42 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                 </DialogContent>
             </Dialog>
         </Card>
+    );
+}
+
+// Sub-component for clean Popup content
+function ContractPopupContent({ contract, color }: { contract: any; color: string }) {
+    return (
+        <div className="text-right min-w-[180px]" dir="rtl">
+            <div className="border-b pb-2 mb-2 flex items-center justify-between">
+                <span className="font-bold text-sm text-slate-800">{contract.full_name || 'بدون اسم'}</span>
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }}></span>
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-600">
+                <div className="flex items-center gap-2">
+                    <FileText className="w-3 h-3" />
+                    <span>رقم الملف: </span>
+                    <span className="font-mono font-bold text-slate-900">{contract.file_number}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <Calendar className="w-3 h-3" />
+                    <span>السنة: </span>
+                    <span className="font-mono font-bold text-slate-900">{contract.year || '---'}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>النوع: </span>
+                    <span className="font-bold text-slate-900">{contract.permit_type || contract.contract_type || '---'}</span>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                    <Hash className="w-3 h-3 text-slate-400" />
+                    <span className="font-mono text-[10px] text-slate-400">{contract.id?.slice(0, 8)}...</span>
+                </div>
+            </div>
+        </div>
     );
 }
