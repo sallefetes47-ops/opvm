@@ -25,37 +25,6 @@ L.Icon.Default.mergeOptions({
 const GOOGLE_SATELLITE_URL = "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}";
 const CENTER_POS: [number, number] = [32.4810, 3.6900];
 
-// --- DUMMY DATA FOR UI TESTING (Polygons) ---
-// Coordinates are roughly near the center position for visibility
-const DUMMY_CONTRACTS = [
-    {
-        id: 'dummy-1',
-        full_name: 'أحمد بن محمد',
-        file_number: '2023/45',
-        year: '2023',
-        permit_type: 'رخصة بناء', // Blue
-        polygon: [
-            [32.4815, 3.6905],
-            [32.4820, 3.6905],
-            [32.4820, 3.6915],
-            [32.4815, 3.6915]
-        ]
-    },
-    {
-        id: 'dummy-2',
-        full_name: 'شركة الإعمار',
-        file_number: '2022/12',
-        year: '2022',
-        permit_type: 'رخصة تجزئة', // Green
-        polygon: [
-            [32.4800, 3.6890],
-            [32.4810, 3.6890],
-            [32.4810, 3.6900],
-            [32.4800, 3.6885]
-        ]
-    }
-];
-
 // --- Helper Functions ---
 
 const getColorByContractType = (type: string | null): string => {
@@ -127,7 +96,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
     } | null>(null);
 
     // 1. Fetch Contracts
-    const { data: dbContracts, isLoading, error } = useQuery({
+    const { data: rawContracts, isLoading, error } = useQuery({
         queryKey: ['map-contracts-safe'],
         queryFn: async () => {
             console.log("Fetching contracts...");
@@ -147,9 +116,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
             }
         }
     });
-
-    // MERGE DB DATA WITH DUMMY DATA FOR TESTING
-    const rawContracts = [...(dbContracts || []), ...DUMMY_CONTRACTS];
 
     // 2. Mutations
     const createMutation = useMutation({
@@ -171,26 +137,33 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
         onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
     });
 
-    // Cadastre Fetch Logic (SIMULATED ONLY due to API Block)
+    // Cadastre Fetch Logic
     const handleCadastreFetch = async (lat: number, lng: number) => {
         setCadastreInfo({ section: '...', group: '...', lat, lng, loading: true, error: null });
         console.log("📍 Clicked Coordinates:", lat, lng);
 
         try {
-            // SIMULATION because real API is blocked by CORS/Network
-            console.log("🌐 Simulating Cadastre Fetch for visual testing...");
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const apiUrl = `https://fadaeldjazair.mf.gov.dz/api/cadastre/from?get&lat=${lat}&lng=${lng}`;
+            console.log("🌐 Fetching from:", apiUrl);
 
-            // Random mock data
-            const mockSection = Math.floor(Math.random() * 50 + 1).toString();
-            const mockGroup = Math.floor(Math.random() * 200 + 100).toString();
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-            const mockResponse = { section: mockSection, propertyGroup: mockGroup, note: "Simulated Data" };
-            console.log("✅ CADASTRE_RESPONSE (Simulated):", mockResponse);
+            const response = await fetch(apiUrl, {
+                signal: controller.signal,
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+            const data = await response.json();
+            console.log("✅ CADASTRE_RESPONSE:", data);
 
             setCadastreInfo({
-                section: mockSection,
-                group: mockGroup,
+                section: data.section || '---',
+                group: data.group || data.propertyGroup || '---',
                 lat,
                 lng,
                 loading: false,
@@ -299,8 +272,8 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                             </Popup>
                         )}
 
-                        {/* Contracts Layer: Polygons & Markers */}
-                        {rawContracts.map((c: any) => {
+                        {/* Real Contracts Layer: Polygons & Markers */}
+                        {rawContracts?.map((c: any) => {
                             const coords = getCoords(c);
                             const color = getColorByContractType(c.permit_type || c.contract_type);
 
@@ -422,12 +395,6 @@ function ContractPopupContent({ contract, color }: { contract: any; color: strin
                     <FileText className="w-3 h-3" />
                     <span>رقم الملف: </span>
                     <span className="font-mono font-bold text-slate-900">{contract.file_number}</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <Calendar className="w-3 h-3" />
-                    <span>السنة: </span>
-                    <span className="font-mono font-bold text-slate-900">{contract.year || '---'}</span>
                 </div>
 
                 <div className="flex items-center gap-2">
