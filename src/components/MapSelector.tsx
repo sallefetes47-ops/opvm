@@ -172,7 +172,45 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                         <MapEvents onMapClick={handleMapClick} />
                         <MapController flyToLocation={flyToLocation} />
 
-                        {/* Rendering Markers Safely */}
+                        {/* Cadastre Info Popup */}
+                        {cadastreInfo && (
+                            <Popup position={[cadastreInfo.lat, cadastreInfo.lng]} onClose={() => setCadastreInfo(null)}>
+                                <div className="text-right p-1 min-w-[150px]" dir="rtl">
+                                    <h4 className="font-bold text-sm border-b pb-1 mb-2 flex items-center gap-2">
+                                        <Satellite className="w-3 h-3 text-blue-500" />
+                                        بيانات المسح العقاري
+                                    </h4>
+                                    {isCadastreLoading ? (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                            جاري جلب البيانات...
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-1 text-xs">
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">القسم (Section):</span>
+                                                <span className="font-mono font-bold">{cadastreInfo.section}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">مجموعة الملكية:</span>
+                                                <span className="font-mono font-bold">{cadastreInfo.group}</span>
+                                            </div>
+
+                                            {canEdit && (
+                                                <Button
+                                                    size="sm"
+                                                    className="w-full mt-2 h-7 text-xs"
+                                                    onClick={() => setIsAddModalOpen(true)}
+                                                >
+                                                    <Plus className="w-3 h-3 ml-1" />
+                                                    إضافة عقد هنا
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </Popup>
+                        )}
                         {rawContracts?.map((c: any) => {
                             const coords = getCoords(c);
                             if (!coords) return null; // Skip invalid records

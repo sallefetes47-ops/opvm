@@ -203,10 +203,11 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                             maxBoundsViscosity={1.0}
                             minZoom={12}
                         >
-                            {/* Clean OSM base layer — no API key required */}
+                            {/* Google Satellite Base Layer */}
                             <TileLayer
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                attribution="Google Satellite"
+                                url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                                maxZoom={20}
                             />
 
                             {/* Click to capture coordinates */}
