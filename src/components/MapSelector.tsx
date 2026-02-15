@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     MapContainer, TileLayer, Marker, Popup, Polygon, Polyline,
-    useMap, useMapEvents,
+    useMap, useMapEvents
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -44,16 +44,6 @@ L.Icon.Default.mergeOptions({
 
 /* ─────────────────── CUSTOM ICONS ─────────────────── */
 
-const contractIcon = new L.Icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-});
-
 const tempIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
     shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -66,7 +56,7 @@ const tempIcon = new L.Icon({
 /* ─────────────────── CONFIG ─────────────────── */
 
 const MAP_HEIGHT = '600px';
-const center: [number, number] = [32.4810, 3.6900];
+const CENTER: [number, number] = [32.4810, 3.6900];
 
 /* ─── MAP BOUNDS: restrict view to M'zab Valley / Ghardaia region ─── */
 const MAX_BOUNDS: L.LatLngBoundsExpression = [
@@ -147,11 +137,22 @@ const gridLines = generateGridLines({ minLat: 32.460, maxLat: 32.505, minLng: 3.
 
 /* ═══════ MapUpdater — dynamic centering ═══════ */
 
-function MapUpdater({ lat, lng, zoom }: { lat: number; lng: number; zoom: number }) {
+// This component handles programmatic navigation (FlyTo) based on props
+function MapUpdater({ 
+    flyToLocation 
+}: { 
+    flyToLocation: { lat: number; lng: number; zoom?: number } | null 
+}) {
     const map = useMap();
     useEffect(() => {
-        map.flyTo([lat, lng], zoom, { duration: 1.2 });
-    }, [map, lat, lng, zoom]);
+        if (flyToLocation) {
+            map.flyTo(
+                [flyToLocation.lat, flyToLocation.lng], 
+                flyToLocation.zoom || 17, 
+                { duration: 1.5, easeLinearity: 0.25 }
+            );
+        }
+    }, [map, flyToLocation]);
     return null;
 }
 
@@ -175,23 +176,30 @@ const permitColors: Record<string, string> = {
     'شهادة تقسيم': '#9333ea',
 };
 
-function getPermitIcon(permitType: string | null) {
+function getPermitIcon(permitType: string | null, isSelected: boolean = false) {
     const color = permitColors[permitType || ''] || '#D4AF37';
+    // If selected, make it larger and add distinct border/glow
+    // If not selected, standard size
+    const size = isSelected ? 42 : 28;
+    const anchor = isSelected ? 21 : 14; 
+    
     return new L.DivIcon({
         className: 'custom-contract-marker',
         html: `<div style="
-            width: 28px; height: 28px; border-radius: 50% 50% 50% 0;
-            background: ${color}; border: 2px solid white;
+            width: ${size}px; height: ${size}px; border-radius: 50% 50% 50% 0;
+            background: ${color}; 
+            border: ${isSelected ? '3px solid #FFFF00' : '2px solid white'};
             transform: rotate(-45deg);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            box-shadow: ${isSelected ? '0 0 15px rgba(255, 255, 0, 0.8)' : '0 2px 6px rgba(0,0,0,0.3)'};
             display: flex; align-items: center; justify-content: center;
+            z-index: ${isSelected ? 1000 : 'auto'};
         "><div style="
-            width: 10px; height: 10px; border-radius: 50%;
+            width: ${size * 0.35}px; height: ${size * 0.35}px; border-radius: 50%;
             background: white; transform: rotate(45deg);
         "></div></div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 28],
-        popupAnchor: [0, -28],
+        iconSize: [size, size],
+        iconAnchor: [anchor, size],
+        popupAnchor: [0, -size],
     });
 }
 
@@ -200,9 +208,9 @@ function getPermitIcon(permitType: string | null) {
    ══════════════════════════════════════════════════════ */
 
 export interface MapSelectorProps {
-    focusLat?: number | null;
-    focusLng?: number | null;
-    focusZoom?: number;
+    flyToLocation?: { lat: number; lng: number; zoom?: number } | null;
+    selectedContractId?: string | null;
+    onContractSelect?: (contractId: string) => void;
 }
 
 interface ContractFile {
@@ -219,11 +227,12 @@ interface ContractFile {
     submission_date: string | null;
 }
 
-export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapSelectorProps = {}) {
-    const isFocusMode = focusLat != null && focusLng != null;
-    const effectiveCenter: [number, number] = isFocusMode ? [focusLat!, focusLng!] : center;
-    const effectiveZoom = isFocusMode ? focusZoom : 13;
-
+export default function MapSelector({ 
+    flyToLocation, 
+    selectedContractId, 
+    onContractSelect 
+}: MapSelectorProps) {
+    
     const { user, role, isViewer } = useAuth();
     const { toast } = useToast();
     const queryClient = useQueryClient();
@@ -297,9 +306,18 @@ export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapS
     /* ── Handlers ── */
 
     const handleMapClick = (lat: number, lng: number) => {
-        if (!canEdit) return;
-        setTempMarker({ lat, lng });
-        setIsModalOpen(true);
+        // If clicking on empty map in edit mode, initiate add contract flow
+        if (canEdit) {
+            setTempMarker({ lat, lng });
+            setIsModalOpen(true);
+        }
+    };
+
+    const handleMarkerClick = (contractId: string) => {
+        // Trigger the callback for sync
+        if (onContractSelect) {
+            onContractSelect(contractId);
+        }
     };
 
     const closeModal = () => {
@@ -336,9 +354,9 @@ export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapS
 
     return (
         <>
-            <Card className="w-full mx-auto shadow-xl overflow-hidden border-0">
+            <Card className="w-full mx-auto shadow-xl overflow-hidden border-0 h-full flex flex-col">
                 {/* ─── HEADER ─── */}
-                <CardHeader className="bg-gradient-to-r from-amber-900/90 to-amber-800/80 text-white py-3 px-4 border-b border-amber-700/50">
+                <CardHeader className="bg-gradient-to-r from-amber-900/90 to-amber-800/80 text-white py-3 px-4 border-b border-amber-700/50 shrink-0">
                     <CardTitle className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
                             <MapIcon className="w-5 h-5 text-amber-300" />
@@ -357,7 +375,7 @@ export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapS
                     </CardTitle>
                 </CardHeader>
 
-                <CardContent className="p-0 relative">
+                <CardContent className="p-0 relative flex-1 min-h-0">
                     {/* ─── TOOLBAR ─── */}
                     <div className="p-3 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm flex flex-wrap gap-2 items-center sticky top-0 z-[1000] border-b shadow-sm">
                         <LayerToggle active={showKsarRings} onClick={() => setShowKsarRings(!showKsarRings)} icon={<Layers className="h-3.5 w-3.5" />} label="حدود القصور" />
@@ -368,16 +386,16 @@ export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapS
                         {canEdit && (
                             <span className="text-[10px] text-muted-foreground mr-auto flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
-                                انقر على الخريطة لإضافة عقد جديد
+                                انقر لإضافة عقد جديد
                             </span>
                         )}
                     </div>
 
-                    {/* ─── MAP ─── */}
-                    <div className="relative" style={{ height: MAP_HEIGHT }}>
+                    {/* ─── MAPCONTAINER ─── */}
+                    <div className="relative w-full h-[600px] md:h-full min-h-[500px]">
                         <MapContainer
-                            center={effectiveCenter}
-                            zoom={effectiveZoom}
+                            center={CENTER}
+                            zoom={13}
                             scrollWheelZoom={true}
                             style={{ width: '100%', height: '100%' }}
                             zoomControl={true}
@@ -385,67 +403,62 @@ export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapS
                             maxBoundsViscosity={1.0}
                             minZoom={MIN_ZOOM}
                         >
-                            {/* Clean OSM Base Layer */}
+                            {/* Strictly OSM Tiles only */}
                             <TileLayer
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
 
-                            {/* Dynamic centering */}
-                            {isFocusMode && (
-                                <MapUpdater lat={focusLat!} lng={focusLng!} zoom={focusZoom} />
-                            )}
+                            {/* Programmatic FlyTo Handler */}
+                            <MapUpdater flyToLocation={flyToLocation || null} />
 
-                            {/* Click handler for adding contracts */}
-                            {canEdit && <ClickHandler onMapClick={handleMapClick} />}
+                            {/* Click Handler (Add New) */}
+                            <ClickHandler onMapClick={handleMapClick} />
 
-                            {/* Ksar quick-nav listener */}
+                            {/* Ksar quick-nav listener (legacy support) */}
                             <MapFlyToListener />
 
-                            {/* ── Contracts from DB ── */}
-                            {contracts?.map((c) => (
-                                <Marker
-                                    key={c.id}
-                                    position={[c.location_lat!, c.location_lng!]}
-                                    icon={getPermitIcon(c.permit_type)}
-                                >
-                                    <Popup>
-                                        <div className="text-right min-w-[200px]" dir="rtl">
-                                            <p className="font-bold text-sm mb-1">{c.full_name}</p>
-                                            <p className="text-xs text-gray-600 mb-1">📁 {c.file_number}</p>
-                                            <p className="text-xs text-gray-600 mb-1">📍 {c.address}</p>
-                                            <p className="text-xs text-gray-600 mb-1">🏘️ {c.municipality}</p>
-                                            {c.permit_type && (
-                                                <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full mt-1"
-                                                    style={{
-                                                        backgroundColor: (permitColors[c.permit_type] || '#D4AF37') + '20',
-                                                        color: permitColors[c.permit_type] || '#D4AF37',
-                                                    }}
-                                                >
-                                                    {c.permit_type}
-                                                </span>
-                                            )}
-                                            {c.committee_opinion && (
-                                                <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full mt-1 mr-1 ${c.committee_opinion === 'رأي إيجابي'
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : c.committee_opinion === 'مرفوض'
-                                                        ? 'bg-red-100 text-red-700'
-                                                        : 'bg-yellow-100 text-yellow-700'
-                                                    }`}>
-                                                    {c.committee_opinion}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </Popup>
-                                </Marker>
-                            ))}
+                            {/* ── Contracts Markers ── */}
+                            {contracts?.map((c) => {
+                                const isSelected = selectedContractId === c.id;
+                                return (
+                                    <Marker
+                                        key={c.id}
+                                        position={[c.location_lat!, c.location_lng!]}
+                                        icon={getPermitIcon(c.permit_type, isSelected)}
+                                        eventHandlers={{
+                                            click: () => handleMarkerClick(c.id),
+                                        }}
+                                        zIndexOffset={isSelected ? 1000 : 0}
+                                    >
+                                        <Popup>
+                                            <div className="text-right min-w-[200px]" dir="rtl">
+                                                <p className="font-bold text-sm mb-1">{c.full_name}</p>
+                                                <p className="text-xs text-gray-600 mb-1">📁 {c.file_number}</p>
+                                                <p className="text-xs text-gray-600 mb-1">📍 {c.address}</p>
+                                                <p className="text-xs text-gray-600 mb-1">🏘️ {c.municipality}</p>
+                                                {c.permit_type && (
+                                                    <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full mt-1"
+                                                        style={{
+                                                            backgroundColor: (permitColors[c.permit_type] || '#D4AF37') + '20',
+                                                            color: permitColors[c.permit_type] || '#D4AF37',
+                                                        }}
+                                                    >
+                                                        {c.permit_type}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+                                );
+                            })}
 
                             {/* ── Temporary pin for new contract ── */}
                             {tempMarker && (
                                 <Marker position={[tempMarker.lat, tempMarker.lng]} icon={tempIcon} />
                             )}
 
-                            {/* ── Ksar concentric rings ── */}
+                            {/* ── Overlays ── */}
                             {showKsarRings && KSOUR.map((k) =>
                                 RING_STYLES.map((style, ri) => (
                                     <Polygon
@@ -461,8 +474,6 @@ export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapS
                                     />
                                 )),
                             )}
-
-                            {/* ── Palm groves ── */}
                             {showTopography && palmGroves.map((grove, idx) => (
                                 <Polygon
                                     key={`grove-${idx}`}
@@ -470,16 +481,12 @@ export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapS
                                     pathOptions={{ fillColor: '#228B22', fillOpacity: 0.35, color: '#006400', weight: 1.5, opacity: 0.8 }}
                                 />
                             ))}
-
-                            {/* ── Wadi M'zab ── */}
                             {showTopography && (
                                 <>
                                     <Polyline positions={wadiPath} pathOptions={{ color: '#C2956B', opacity: 0.25, weight: 18 }} />
                                     <Polyline positions={wadiPath} pathOptions={{ color: '#A0784C', opacity: 0.75, weight: 3, dashArray: '6 8' }} />
                                 </>
                             )}
-
-                            {/* ── Expansion zones ── */}
                             {showExpansion && expansionZones.map((zone, idx) => (
                                 <Polygon
                                     key={`exp-${idx}`}
@@ -487,11 +494,10 @@ export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapS
                                     pathOptions={{ fillColor: '#FF6B35', fillOpacity: 0.15, color: '#FF6B35', weight: 2, opacity: 0.6 }}
                                 />
                             ))}
-
-                            {/* ── Grid ── */}
                             {showGrid && gridLines.map((line, idx) => (
                                 <Polyline key={`grid-${idx}`} positions={line.path} pathOptions={{ color: '#00CED1', opacity: 0.25, weight: 0.8 }} />
                             ))}
+
                         </MapContainer>
 
                         {/* ─── FLOATING LEGEND ─── */}
@@ -504,18 +510,6 @@ export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapS
                                 <Info className="h-3 w-3" /> Legend
                             </button>
                         )}
-                    </div>
-
-                    {/* ─── COORDINATES BAR ─── */}
-                    <div className="p-3 grid grid-cols-2 md:grid-cols-5 gap-3 bg-gradient-to-r from-zinc-100 to-zinc-50 dark:from-zinc-900 dark:to-zinc-800 border-t text-xs">
-                        <CoordCell label="خط العرض (Lat)" value={`${(isFocusMode ? focusLat! : effectiveCenter[0]).toFixed(6)}°N`} />
-                        <CoordCell label="خط الطول (Lng)" value={`${(isFocusMode ? focusLng! : effectiveCenter[1]).toFixed(6)}°E`} />
-                        <CoordCell label="Datum" value="WGS 84" />
-                        <CoordCell label="CRS" value="EPSG:4326" />
-                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground italic col-span-2 md:col-span-1">
-                            <MapPin className="h-3 w-3 shrink-0" />
-                            <span>{isFocusMode ? 'موقع العقد │ Contract Location' : 'وادي ميزاب — M\'zab Valley'}</span>
-                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -641,11 +635,6 @@ export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapS
 /* ══════════════════ SUB-COMPONENTS ══════════════════ */
 
 function KsarButton({ ksar }: { ksar: KsarDef }) {
-    const ParentMapRef = React.createContext<L.Map | null>(null);
-    // This is a standalone button — we use it purely for styling.
-    // The actual flyTo happens through MapUpdater via navTarget pattern, but
-    // since we simplified, we wrap the buttons and use a context-free approach:
-    // The button just triggers a custom event via window. The map listens.
     return (
         <Button
             variant="ghost"
@@ -688,15 +677,6 @@ function LayerToggle({ active, onClick, icon, label }: {
             {icon}
             {label}
         </Button>
-    );
-}
-
-function CoordCell({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="space-y-0.5">
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">{label}</p>
-            <p className="font-mono text-sm font-bold text-primary">{value}</p>
-        </div>
     );
 }
 

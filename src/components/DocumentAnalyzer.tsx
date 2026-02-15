@@ -21,7 +21,7 @@ type OfficialDocType =
     | 'المراسيم'           // Decrees
     | 'التعليمات';         // Directives / Instructions
 
-interface AnalysisResult {
+export interface AnalysisResult {
     classification: OfficialDocType | string;
     classificationConfidence: 'high' | 'medium' | 'low';
     date: string;
@@ -31,6 +31,10 @@ interface AnalysisResult {
     mainSubject: string;
     keyDecisions: string[];
     rawText: string;
+}
+
+interface DocumentAnalyzerProps {
+    onAnalysisComplete?: (data: AnalysisResult, file: File) => void;
 }
 
 /* ════════════════════════════════════════════════════════
@@ -96,10 +100,16 @@ function extractMetadata(text: string): Omit<AnalysisResult, 'classification' | 
     };
     const dateP1 = text.match(/(?:المؤرخ في|بتاريخ|الموافق(?:\s*لـ?)?)\s*(\d{1,2})\s*(جانفي|فيفري|فبراير|يناير|مارس|أفريل|أبريل|ماي|مايو|جوان|يونيو|جويلية|يوليو|أوت|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر)\s*(?:سنة\s*)?(\d{4})/);
     if (dateP1) {
-        date = `${dateP1[1].padStart(2, '0')} ${dateP1[2]} ${dateP1[3]}`;
+        const day = dateP1[1].padStart(2, '0');
+        const monthAr = dateP1[2];
+        const year = dateP1[3];
+        const monthNum = monthMap[monthAr] || '01';
+        date = `${year}-${monthNum}-${day}`;
     } else {
         const dateP2 = text.match(/(?:المؤرخ في|بتاريخ|الموافق)\s*(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-        if (dateP2) date = `${dateP2[1]}/${dateP2[2]}/${dateP2[3]}`;
+        if (dateP2) {
+            date = `${dateP2[3]}-${dateP2[2].padStart(2, '0')}-${dateP2[1].padStart(2, '0')}`;
+        }
     }
 
     // Issuing authority
@@ -154,7 +164,7 @@ function extractMetadata(text: string): Omit<AnalysisResult, 'classification' | 
    COMPONENT
    ════════════════════════════════════════════════════════ */
 
-export default function DocumentAnalyzer() {
+export default function DocumentAnalyzer({ onAnalysisComplete }: DocumentAnalyzerProps) {
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -243,6 +253,10 @@ export default function DocumentAnalyzer() {
             setProgress(100);
             setStatusText('تم التحليل بنجاح!');
 
+            if (onAnalysisComplete) {
+                onAnalysisComplete(result, selectedFile);
+            }
+
             toast({ title: 'تم التحليل', description: 'تم استخراج البيانات وتصنيف الوثيقة بنجاح' });
         } catch (error: any) {
             console.error('Analysis Error:', error);
@@ -262,16 +276,10 @@ export default function DocumentAnalyzer() {
             setAnalysis(fallback);
             setProgress(0);
             setStatusText('');
-
-            toast({
-                title: 'فشل في التحليل التلقائي',
-                description: 'تم عرض الوثيقة للمعاينة. يمكنك مراجعتها يدوياً.',
-                variant: 'destructive',
-            });
         }
 
         setIsProcessing(false);
-    }, [toast]);
+    }, [toast, onAnalysisComplete]);
 
     /* ── DELETE / RESET ── */
     const handleDelete = () => {
@@ -308,17 +316,7 @@ export default function DocumentAnalyzer() {
     if (!file) {
         return (
             <div className="container mx-auto py-8 space-y-6">
-                <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <FileSearch className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold">تحليل الوثائق الإدارية</h1>
-                        <p className="text-muted-foreground">تحميل ومعاينة وتحليل الوثائق الرسمية تلقائياً</p>
-                    </div>
-                </div>
-
-                <Card className="max-w-2xl mx-auto">
+                <Card className="max-w-2xl mx-auto shadow-sm">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-primary" />
@@ -331,8 +329,8 @@ export default function DocumentAnalyzer() {
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
                             className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer ${isDragging
-                                    ? 'border-primary bg-primary/5 scale-[1.01]'
-                                    : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'
+                                ? 'border-primary bg-primary/5 scale-[1.01]'
+                                : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'
                                 }`}
                             onClick={() => fileInputRef.current?.click()}
                         >
@@ -368,19 +366,18 @@ export default function DocumentAnalyzer() {
 
     // STATE 2: File uploaded → split-screen with PDF viewer + analysis
     return (
-        <div className="container mx-auto py-6 space-y-4">
+        <div className="h-full flex flex-col space-y-4">
             {/* ─── HEADER BAR ─── */}
-            <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center justify-between flex-wrap gap-3 p-1">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                         <FileSearch className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold">تحليل الوثائق الإدارية</h1>
+                        <h1 className="text-xl font-bold">تحليل الوثائق</h1>
                         <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <FileText className="w-3.5 h-3.5" />
-                            <span className="truncate max-w-[300px]">{file.name}</span>
-                            <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded">{fileSizeMB} م.ب</span>
+                            <span className="truncate max-w-[200px]">{file.name}</span>
                         </p>
                     </div>
                 </div>
@@ -389,11 +386,11 @@ export default function DocumentAnalyzer() {
                 <Button
                     variant="destructive"
                     onClick={handleDelete}
-                    className="gap-2 shadow-lg"
-                    size="lg"
+                    className="gap-2 shadow-sm"
+                    size="sm"
                 >
-                    <Trash2 className="w-5 h-5" />
-                    حذف الملف
+                    <Trash2 className="w-4 h-4" />
+                    حذف / إلغاء
                 </Button>
             </div>
 
@@ -413,30 +410,29 @@ export default function DocumentAnalyzer() {
             {/* ═══════════════════════════════════════════
                 SPLIT-SCREEN: PDF Viewer  |  Analysis Summary
                ═══════════════════════════════════════════ */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" style={{ height: 'calc(100vh - 220px)' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
 
                 {/* ── SECTION A: Live PDF/Image Viewer ── */}
-                <Card className="overflow-hidden flex flex-col">
-                    <CardHeader className="py-2 px-4 bg-gradient-to-r from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border-b shrink-0">
+                <Card className="overflow-hidden flex flex-col h-full border-muted/60 shadow-sm">
+                    <CardHeader className="py-2 px-4 bg-muted/30 border-b shrink-0">
                         <CardTitle className="text-sm flex items-center gap-2">
                             <FileText className="w-4 h-4 text-blue-600" />
                             معاينة الوثيقة الأصلية
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 flex-1 min-h-0">
+                    <CardContent className="p-0 flex-1 h-[500px] md:h-auto overflow-hidden bg-zinc-100 dark:bg-zinc-900">
                         {isPdf ? (
                             <iframe
                                 src={pdfUrl!}
                                 title="PDF Preview"
                                 className="w-full h-full border-0"
-                                style={{ minHeight: '500px' }}
                             />
                         ) : (
-                            <div className="w-full h-full overflow-auto p-4 flex items-start justify-center bg-zinc-50 dark:bg-zinc-900">
+                            <div className="w-full h-full overflow-auto p-4 flex items-center justify-center">
                                 <img
                                     src={pdfUrl!}
                                     alt={file.name}
-                                    className="max-w-full h-auto object-contain rounded shadow-lg"
+                                    className="max-w-full max-h-full object-contain shadow-lg"
                                 />
                             </div>
                         )}
@@ -444,18 +440,18 @@ export default function DocumentAnalyzer() {
                 </Card>
 
                 {/* ── SECTION B: Analysis Summary ── */}
-                <Card className="overflow-hidden flex flex-col">
-                    <CardHeader className="py-2 px-4 bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 border-b shrink-0">
+                <Card className="overflow-hidden flex flex-col h-full border-muted/60 shadow-sm">
+                    <CardHeader className="py-2 px-4 bg-muted/30 border-b shrink-0">
                         <CardTitle className="text-sm flex items-center gap-2">
                             <Sparkles className="w-4 h-4 text-amber-600" />
-                            ملخص التحليل التلقائي
+                            نتائج التحليل
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 flex-1 min-h-0 overflow-y-auto">
+                    <CardContent className="p-0 flex-1 h-[500px] md:h-auto overflow-y-auto bg-card">
                         {isProcessing && !analysis ? (
                             <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
-                                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                                <p className="text-muted-foreground">جاري تحليل الوثيقة...</p>
+                                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                <p className="text-muted-foreground text-sm">جاري تحليل البيانات...</p>
                             </div>
                         ) : analysis ? (
                             <div className="p-4 space-y-4" dir="rtl">
