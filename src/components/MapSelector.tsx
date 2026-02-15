@@ -28,14 +28,31 @@ const CENTER_POS: [number, number] = [32.4810, 3.6900];
 // --- Helper Functions ---
 
 const getColorByContractType = (type: string | null): string => {
-    if (!type) return '#3b82f6'; // Default Blue
+    if (!type) return '#64748b'; // Gray
     const normalized = type.trim();
     if (normalized.includes('بناء') || normalized === 'Building Permit') return '#3b82f6'; // Blue
     if (normalized.includes('هدم') || normalized === 'Demolition') return '#ef4444'; // Red
     if (normalized.includes('تجزئة') || normalized === 'Subdivision') return '#10b981'; // Green
     if (normalized.includes('تسوية') || normalized === 'Regularization') return '#f59e0b'; // Amber
-    if (normalized.includes('شهادة') || normalized === 'Certificate') return '#8b5cf6'; // Purple
+    if (normalized.includes('شهادة') || normalized.includes('تقسيم') || normalized === 'Certificate') return '#f97316'; // Orange
     return '#64748b'; // Slate (Gray)
+};
+
+const createCustomMarkerIcon = (type: string | null) => {
+    const color = getColorByContractType(type);
+
+    // Create an SVG-based icon
+    return L.divIcon({
+        className: 'custom-pin-icon',
+        html: `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="${color}" stroke="white" stroke-width="2">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32], // Tip of the pin
+        popupAnchor: [0, -34] // Above the pin
+    });
 };
 
 // --- Helper Components ---
@@ -56,7 +73,6 @@ function MapController({ flyToLocation }: { flyToLocation?: { lat: number; lng: 
 function MapEvents({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
     useMapEvents({
         click(e) {
-            console.log("Map Clicked:", e.latlng);
             onMapClick(e.latlng.lat, e.latlng.lng);
         },
     });
@@ -99,7 +115,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
     const { data: rawContracts, isLoading, error } = useQuery({
         queryKey: ['map-contracts-safe'],
         queryFn: async () => {
-            console.log("Fetching contracts...");
             try {
                 const { data, error } = await supabase.from('files').select('*');
                 if (error) {
@@ -140,7 +155,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
     // Cadastre Fetch Logic
     const handleCadastreFetch = async (lat: number, lng: number) => {
         setCadastreInfo({ section: '...', group: '...', lat, lng, loading: true, error: null });
-        console.log("📍 Clicked Coordinates:", lat, lng);
 
         try {
             const apiUrl = `https://fadaeldjazair.mf.gov.dz/api/cadastre/from?get&lat=${lat}&lng=${lng}`;
@@ -203,7 +217,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                 <CardTitle className="text-sm flex items-center gap-2 justify-between">
                     <div className="flex items-center gap-2">
                         <Satellite className="w-4 h-4 text-blue-400" />
-                        نظام المعلومات الجغرافية المتقدم
+                        نظام المعلومات الجغرافية
                         {isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
                     </div>
                 </CardTitle>
@@ -272,43 +286,19 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                             </Popup>
                         )}
 
-                        {/* Real Contracts Layer: Polygons & Markers */}
+                        {/* Real Contracts Layer: Markers Only (Phase 1) */}
                         {rawContracts?.map((c: any) => {
                             const coords = getCoords(c);
-                            const color = getColorByContractType(c.permit_type || c.contract_type);
+                            const contractType = c.permit_type || c.contract_type;
+                            const color = getColorByContractType(contractType);
 
-                            // 1. Render Polygon if geometry exists
-                            if (c.polygon && Array.isArray(c.polygon) && c.polygon.length > 2) {
-                                return (
-                                    <Polygon
-                                        key={`poly-${c.id}`}
-                                        positions={c.polygon as [number, number][]}
-                                        pathOptions={{
-                                            color: color,
-                                            fillColor: color,
-                                            fillOpacity: 0.4,
-                                            weight: 2
-                                        }}
-                                        eventHandlers={{
-                                            click: (e) => {
-                                                L.DomEvent.stopPropagation(e);
-                                                if (onContractSelect) onContractSelect(c.id);
-                                            }
-                                        }}
-                                    >
-                                        <Popup>
-                                            <ContractPopupContent contract={c} color={color} />
-                                        </Popup>
-                                    </Polygon>
-                                );
-                            }
-
-                            // 2. Render Marker if no polygon but has ID point
+                            // Render Marker if has coordinates
                             if (coords) {
                                 return (
                                     <Marker
                                         key={`marker-${c.id}`}
                                         position={coords}
+                                        icon={createCustomMarkerIcon(contractType)}
                                         eventHandlers={{
                                             click: (e) => {
                                                 L.DomEvent.stopPropagation(e);
@@ -328,14 +318,17 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                     </MapContainer>
                 </div>
 
+                {/* Legend */}
                 <div className="absolute bottom-4 left-4 bg-white/95 p-3 rounded-lg shadow-lg z-[1000] text-xs text-left ltr border border-slate-200 backdrop-blur-sm">
                     <div className="font-bold flex items-center gap-2 mb-2 text-slate-700">
                         <Zap className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                         Legend
                     </div>
                     <div className="space-y-1">
-                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500"></span> Building Permit</div>
-                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500"></span> Subdivision</div>
+                        <div className="flex items-center gap-2"><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }}></div> Building Permit</div>
+                        <div className="flex items-center gap-2"><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }}></div> Subdivision</div>
+                        <div className="flex items-center gap-2"><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }}></div> Demolition</div>
+                        <div className="flex items-center gap-2"><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f97316' }}></div> Partition</div>
                     </div>
                 </div>
 
