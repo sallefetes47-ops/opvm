@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { DateInput } from "@/components/ui/date-input";
 import { Loader2, FilePlus, FileUp } from "lucide-react";
+import PermitLocationPicker from "@/components/PermitLocationPicker";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,8 @@ interface FileFormData {
   committee_opinion: CommitteeOpinion | "";
   rejection_reason: string;
   electronic_permit_file: File | null;
+  location_lat: number | null;
+  location_lng: number | null;
 }
 
 export default function NewFile() {
@@ -83,6 +86,8 @@ export default function NewFile() {
     committee_opinion: "",
     rejection_reason: "",
     electronic_permit_file: null,
+    location_lat: null,
+    location_lng: null,
   });
 
   // Determine available ownership types based on permit type
@@ -97,8 +102,8 @@ export default function NewFile() {
   const handlePermitTypeChange = (value: PermitType) => {
     // If switching away from "رخصة بناء" and currently using "شهادة إستفادة", reset to "عقد ملكية"
     if (value !== "رخصة بناء" && formData.ownership_type === "شهادة إستفادة") {
-      setFormData({ 
-        ...formData, 
+      setFormData({
+        ...formData,
         permit_type: value,
         ownership_type: "عقد ملكية",
         lot_number: "",
@@ -131,7 +136,7 @@ export default function NewFile() {
         lot_number: data.ownership_type === "شهادة إستفادة" ? data.lot_number : null,
         subdivision_name: data.ownership_type === "شهادة إستفادة" ? data.subdivision_name : null,
         plot_area: data.permit_type === "رخصة بناء" || data.permit_type === "شهادة تقسيم" || data.permit_type === "رخصة تجزئة"
-          ? (data.plot_area ? parseFloat(data.plot_area) : null) 
+          ? (data.plot_area ? parseFloat(data.plot_area) : null)
           : null,
         built_area: data.permit_type === "رخصة بناء" && data.built_area ? parseFloat(data.built_area) : null,
         engineer_name: data.permit_type === "رخصة بناء" ? data.engineer_name : null,
@@ -141,6 +146,8 @@ export default function NewFile() {
         session_date: data.session_date ? format(data.session_date, "yyyy-MM-dd") : null,
         committee_opinion: data.committee_opinion || null,
         rejection_reason: (data.committee_opinion === "تحفظ" || data.committee_opinion === "مرفوض") ? data.rejection_reason : null,
+        location_lat: data.permit_type === "رخصة بناء" ? data.location_lat : null,
+        location_lng: data.permit_type === "رخصة بناء" ? data.location_lng : null,
         created_by: user?.id,
       });
 
@@ -562,7 +569,7 @@ export default function NewFile() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             {showRejectionReason && (
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="rejection_reason">سبب التحفظ أو الرفض *</Label>
@@ -599,6 +606,26 @@ export default function NewFile() {
                 <p className="text-xs text-muted-foreground">
                   يمكنك رفع نسخة PDF أو صورة من الرخصة
                 </p>
+              </div>
+            )}
+
+            {/* Map Location Focus - Only for Building Permit */}
+            {formData.permit_type === "رخصة بناء" && (
+              <div className="space-y-2 md:col-span-2 pt-2 border-t border-border">
+                <PermitLocationPicker
+                  value={
+                    formData.location_lat !== null && formData.location_lng !== null
+                      ? { lat: formData.location_lat, lng: formData.location_lng }
+                      : null
+                  }
+                  onChange={(location) =>
+                    setFormData({
+                      ...formData,
+                      location_lat: location?.lat ?? null,
+                      location_lng: location?.lng ?? null,
+                    })
+                  }
+                />
               </div>
             )}
           </CardContent>
