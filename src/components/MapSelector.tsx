@@ -68,6 +68,13 @@ const tempIcon = new L.Icon({
 const MAP_HEIGHT = '600px';
 const center: [number, number] = [32.4810, 3.6900];
 
+/* ─── MAP BOUNDS: restrict view to M'zab Valley / Ghardaia region ─── */
+const MAX_BOUNDS: L.LatLngBoundsExpression = [
+    [32.42, 3.58],   // SouthWest corner
+    [32.55, 3.80],   // NorthEast corner
+];
+const MIN_ZOOM = 12;
+
 /* ─────────────────── OVERLAY DATA ─────────────────── */
 
 interface KsarDef {
@@ -374,6 +381,9 @@ export default function MapSelector({ focusLat, focusLng, focusZoom = 17 }: MapS
                             scrollWheelZoom={true}
                             style={{ width: '100%', height: '100%' }}
                             zoomControl={true}
+                            maxBounds={MAX_BOUNDS}
+                            maxBoundsViscosity={1.0}
+                            minZoom={MIN_ZOOM}
                         >
                             {/* Clean OSM Base Layer */}
                             <TileLayer
