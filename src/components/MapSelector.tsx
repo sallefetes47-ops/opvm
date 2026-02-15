@@ -408,7 +408,24 @@ function ContractPopupContent({ contract, color }: { contract: any; color: strin
                     <span className="font-bold text-slate-900">{contract.permit_type || contract.contract_type || '---'}</span>
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
+                {(contract.section || contract.property_group) && (
+                    <div className="mt-2 pt-2 border-t border-slate-100 space-y-1">
+                        {contract.section && (
+                            <div className="flex justify-between">
+                                <span>القسم العقاري:</span>
+                                <span className="font-mono font-bold text-slate-900">{contract.section}</span>
+                            </div>
+                        )}
+                        {contract.property_group && (
+                            <div className="flex justify-between">
+                                <span>مجموعة الملكية:</span>
+                                <span className="font-mono font-bold text-slate-900">{contract.property_group}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <div className="flex items-center gap-2 pt-1 border-t border-slate-100 mt-2">
                     <Hash className="w-3 h-3 text-slate-400" />
                     <span className="font-mono text-[10px] text-slate-400">{contract.id?.slice(0, 8)}...</span>
                 </div>

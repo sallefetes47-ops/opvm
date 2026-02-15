@@ -131,8 +131,8 @@ export default function NewFile() {
         year: data.year,
         ownership_type: data.ownership_type as any,
         address: data.address,
-        section: data.ownership_type === "دفتر عقاري" ? data.section : null,
-        property_group: data.ownership_type === "دفتر عقاري" ? data.property_group : null,
+        section: data.section || null,
+        property_group: data.property_group || null,
         lot_number: data.ownership_type === "شهادة إستفادة" ? data.lot_number : null,
         subdivision_name: data.ownership_type === "شهادة إستفادة" ? data.subdivision_name : null,
         plot_area: data.permit_type === "رخصة بناء" || data.permit_type === "شهادة تقسيم" || data.permit_type === "رخصة تجزئة"
@@ -444,29 +444,6 @@ export default function NewFile() {
               </RadioGroup>
             </div>
 
-            {formData.ownership_type === "دفتر عقاري" && (
-              <div className="grid gap-4 md:grid-cols-2 pt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="section">القسم *</Label>
-                  <Input
-                    id="section"
-                    value={formData.section}
-                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                    placeholder="أدخل رقم القسم"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="property_group">مجموعة الملكية *</Label>
-                  <Input
-                    id="property_group"
-                    value={formData.property_group}
-                    onChange={(e) => setFormData({ ...formData, property_group: e.target.value })}
-                    placeholder="أدخل رقم مجموعة الملكية"
-                  />
-                </div>
-              </div>
-            )}
-
             {formData.ownership_type === "شهادة إستفادة" && (
               <div className="grid gap-4 md:grid-cols-3 pt-2">
                 <div className="space-y-2">
@@ -494,6 +471,36 @@ export default function NewFile() {
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     placeholder="أدخل العنوان"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Cadastral Data - Manual Entry */}
+            {["رخصة بناء", "رخصة تجزئة", "رخصة هدم", "شهادة تقسيم"].includes(formData.permit_type) && (
+              <div className="grid gap-4 md:grid-cols-2 pt-4 border-t border-border mt-4">
+                <div className="md:col-span-2">
+                  <Label className="text-base font-semibold">بيانات المسح العقاري (إدخال يدوي)</Label>
+                  <p className="text-xs text-muted-foreground mb-3">يمكنك إدخال معلومات القسم ومجموعة الملكية يدوياً في حال عدم توفرها آلياً</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="section">القسم العقاري (Section) {formData.ownership_type === "دفتر عقاري" ? "*" : ""}</Label>
+                  <Input
+                    id="section"
+                    value={formData.section}
+                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                    placeholder="أدخل رقم القسم"
+                    required={formData.ownership_type === "دفتر عقاري"}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="property_group">مجموعة الملكية (Ilot) {formData.ownership_type === "دفتر عقاري" ? "*" : ""}</Label>
+                  <Input
+                    id="property_group"
+                    value={formData.property_group}
+                    onChange={(e) => setFormData({ ...formData, property_group: e.target.value })}
+                    placeholder="أدخل رقم مجموعة الملكية"
+                    required={formData.ownership_type === "دفتر عقاري"}
                   />
                 </div>
               </div>
