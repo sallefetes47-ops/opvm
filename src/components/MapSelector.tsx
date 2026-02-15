@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    MapContainer, TileLayer, Marker, Popup, Polygon, Polyline,
+    MapContainer, WMSTileLayer, Marker, Popup, Polygon, Polyline,
     useMap, useMapEvents
 } from 'react-leaflet';
 import L from 'leaflet';
@@ -56,17 +56,11 @@ const tempIcon = new L.Icon({
 /* ─────────────────── CONFIG ─────────────────── */
 
 const MAP_HEIGHT = '600px';
-const CENTER: [number, number] = [32.4810, 3.6900];
-
-/* ─── MAP BOUNDS: restrict view to M'zab Valley / Ghardaia region ─── */
-const MAX_BOUNDS: L.LatLngBoundsExpression = [
-    [32.42, 3.58],   // SouthWest corner
-    [32.55, 3.80],   // NorthEast corner
-];
-const MIN_ZOOM = 12;
+const CENTER: [number, number] = [32.4810, 3.6900]; // Still centered on Ghardaia initially, but no restrictions
 
 /* ─────────────────── OVERLAY DATA ─────────────────── */
 
+// Keeping the M'zab specific overlays as they are relevant to the primary use case, even if map is open
 interface KsarDef {
     name: string;
     nameAr: string;
@@ -138,17 +132,17 @@ const gridLines = generateGridLines({ minLat: 32.460, maxLat: 32.505, minLng: 3.
 /* ═══════ MapUpdater — dynamic centering ═══════ */
 
 // This component handles programmatic navigation (FlyTo) based on props
-function MapUpdater({ 
-    flyToLocation 
-}: { 
-    flyToLocation: { lat: number; lng: number; zoom?: number } | null 
+function MapUpdater({
+    flyToLocation
+}: {
+    flyToLocation: { lat: number; lng: number; zoom?: number } | null
 }) {
     const map = useMap();
     useEffect(() => {
         if (flyToLocation) {
             map.flyTo(
-                [flyToLocation.lat, flyToLocation.lng], 
-                flyToLocation.zoom || 17, 
+                [flyToLocation.lat, flyToLocation.lng],
+                flyToLocation.zoom || 17,
                 { duration: 1.5, easeLinearity: 0.25 }
             );
         }
@@ -181,8 +175,8 @@ function getPermitIcon(permitType: string | null, isSelected: boolean = false) {
     // If selected, make it larger and add distinct border/glow
     // If not selected, standard size
     const size = isSelected ? 42 : 28;
-    const anchor = isSelected ? 21 : 14; 
-    
+    const anchor = isSelected ? 21 : 14;
+
     return new L.DivIcon({
         className: 'custom-contract-marker',
         html: `<div style="
@@ -227,12 +221,12 @@ interface ContractFile {
     submission_date: string | null;
 }
 
-export default function MapSelector({ 
-    flyToLocation, 
-    selectedContractId, 
-    onContractSelect 
+export default function MapSelector({
+    flyToLocation,
+    selectedContractId,
+    onContractSelect
 }: MapSelectorProps) {
-    
+
     const { user, role, isViewer } = useAuth();
     const { toast } = useToast();
     const queryClient = useQueryClient();
@@ -361,7 +355,7 @@ export default function MapSelector({
                         <div className="flex items-center gap-2">
                             <MapIcon className="w-5 h-5 text-amber-300" />
                             <span className="text-sm font-semibold tracking-wide">
-                                الخريطة العمرانية — وادي ميزاب │ M'zab Valley
+                                الخريطة العمرانية — فضاء الجزائر (Cadastre)
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -399,14 +393,23 @@ export default function MapSelector({
                             scrollWheelZoom={true}
                             style={{ width: '100%', height: '100%' }}
                             zoomControl={true}
-                            maxBounds={MAX_BOUNDS}
-                            maxBoundsViscosity={1.0}
-                            minZoom={MIN_ZOOM}
+                        // REMOVED MAXBOUNDS & MINZOOM to allow free navigation
                         >
-                            {/* Strictly OSM Tiles only */}
-                            <TileLayer
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            {/* 
+                                🚨 ALGERIAN CADASTRE MAP WMS START 🚨
+                                This replaces the OSM TileLayer. 
+                                Note: 'layers' is set to 'Cadastre' as a placeholder.
+                                You may need to verify the exact layer name from the WMS capabilities.
+                            */}
+                            <WMSTileLayer
+                                url="https://fadaeldjazair.mf.gov.dz/geoserver/wms"
+                                params={{
+                                    layers: 'Cadastre', // Placeholder layer name
+                                    format: 'image/png',
+                                    transparent: true,
+                                    version: '1.1.1',
+                                }}
+                                attribution='&copy; <a href="https://fadaeldjazair.mf.gov.dz">Fada El Djazair</a>'
                             />
 
                             {/* Programmatic FlyTo Handler */}
@@ -717,8 +720,8 @@ function MapLegend({ onClose }: { onClose: () => void }) {
                         </div>
                     ))}
                     <div className="border-t border-white/10 pt-1.5 mt-1.5 text-[9px] text-white/50 space-y-0.5">
-                        <p>📍 WGS 84 / EPSG:4326</p>
-                        <p>🗺️ OpenStreetMap</p>
+                        <p>📍 WMT/Cadastre</p>
+                        <p>🗺️ Fada El Djazair</p>
                     </div>
                 </div>
             )}
