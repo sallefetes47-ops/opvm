@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,9 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DateInput } from "@/components/ui/date-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Scale, Plus, Eye, Trash, Search } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Loader2, Scale, Plus, Eye, Trash, Search, Pencil, Upload, FileText, RefreshCw, X, Sparkles, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -131,6 +133,22 @@ export default function LegalArchive() {
     language: "ar",
   });
 
+  // ── Edit state ──
+  const [editDocument, setEditDocument] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState<DocumentFormData>({
+    title_ar: "", title_fr: "", document_type: "", document_number: "",
+    document_date: undefined, description: "", content_text: "", keywords: "", language: "ar",
+  });
+  const [isReplacingFile, setIsReplacingFile] = useState(false);
+  const [newFile, setNewFile] = useState<File | null>(null);
+  const [newFileUrl, setNewFileUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  // Analysis state
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [analysisStatus, setAnalysisStatus] = useState("");
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
   const canEdit = !isViewer && role !== "viewer";
 
   const handleDataExtracted = (data: Record<string, any>) => {
@@ -183,7 +201,7 @@ export default function LegalArchive() {
         .from("legal_documents")
         .select("*")
         .order("document_date", { ascending: false });
-      
+
       if (error) throw error;
       return data;
     },
@@ -230,6 +248,52 @@ export default function LegalArchive() {
     },
   });
 
+  // ── UPDATE mutation ──
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data, file }: { id: string; data: DocumentFormData; file: File | null }) => {
+      const updatePayload: Record<string, any> = {
+        title_ar: data.title_ar,
+        title_fr: data.title_fr || null,
+        document_type: data.document_type,
+        document_number: data.document_number,
+        document_date: data.document_date ? format(data.document_date, "yyyy-MM-dd") : null,
+        description: data.description,
+        content_text: data.content_text,
+        keywords: data.keywords.split(",").map(k => k.trim()).filter(Boolean),
+        language: data.language,
+      };
+
+      // If a new file is being uploaded, upload it to storage first
+      if (file) {
+        const ext = file.name.split('.').pop() || 'pdf';
+        const fileName = `legal_${id}_${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(fileName, file, { upsert: true });
+        if (uploadError) {
+          console.warn('File upload error:', uploadError);
+        } else {
+          const { data: urlData } = supabase.storage
+            .from('documents')
+            .getPublicUrl(fileName);
+          updatePayload.file_url = urlData.publicUrl;
+          updatePayload.file_name = fileName;
+        }
+      }
+
+      const { error } = await supabase.from("legal_documents").update(updatePayload).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
+      toast({ title: "تم التحديث", description: "تم تحديث الوثيقة بنجاح" });
+      closeEditModal();
+    },
+    onError: (error) => {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Helper to remove file from likely storage buckets
   const removeFromStorage = async (fileName: string | null) => {
     if (!fileName) return;
@@ -262,6 +326,129 @@ export default function LegalArchive() {
       language: "ar",
     });
     setAutoFilledFields(new Set());
+  };
+
+  // ── Edit handlers ──
+  const openEditModal = (doc: any) => {
+    setEditFormData({
+      title_ar: doc.title_ar || "",
+      title_fr: doc.title_fr || "",
+      document_type: doc.document_type || "",
+      document_number: doc.document_number || "",
+      document_date: doc.document_date ? new Date(doc.document_date) : undefined,
+      description: doc.description || "",
+      content_text: doc.content_text || "",
+      keywords: Array.isArray(doc.keywords) ? doc.keywords.join(", ") : (doc.keywords || ""),
+      language: doc.language || "ar",
+    });
+    setEditDocument(doc);
+    setIsReplacingFile(false);
+    setNewFile(null);
+    setNewFileUrl(null);
+    setUploadProgress(0);
+  };
+
+  const closeEditModal = () => {
+    if (newFileUrl) URL.revokeObjectURL(newFileUrl);
+    setEditDocument(null);
+    setIsReplacingFile(false);
+    setNewFile(null);
+    setNewFileUrl(null);
+    setUploadProgress(0);
+  };
+
+  const handleEditFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 20 * 1024 * 1024) {
+      toast({ title: "حجم الملف كبير", description: "الحد الأقصى 20 م.ب", variant: "destructive" });
+      return;
+    }
+    if (newFileUrl) URL.revokeObjectURL(newFileUrl);
+    setNewFile(f);
+    setNewFileUrl(URL.createObjectURL(f));
+  };
+
+  const handleAnalyzeNewFile = async () => {
+    if (!newFile) return;
+
+    setIsAnalyzing(true);
+    setAnalysisProgress(10);
+    setAnalysisStatus("جاري تحضير الملف...");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", newFile);
+      formData.append("documentType", "legal_document");
+
+      setAnalysisProgress(30);
+      setAnalysisStatus("جاري استخراج البيانات بالذكاء الاصطناعي...");
+
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setAnalysisProgress(prev => {
+          if (prev >= 85) return prev;
+          return prev + 5;
+        });
+      }, 800);
+
+      const { data, error } = await supabase.functions.invoke("extract-document", {
+        body: formData,
+      });
+
+      clearInterval(progressInterval);
+      setAnalysisProgress(95);
+
+      if (error) throw error;
+
+      if (data.success && data.data) {
+        setAnalysisProgress(100);
+        setAnalysisStatus("تم التحليل بنجاح!");
+
+        // Merge extracted data
+        const extracted = data.data;
+        const enriched = parseArabicLegalText(data.raw_response || extracted.content_text || "", extracted);
+
+        setEditFormData(prev => ({
+          ...prev,
+          title_ar: enriched.title_ar || prev.title_ar,
+          title_fr: enriched.title_fr || prev.title_fr,
+          document_type: enriched.document_type || prev.document_type,
+          document_number: enriched.document_number || prev.document_number,
+          document_date: enriched.document_date ? new Date(enriched.document_date) : prev.document_date,
+          description: enriched.description || prev.description,
+          content_text: enriched.content_text || prev.content_text,
+          keywords: Array.isArray(enriched.keywords) ? enriched.keywords.join(", ") : (enriched.keywords || prev.keywords),
+          language: enriched.language || prev.language,
+        }));
+
+        toast({
+          title: "تم التحليل",
+          description: "تم تحديث الحقول بناءً على محتوى الملف الجديد",
+        });
+      }
+    } catch (err: any) {
+      console.error("Analysis Error:", err);
+      toast({
+        title: "فشل التحليل",
+        description: err.message || "حدث خطأ أثناء تحليل الملف",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
+      setAnalysisStatus("");
+    }
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editDocument) return;
+    if (!editFormData.title_ar || !editFormData.document_type) {
+      toast({ title: "خطأ", description: "يرجى ملء الحقول المطلوبة", variant: "destructive" });
+      return;
+    }
+    updateMutation.mutate({ id: editDocument.id, data: editFormData, file: newFile });
   };
 
   const autoFillClass = (field: string) =>
@@ -300,7 +487,7 @@ export default function LegalArchive() {
             <p className="text-muted-foreground">أرشيف الوثائق القانونية والتنظيمية</p>
           </div>
         </div>
-        
+
         {canEdit && (
           <div className="flex gap-2">
             <FileImport
@@ -315,127 +502,127 @@ export default function LegalArchive() {
                   إضافة وثيقة
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>إضافة وثيقة قانونية</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>إضافة وثيقة قانونية</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>العنوان بالعربية *</Label>
+                      <Input
+                        value={formData.title_ar}
+                        onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
+                        placeholder="أدخل العنوان بالعربية"
+                        required
+                        className={autoFillClass("title_ar")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>العنوان بالفرنسية</Label>
+                      <Input
+                        value={formData.title_fr}
+                        onChange={(e) => setFormData({ ...formData, title_fr: e.target.value })}
+                        placeholder="Titre en français"
+                        dir="ltr"
+                        className={autoFillClass("title_fr")}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label>نوع الوثيقة *</Label>
+                      <Select
+                        value={formData.document_type}
+                        onValueChange={(value) => setFormData({ ...formData, document_type: value })}
+                      >
+                        <SelectTrigger className={autoFillClass("document_type")}>
+                          <SelectValue placeholder="اختر النوع" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="مرسوم">مرسوم</SelectItem>
+                          <SelectItem value="قرار">قرار</SelectItem>
+                          <SelectItem value="تعليمة">تعليمة</SelectItem>
+                          <SelectItem value="منشور">منشور</SelectItem>
+                          <SelectItem value="قانون">قانون</SelectItem>
+                          <SelectItem value="أمر">أمر</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>رقم الوثيقة</Label>
+                      <Input
+                        value={formData.document_number}
+                        onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
+                        placeholder="مثال: 15-19"
+                        className={autoFillClass("document_number")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>تاريخ الوثيقة</Label>
+                      <DateInput
+                        value={formData.document_date}
+                        onChange={(date) => setFormData({ ...formData, document_date: date })}
+                        placeholder="DD/MM/YYYY"
+                        className={autoFillClass("document_date")}
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <Label>العنوان بالعربية *</Label>
-                    <Input
-                      value={formData.title_ar}
-                      onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
-                      placeholder="أدخل العنوان بالعربية"
-                      required
-                      className={autoFillClass("title_ar")}
+                    <Label>الوصف</Label>
+                    <Textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="وصف مختصر للوثيقة"
+                      rows={2}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>العنوان بالفرنسية</Label>
-                    <Input
-                      value={formData.title_fr}
-                      onChange={(e) => setFormData({ ...formData, title_fr: e.target.value })}
-                      placeholder="Titre en français"
-                      dir="ltr"
-                      className={autoFillClass("title_fr")}
+                    <Label>محتوى الوثيقة (للبحث)</Label>
+                    <Textarea
+                      value={formData.content_text}
+                      onChange={(e) => setFormData({ ...formData, content_text: e.target.value })}
+                      placeholder="أدخل نص الوثيقة أو جزء منه للبحث"
+                      rows={4}
                     />
                   </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label>نوع الوثيقة *</Label>
-                    <Select
-                      value={formData.document_type}
-                      onValueChange={(value) => setFormData({ ...formData, document_type: value })}
-                    >
-                      <SelectTrigger className={autoFillClass("document_type")}>
-                        <SelectValue placeholder="اختر النوع" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="مرسوم">مرسوم</SelectItem>
-                        <SelectItem value="قرار">قرار</SelectItem>
-                        <SelectItem value="تعليمة">تعليمة</SelectItem>
-                        <SelectItem value="منشور">منشور</SelectItem>
-                        <SelectItem value="قانون">قانون</SelectItem>
-                        <SelectItem value="أمر">أمر</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>الكلمات المفتاحية (مفصولة بفاصلة)</Label>
+                      <Input
+                        value={formData.keywords}
+                        onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
+                        placeholder="تعمير، بناء، رخصة، ..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>اللغة</Label>
+                      <Select
+                        value={formData.language}
+                        onValueChange={(value) => setFormData({ ...formData, language: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ar">العربية</SelectItem>
+                          <SelectItem value="fr">الفرنسية</SelectItem>
+                          <SelectItem value="both">ثنائي اللغة</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>رقم الوثيقة</Label>
-                    <Input
-                      value={formData.document_number}
-                      onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
-                      placeholder="مثال: 15-19"
-                      className={autoFillClass("document_number")}
-                    />
+                  <div className="flex gap-2 justify-end">
+                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      إلغاء
+                    </Button>
+                    <Button type="submit" disabled={createMutation.isPending} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
+                      {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>تاريخ الوثيقة</Label>
-                    <DateInput
-                      value={formData.document_date}
-                      onChange={(date) => setFormData({ ...formData, document_date: date })}
-                      placeholder="DD/MM/YYYY"
-                      className={autoFillClass("document_date")}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>الوصف</Label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="وصف مختصر للوثيقة"
-                    rows={2}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>محتوى الوثيقة (للبحث)</Label>
-                  <Textarea
-                    value={formData.content_text}
-                    onChange={(e) => setFormData({ ...formData, content_text: e.target.value })}
-                    placeholder="أدخل نص الوثيقة أو جزء منه للبحث"
-                    rows={4}
-                  />
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>الكلمات المفتاحية (مفصولة بفاصلة)</Label>
-                    <Input
-                      value={formData.keywords}
-                      onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
-                      placeholder="تعمير، بناء، رخصة، ..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>اللغة</Label>
-                    <Select
-                      value={formData.language}
-                      onValueChange={(value) => setFormData({ ...formData, language: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ar">العربية</SelectItem>
-                        <SelectItem value="fr">الفرنسية</SelectItem>
-                        <SelectItem value="both">ثنائي اللغة</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    إلغاء
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                    {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </div>
@@ -516,10 +703,15 @@ export default function LegalArchive() {
                       {doc.language === "ar" ? "عربي" : doc.language === "fr" ? "فرنسي" : "ثنائي"}
                     </TableCell>
                     <TableCell>
-                              <div className="flex gap-2">
+                      <div className="flex gap-2">
                         <Button size="icon" variant="ghost" onClick={() => setPreviewDocument(doc)} title="عرض المعاينة">
                           <Eye className="w-5 h-5" />
                         </Button>
+                        {canEdit && (
+                          <Button size="icon" variant="ghost" onClick={() => openEditModal(doc)} title="تعديل الوثيقة">
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        )}
                         {canEdit && role === "admin" && (
                           <>
                             <Button
@@ -549,7 +741,7 @@ export default function LegalArchive() {
           <DialogHeader>
             <DialogTitle>تفاصيل الوثيقة</DialogTitle>
           </DialogHeader>
-              {viewDocument && (
+          {viewDocument && (
             <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
@@ -641,6 +833,283 @@ export default function LegalArchive() {
               ) : (
                 <p className="text-center text-muted-foreground">لا توجد معاينة للوثيقة</p>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════ EDIT DOCUMENT DIALOG (Dual Preview) ═══════ */}
+      <Dialog open={!!editDocument} onOpenChange={(open) => { if (!open && !isAnalyzing) closeEditModal(); }}>
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-primary" />
+              تعديل الوثيقة
+            </DialogTitle>
+          </DialogHeader>
+
+          {editDocument && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+              {/* ── LEFT COLUMN: File Preview / Management ── */}
+              <div className="border rounded-lg bg-muted/10 flex flex-col h-[600px] overflow-hidden sticky top-0">
+                <div className="p-3 border-b bg-muted/40 flex items-center justify-between">
+                  <Label className="flex items-center gap-2 font-semibold">
+                    <FileText className="w-4 h-4 text-primary" />
+                    {newFile ? "الملف الجديد (قيد الإضافة)" : "الملف الحالي"}
+                  </Label>
+                  {!isReplacingFile && !newFile && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsReplacingFile(true)}
+                      className="gap-1 h-7 text-xs"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      تغيير الملف
+                    </Button>
+                  )}
+                  {(isReplacingFile || newFile) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive h-7 text-xs gap-1"
+                      onClick={() => {
+                        if (newFileUrl) URL.revokeObjectURL(newFileUrl);
+                        setNewFile(null);
+                        setNewFileUrl(null);
+                        setIsReplacingFile(false);
+                        setAnalysisStatus("");
+                      }}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      إلغاء التغيير
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex-1 overflow-hidden relative bg-slate-100 flex flex-col justify-center items-center">
+                  {!isReplacingFile && !newFile ? (
+                    /* Current File View */
+                    editDocument.file_url ? (
+                      editDocument.file_url.endsWith('.pdf') || editDocument.file_url.includes('application/pdf') ? (
+                        <iframe src={editDocument.file_url} className="w-full h-full" title="Current PDF" />
+                      ) : (
+                        <div className="p-4 w-full h-full flex items-center justify-center overflow-auto">
+                          <img src={editDocument.file_url} alt="Current" className="max-w-full max-h-full object-contain shadow-md" />
+                        </div>
+                      )
+                    ) : (
+                      <div className="text-center p-8 text-muted-foreground">
+                        <FileText className="w-16 h-16 mx-auto mb-2 opacity-20" />
+                        <p>لا يوجد ملف مرفق حالياً</p>
+                        <Button variant="outline" className="mt-4" onClick={() => setIsReplacingFile(true)}>
+                          <Upload className="w-4 h-4 ml-2" />
+                          إضافة ملف
+                        </Button>
+                      </div>
+                    )
+                  ) : newFile && newFileUrl ? (
+                    /* New File View */
+                    <div className="w-full h-full flex flex-col">
+                      <div className="flex-1 relative">
+                        {newFile.type === 'application/pdf' ? (
+                          <iframe src={newFileUrl} className="w-full h-full" title="New PDF" />
+                        ) : (
+                          <div className="p-4 w-full h-full flex items-center justify-center overflow-auto">
+                            <img src={newFileUrl} alt="New" className="max-w-full max-h-full object-contain shadow-md" />
+                          </div>
+                        )}
+                      </div>
+                      {/* Analysis Actions Bar */}
+                      <div className="p-3 bg-white border-t space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-green-600 font-medium truncate flex-1">
+                            ✅ {newFile.name}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {(newFile.size / (1024 * 1024)).toFixed(1)} MB
+                          </span>
+                        </div>
+
+                        {!isAnalyzing ? (
+                          <Button
+                            type="button"
+                            onClick={handleAnalyzeNewFile}
+                            className="w-full gap-2"
+                            variant="secondary"
+                          >
+                            <Sparkles className="w-4 h-4 text-purple-600" />
+                            تحليل واستخراج البيانات تلقائياً
+                          </Button>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>{analysisStatus}</span>
+                              <span>{analysisProgress}%</span>
+                            </div>
+                            <Progress value={analysisProgress} className="h-1.5" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Upload Zone */
+                    <div className="p-8 w-full max-w-md mx-auto">
+                      <div
+                        className="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer hover:border-primary/50 hover:bg-white/50 transition-all bg-white/20"
+                        onClick={() => editFileInputRef.current?.click()}
+                      >
+                        <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="font-semibold text-lg mb-2">اضغط لرفع ملف جديد</h3>
+                        <p className="text-sm text-muted-foreground mb-6">
+                          PDF أو صور (PNG, JPG) - الحد الأقصى 20 م.ب
+                        </p>
+                        <Button variant="outline">اختيار ملف</Button>
+                      </div>
+                      <input
+                        ref={editFileInputRef}
+                        type="file"
+                        accept=".pdf,image/png,image/jpeg,image/webp"
+                        onChange={handleEditFileSelect}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── RIGHT COLUMN: Form Fields ── */}
+              <form onSubmit={handleEditSubmit} className="flex flex-col h-full space-y-4 overflow-y-auto pr-1">
+                <Alert className="bg-blue-50 border-blue-100 dark:bg-blue-950/20 dark:border-blue-900">
+                  <Pencil className="h-4 w-4 text-blue-500" />
+                  <AlertTitle className="text-blue-700 dark:text-blue-300">وضع التعديل</AlertTitle>
+                  <AlertDescription className="text-blue-600/80 dark:text-blue-400/80 text-xs">
+                    قم بتعديل البيانات أدناه. يمكنك تحديث البيانات تلقائياً عند تغيير الملف وتحليله.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>العنوان بالعربية *</Label>
+                    <Input
+                      value={editFormData.title_ar}
+                      onChange={(e) => setEditFormData({ ...editFormData, title_ar: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>العنوان بالفرنسية</Label>
+                    <Input
+                      value={editFormData.title_fr}
+                      onChange={(e) => setEditFormData({ ...editFormData, title_fr: e.target.value })}
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label>نوع الوثيقة *</Label>
+                    <Select
+                      value={editFormData.document_type}
+                      onValueChange={(value) => setEditFormData({ ...editFormData, document_type: value })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="مرسوم">مرسوم</SelectItem>
+                        <SelectItem value="قرار">قرار</SelectItem>
+                        <SelectItem value="تعليمة">تعليمة</SelectItem>
+                        <SelectItem value="منشور">منشور</SelectItem>
+                        <SelectItem value="قانون">قانون</SelectItem>
+                        <SelectItem value="أمر">أمر</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>رقم الوثيقة</Label>
+                    <Input
+                      value={editFormData.document_number}
+                      onChange={(e) => setEditFormData({ ...editFormData, document_number: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>تاريخ الوثيقة</Label>
+                    <DateInput
+                      value={editFormData.document_date}
+                      onChange={(date) => setEditFormData({ ...editFormData, document_date: date })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>الوصف</Label>
+                  <Textarea
+                    value={editFormData.description}
+                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                    placeholder="وصف مختصر للوثيقة"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>محتوى الوثيقة (للبحث)</Label>
+                  <Textarea
+                    value={editFormData.content_text}
+                    onChange={(e) => setEditFormData({ ...editFormData, content_text: e.target.value })}
+                    placeholder="نص الوثيقة"
+                    rows={6}
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>الكلمات المفتاحية</Label>
+                    <Input
+                      value={editFormData.keywords}
+                      onChange={(e) => setEditFormData({ ...editFormData, keywords: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>اللغة</Label>
+                    <Select
+                      value={editFormData.language}
+                      onValueChange={(value) => setEditFormData({ ...editFormData, language: value })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ar">العربية</SelectItem>
+                        <SelectItem value="fr">الفرنسية</SelectItem>
+                        <SelectItem value="both">ثنائي اللغة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex-1"></div>
+
+                {/* ── Action buttons ── */}
+                <div className="flex gap-3 justify-end pt-4 border-t mt-auto sticky bottom-0 bg-background/95 backdrop-blur py-2">
+                  <Button type="button" variant="outline" onClick={closeEditModal} disabled={isAnalyzing || updateMutation.isPending}>
+                    <X className="w-4 h-4 ml-1" />
+                    إلغاء
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={updateMutation.isPending || isAnalyzing}
+                    style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}
+                    className="gap-2 min-w-[140px]"
+                  >
+                    {updateMutation.isPending ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> جاري الحفظ...</>
+                    ) : (
+                      'حفظ التغييرات'
+                    )}
+                  </Button>
+                </div>
+              </form>
             </div>
           )}
         </DialogContent>
