@@ -146,8 +146,8 @@ export default function NewFile() {
         session_date: data.session_date ? format(data.session_date, "yyyy-MM-dd") : null,
         committee_opinion: data.committee_opinion || null,
         rejection_reason: (data.committee_opinion === "تحفظ" || data.committee_opinion === "مرفوض") ? data.rejection_reason : null,
-        location_lat: data.permit_type === "رخصة بناء" ? data.location_lat : null,
-        location_lng: data.permit_type === "رخصة بناء" ? data.location_lng : null,
+        location_lat: ["رخصة بناء", "رخصة تجزئة", "رخصة هدم", "شهادة تقسيم"].includes(data.permit_type) ? data.location_lat : null,
+        location_lng: ["رخصة بناء", "رخصة تجزئة", "رخصة هدم", "شهادة تقسيم"].includes(data.permit_type) ? data.location_lng : null,
         created_by: user?.id,
       });
 
@@ -609,8 +609,8 @@ export default function NewFile() {
               </div>
             )}
 
-            {/* Map Location Focus - Only for Building Permit */}
-            {formData.permit_type === "رخصة بناء" && (
+            {/* Map Location Focus - For All Permit Types */}
+            {["رخصة بناء", "رخصة تجزئة", "رخصة هدم", "شهادة تقسيم"].includes(formData.permit_type) && (
               <div className="space-y-2 md:col-span-2 pt-2 border-t border-border">
                 <PermitLocationPicker
                   value={

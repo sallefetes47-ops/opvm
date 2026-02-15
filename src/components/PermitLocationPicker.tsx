@@ -30,28 +30,34 @@ const activeIcon = new L.Icon({
     shadowSize: [41, 41],
 });
 
-/** Color-coded icon per permit type for existing contracts */
-const permitColors: Record<string, string> = {
-    'رخصة بناء': '#2563eb',
-    'رخصة تجزئة': '#16a34a',
-    'رخصة هدم': '#dc2626',
-    'شهادة تقسيم': '#9333ea',
+/** Helper to match MapSelector colors */
+const getColorByContractType = (type: string | null): string => {
+    if (!type) return '#64748b'; // Gray
+    const normalized = type.trim();
+    if (normalized.includes('بناء') || normalized === 'Building Permit') return '#3b82f6'; // Blue
+    if (normalized.includes('هدم') || normalized === 'Demolition') return '#ef4444'; // Red
+    if (normalized.includes('تجزئة') || normalized === 'Subdivision') return '#10b981'; // Green
+    if (normalized.includes('تسوية') || normalized === 'Regularization') return '#f59e0b'; // Amber
+    if (normalized.includes('شهادة') || normalized.includes('تقسيم') || normalized === 'Certificate') return '#f97316'; // Orange
+    return '#64748b'; // Slate (Gray)
 };
 
-function getContractIcon(permitType: string | null) {
-    const color = permitColors[permitType || ''] || '#6b7280';
-    return new L.DivIcon({
-        className: 'plp-contract-marker',
-        html: `<div style="
-            width: 18px; height: 18px; border-radius: 50%;
-            background: ${color}; border: 2px solid white;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-        "></div>`,
-        iconSize: [18, 18],
-        iconAnchor: [9, 9],
-        popupAnchor: [0, -12],
+const createCustomMarkerIcon = (type: string | null) => {
+    const color = getColorByContractType(type);
+
+    // Create an SVG-based icon
+    return L.divIcon({
+        className: 'custom-pin-icon',
+        html: `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="${color}" stroke="white" stroke-width="2">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+        `,
+        iconSize: [24, 24], // Slightly smaller than main map
+        iconAnchor: [12, 24],
+        popupAnchor: [0, -26]
     });
-}
+};
 
 /* ─── Constants ─── */
 
@@ -228,12 +234,12 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                                 </Marker>
                             )}
 
-                            {/* Existing contracts from DB (small colored dots) */}
+                            {/* Existing contracts from DB (colored pins) */}
                             {contracts?.map((c) => (
                                 <Marker
                                     key={c.id}
                                     position={[c.location_lat, c.location_lng]}
-                                    icon={getContractIcon(c.permit_type)}
+                                    icon={createCustomMarkerIcon(c.permit_type)}
                                 >
                                     <Popup>
                                         <div className="text-right text-xs min-w-[160px]" dir="rtl">
@@ -243,7 +249,7 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                                             {c.permit_type && (
                                                 <span
                                                     className="inline-block mt-1 px-1.5 py-0.5 rounded-full text-[10px] text-white"
-                                                    style={{ backgroundColor: permitColors[c.permit_type] || '#6b7280' }}
+                                                    style={{ backgroundColor: getColorByContractType(c.permit_type) }}
                                                 >
                                                     {c.permit_type}
                                                 </span>
@@ -256,17 +262,23 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                     </div>
 
                     {/* Mini legend */}
-                    <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground pt-1">
-                        {Object.entries(permitColors).map(([label, color]) => (
-                            <span key={label} className="flex items-center gap-1">
-                                <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: color }} />
-                                {label}
-                            </span>
-                        ))}
-                        <span className="flex items-center gap-1">
-                            <span className="w-2.5 h-2.5 rounded-full inline-block bg-red-500" />
-                            الموقع المحدد
-                        </span>
+                    <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground pt-1 justify-end rtl" dir="rtl">
+                        <div className="flex items-center gap-1">
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6' }}></div>
+                            <span>رخصة بناء</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }}></div>
+                            <span>رخصة تجزئة</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444' }}></div>
+                            <span>رخصة هدم</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316' }}></div>
+                            <span>شهادة تقسيم</span>
+                        </div>
                     </div>
                 </div>
             )}

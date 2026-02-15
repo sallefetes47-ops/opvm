@@ -319,16 +319,28 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                 </div>
 
                 {/* Legend */}
-                <div className="absolute bottom-4 left-4 bg-white/95 p-3 rounded-lg shadow-lg z-[1000] text-xs text-left ltr border border-slate-200 backdrop-blur-sm">
-                    <div className="font-bold flex items-center gap-2 mb-2 text-slate-700">
+                <div className="absolute bottom-4 left-4 bg-white/95 p-3 rounded-lg shadow-lg z-[1000] text-xs text-right rtl border border-slate-200 backdrop-blur-sm" dir="rtl">
+                    <div className="font-bold flex items-center gap-2 mb-2 text-slate-700 border-b pb-1">
                         <Zap className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                        Legend
+                        مفتاح الخريطة
                     </div>
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2"><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }}></div> Building Permit</div>
-                        <div className="flex items-center gap-2"><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }}></div> Subdivision</div>
-                        <div className="flex items-center gap-2"><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }}></div> Demolition</div>
-                        <div className="flex items-center gap-2"><div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f97316' }}></div> Partition</div>
+                    <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }}></div>
+                            <span>رخصة بناء</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10b981' }}></div>
+                            <span>رخصة تجزئة</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444' }}></div>
+                            <span>رخصة هدم</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#f97316' }}></div>
+                            <span>شهادة تقسيم</span>
+                        </div>
                     </div>
                 </div>
 
