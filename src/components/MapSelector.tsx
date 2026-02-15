@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
+import { useOverpassBuildings } from '@/hooks/useOverpassBuildings';
 import {
     GoogleMap,
     useJsApiLoader,
@@ -368,7 +369,10 @@ export default function MapSelector() {
 
     const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
-    const heatmapData = useMemo(() => generateHeatmapPoints(), []);
+    // Real building data from Overpass API (with fallback to mock)
+    const { buildings: realBuildings, isLoading: buildingsLoading, isRealData, count: buildingCount } = useOverpassBuildings();
+    const mockData = useMemo(() => generateHeatmapPoints(), []);
+    const heatmapData = isRealData && realBuildings.length > 0 ? realBuildings : mockData;
 
     /* ── callbacks ── */
 
@@ -501,6 +505,22 @@ export default function MapSelector() {
                             <Layers className="h-3.5 w-3.5" />
                             {mapType === 'roadmap' ? 'قمر صناعي' : 'خريطة'}
                         </Button>
+
+                        {/* Building data status badge */}
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium ${buildingsLoading
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                : isRealData
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                    : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                            }`}>
+                            {buildingsLoading ? (
+                                <><span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" /> جاري التحميل…</>
+                            ) : isRealData ? (
+                                <><span className="w-1.5 h-1.5 rounded-full bg-green-500" /> {buildingCount.toLocaleString()} مبنى OSM</>
+                            ) : (
+                                <><span className="w-1.5 h-1.5 rounded-full bg-zinc-400" /> بيانات تقريبية</>
+                            )}
+                        </span>
                     </div>
                 </div>
 
