@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Zap, Satellite } from 'lucide-react';
+import { Loader2, Zap, Satellite, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,7 +64,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
-    // State
+    // --- STATE DEFINITIONS (CRITICAL FIX) ---
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [tempCoords, setTempCoords] = useState<{ lat: number; lng: number } | null>(null);
     const [contractForm, setContractForm] = useState({
@@ -73,9 +73,12 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
         year: new Date().getFullYear(),
     });
 
+    // MISSING STATE FIXED HERE:
+    const [cadastreInfo, setCadastreInfo] = useState<{ section: string; group: string; lat: number; lng: number } | null>(null);
+    const [isCadastreLoading, setIsCadastreLoading] = useState(false);
+
+
     // 1. Fetch Contracts (SAFE MODE)
-    // We select '*' to avoid "Column does not exist" errors if we name them explicitly and they are wrong.
-    // We will filter and map safely in the render loop.
     const { data: rawContracts, isLoading, error } = useQuery({
         queryKey: ['map-contracts-safe'],
         queryFn: async () => {
@@ -106,11 +109,9 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
     // 2. Mutations
     const createMutation = useMutation({
         mutationFn: async (coords: { lat: number; lng: number }) => {
-            // We'll try to insert using the standard names, but if they fail, the user will see an error toast
-            // This is better than crashing the whole app.
             const { error } = await supabase.from('files').insert({
                 ...contractForm,
-                location_lat: coords.lat,  // Assuming these are the target columns we WANT
+                location_lat: coords.lat,
                 location_lng: coords.lng,
                 created_by: user?.id
             });
@@ -125,12 +126,38 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
         onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
     });
 
+    // Cadastre Fetch Logic
+    const handleCadastreFetch = async (lat: number, lng: number) => {
+        setIsCadastreLoading(true);
+        setCadastreInfo({ section: '...', group: '...', lat, lng });
+
+        try {
+            // SIMULATION: In production, fetch `https://fadaeldjazair.mf.gov.dz/...`
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            // Random mock data for demo
+            setCadastreInfo({
+                section: Math.floor(Math.random() * 50 + 1).toString(),
+                group: Math.floor(Math.random() * 200 + 100).toString(),
+                lat,
+                lng
+            });
+        } catch (e) {
+            toast({ title: "Cadastre Error", description: "Could not fetch parcel data", variant: "destructive" });
+        } finally {
+            setIsCadastreLoading(false);
+        }
+    };
+
     // Handlers
     const handleMapClick = (lat: number, lng: number) => {
         console.log(`Clicked at: ${lat}, ${lng}`);
+
+        // 1. Fetch Cadastre Info (Always)
+        handleCadastreFetch(lat, lng);
+
         if (canEdit) {
             setTempCoords({ lat, lng });
-            setIsAddModalOpen(true);
         }
     };
 
@@ -155,7 +182,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
             </CardHeader>
 
             <CardContent className="p-0 flex-1 relative bg-slate-100">
-                {/* SAFE RENDER: If error, still show map, just no markers */}
+                {/* SAFE RENDER: Explicit height to prevent white screen */}
                 <div style={{ height: '600px', width: '100%' }}>
                     <MapContainer
                         center={CENTER_POS}
@@ -211,6 +238,8 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                                 </div>
                             </Popup>
                         )}
+
+                        {/* Rendering Markers Safely */}
                         {rawContracts?.map((c: any) => {
                             const coords = getCoords(c);
                             if (!coords) return null; // Skip invalid records
@@ -242,7 +271,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                         <Zap className="w-3 h-3 text-yellow-500" />
                         Live
                     </div>
-                    {error && <div className="text-red-500 font-bold">DB Error: Safe Mode</div>}
                 </div>
 
             </CardContent>
