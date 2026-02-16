@@ -72,7 +72,7 @@ function parseArabicLegalText(rawText: string, data: Record<string, any>): Recor
   if (!result.document_date) {
     // Try Gregorian patterns first (DD month YYYY or DD/MM/YYYY)
     const datePatterns = [
-      /(?:المؤرخ في|بتاريخ|الموافق(?:\s*لـ?)?)\s*(\d{1,2})\s*(جانفي|فيفري|فبراير|يناير|مارس|أفريل|أبريل|ماي|مايو|جوان|يونيو|جويلية|يوليو|أوت|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر)\s*(?:سنة\s*)?(\d{4})/,
+      /(?:المؤرخ في|بتاريخ|الموافق(?:\s*لـ?)?)\s*(\d{1,2})\s*(جانفي|فيفري|فبراير|يناير|مارس|أفريل|أبريل|ماي|مايو|جوان|يونيو|جويلية|يوليو|أوت|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر)\s*(?:سنة\s*)?(\d{4})/i,
       /(?:المؤرخ في|بتاريخ|الموافق)\s*(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/,
     ];
     const monthMap: Record<string, string> = {
@@ -85,7 +85,8 @@ function parseArabicLegalText(rawText: string, data: Record<string, any>): Recor
     const m1 = text.match(datePatterns[0]);
     if (m1) {
       const day = m1[1].padStart(2, "0");
-      const month = monthMap[m1[2]] || "01";
+      const monthKey = m1[2].toLowerCase();
+      const month = Object.keys(monthMap).find(k => k.includes(monthKey)) ? monthMap[Object.keys(monthMap).find(k => k.includes(monthKey))!] : "01";
       result.document_date = `${m1[3]}-${month}-${day}`;
     } else {
       const m2 = text.match(datePatterns[1]);
@@ -466,8 +467,8 @@ export default function LegalArchive() {
   const filteredDocuments = documents?.filter(d => {
     const term = searchTerm?.trim();
     if (term) {
-      const matches = d.title_ar?.includes(term) || d.title_fr?.includes(term) || d.document_number?.includes(term) || d.content_text?.includes(term) || d.keywords?.some((k: string) => k.includes(term));
-      if (!matches) return false;
+      const searchContent = `${d.title_ar || ''} ${d.title_fr || ''} ${d.document_number || ''} ${d.content_text || ''} ${(d.keywords || []).join(' ')}`;
+      if (!searchContent.includes(term)) return false;
     }
     if (typeFilter && typeFilter !== 'all') {
       if (d.document_type !== typeFilter) return false;
@@ -550,11 +551,11 @@ export default function LegalArchive() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>رقم الوثيقة</Label>
+                      <Label>رقم الملف</Label>
                       <Input
                         value={formData.document_number}
                         onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
-                        placeholder="مثال: 15-19"
+                        placeholder="الرقم / السنة"
                         className={autoFillClass("document_number")}
                       />
                     </div>
@@ -563,8 +564,9 @@ export default function LegalArchive() {
                       <DateInput
                         value={formData.document_date}
                         onChange={(date) => setFormData({ ...formData, document_date: date })}
-                        placeholder="DD/MM/YYYY"
+                        placeholder="يوم/شهر/سنة"
                         className={autoFillClass("document_date")}
+                        dir="rtl"
                       />
                     </div>
                   </div>
@@ -575,6 +577,7 @@ export default function LegalArchive() {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="وصف مختصر للوثيقة"
                       rows={2}
+                      className={autoFillClass("description")}
                     />
                   </div>
                   <div className="space-y-2">
@@ -584,6 +587,7 @@ export default function LegalArchive() {
                       onChange={(e) => setFormData({ ...formData, content_text: e.target.value })}
                       placeholder="أدخل نص الوثيقة أو جزء منه للبحث"
                       rows={4}
+                      className={autoFillClass("content_text")}
                     />
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
@@ -593,6 +597,7 @@ export default function LegalArchive() {
                         value={formData.keywords}
                         onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
                         placeholder="تعمير، بناء، رخصة، ..."
+                        className={autoFillClass("keywords")}
                       />
                     </div>
                     <div className="space-y-2">
@@ -630,7 +635,7 @@ export default function LegalArchive() {
       <Card>
         <CardContent className="p-4">
           <div className="flex gap-3 flex-col md:flex-row">
-            <div className="relative flex-1 md:flex-none">
+            <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="بحث في الوثائق (العنوان، الرقم، الكلمات المفتاحية، المحتوى)..."
@@ -640,24 +645,21 @@ export default function LegalArchive() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <Label className="text-sm">النوع:</Label>
-              <div className="relative">
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className="border rounded px-3 py-1 text-sm !text-right !bg-white !appearance-none !pl-10 !pr-3 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  dir="rtl"
-                >
-                  <option value="all">الكل</option>
-                  <option value="مرسوم">مرسوم</option>
-                  <option value="قرار">قرار</option>
-                  <option value="تعليمة">تعليمة</option>
-                  <option value="منشور">منشور</option>
-                  <option value="قانون">قانون</option>
-                  <option value="أمر">أمر</option>
-                </select>
-                <ChevronDown className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
-              </div>
+              <Label className="text-sm shrink-0">النوع:</Label>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="الكل" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">الكل</SelectItem>
+                  <SelectItem value="مرسوم">مرسوم</SelectItem>
+                  <SelectItem value="قرار">قرار</SelectItem>
+                  <SelectItem value="تعليمة">تعليمة</SelectItem>
+                  <SelectItem value="منشور">منشور</SelectItem>
+                  <SelectItem value="قانون">قانون</SelectItem>
+                  <SelectItem value="أمر">أمر</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -666,10 +668,7 @@ export default function LegalArchive() {
       {/* Table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-4">
-            <img src="/Capture.PNG" alt="Bureau Logo" className="h-16 object-contain" />
-            <CardTitle>قائمة الوثائق القانونية</CardTitle>
-          </div>
+          <CardTitle>قائمة الوثائق القانونية</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -677,38 +676,50 @@ export default function LegalArchive() {
               <Loader2 className="w-6 h-6 animate-spin" />
             </div>
           ) : filteredDocuments?.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">لا توجد وثائق</p>
+            <p className="text-center text-muted-foreground py-8">لا توجد وثائق مطابقة للبحث</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>النوع</TableHead>
-                  <TableHead>الرقم</TableHead>
+                  <TableHead>رقم الملف</TableHead>
                   <TableHead>العنوان</TableHead>
                   <TableHead>التاريخ</TableHead>
                   <TableHead>اللغة</TableHead>
-                  <TableHead>الإجراءات</TableHead>
+                  <TableHead className="text-left">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredDocuments?.map((doc) => (
                   <TableRow key={doc.id}>
                     <TableCell>
-                      <span className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
+                      <span className={cn(
+                        "px-2 py-1 rounded-full text-xs",
+                        doc.document_type === 'مرسوم' && 'bg-blue-100 text-blue-800',
+                        doc.document_type === 'قرار' && 'bg-green-100 text-green-800',
+                        doc.document_type === 'تعليمة' && 'bg-yellow-100 text-yellow-800',
+                        doc.document_type === 'منشور' && 'bg-indigo-100 text-indigo-800',
+                        doc.document_type === 'قانون' && 'bg-red-100 text-red-800',
+                        doc.document_type === 'أمر' && 'bg-purple-100 text-purple-800',
+                      )}>
                         {doc.document_type}
                       </span>
                     </TableCell>
-                    <TableCell className="font-medium">{doc.document_number || "-"}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{doc.title_ar}</TableCell>
+                    <TableCell className="font-medium">
+                      {doc.document_number && doc.document_date 
+                        ? `${doc.document_number} / ${new Date(doc.document_date).getFullYear()}` 
+                        : doc.document_number || "-"}
+                    </TableCell>
+                    <TableCell className="max-w-[300px] truncate" title={doc.title_ar}>{doc.title_ar}</TableCell>
                     <TableCell>
                       {doc.document_date ? format(new Date(doc.document_date), "d MMMM yyyy", { locale: ar }) : "-"}
                     </TableCell>
                     <TableCell>
-                      {doc.language === "ar" ? "عربي" : doc.language === "fr" ? "فرنسي" : "ثنائي"}
+                      {doc.language === "ar" ? "العربية" : doc.language === "fr" ? "الفرنسية" : "ثنائي اللغة"}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="icon" variant="ghost" onClick={() => setPreviewDocument(doc)} title="عرض المعاينة">
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => setViewDocument(doc)} title="عرض التفاصيل">
                           <Eye className="w-5 h-5" />
                         </Button>
                         {canEdit && (
@@ -717,22 +728,20 @@ export default function LegalArchive() {
                           </Button>
                         )}
                         {canEdit && role === "admin" && (
-                          <>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-destructive"
-                              onClick={() => setDocToDelete(doc)}
-                              title="حذف الوثيقة"
-                            >
-                              <Trash className="w-5 h-5" />
-                            </Button>
-                          </>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDocToDelete(doc)}
+                            title="حذف الوثيقة"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </Button>
                         )}
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))?? <TableRow><TableCell colSpan={6} className="text-center">لا يوجد</TableCell></TableRow>}
               </TableBody>
             </Table>
           )}
@@ -746,16 +755,16 @@ export default function LegalArchive() {
             <DialogTitle>تفاصيل الوثيقة</DialogTitle>
           </DialogHeader>
           {viewDocument && (
-            <div className="space-y-4">
+            <div className="space-y-4 py-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <Label className="text-muted-foreground">العنوان بالعربية</Label>
-                  <p className="font-medium">{viewDocument.title_ar}</p>
+                  <p className="font-medium text-lg">{viewDocument.title_ar}</p>
                 </div>
                 {viewDocument.title_fr && (
                   <div>
                     <Label className="text-muted-foreground">العنوان بالفرنسية</Label>
-                    <p className="font-medium" dir="ltr">{viewDocument.title_fr}</p>
+                    <p className="font-medium text-lg" dir="ltr">{viewDocument.title_fr}</p>
                   </div>
                 )}
               </div>
@@ -765,8 +774,12 @@ export default function LegalArchive() {
                   <p className="font-medium">{viewDocument.document_type}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">الرقم</Label>
-                  <p className="font-medium">{viewDocument.document_number || "-"}</p>
+                  <Label className="text-muted-foreground">رقم الملف</Label>
+                  <p className="font-medium">
+                    {viewDocument.document_number && viewDocument.document_date 
+                      ? `${viewDocument.document_number} / ${new Date(viewDocument.document_date).getFullYear()}` 
+                      : viewDocument.document_number || "-"}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">التاريخ</Label>
@@ -781,14 +794,6 @@ export default function LegalArchive() {
                   <p className="font-medium whitespace-pre-wrap">{viewDocument.description}</p>
                 </div>
               )}
-              {viewDocument.content_text && (
-                <div>
-                  <Label className="text-muted-foreground">المحتوى</Label>
-                  <p className="font-medium whitespace-pre-wrap bg-muted p-3 rounded-lg max-h-60 overflow-y-auto">
-                    {viewDocument.content_text}
-                  </p>
-                </div>
-              )}
               {viewDocument.keywords?.length > 0 && (
                 <div>
                   <Label className="text-muted-foreground">الكلمات المفتاحية</Label>
@@ -801,16 +806,24 @@ export default function LegalArchive() {
                   </div>
                 </div>
               )}
+              {viewDocument.content_text && (
+                <div>
+                  <Label className="text-muted-foreground">المحتوى النصي</Label>
+                  <pre className="font-mono text-sm whitespace-pre-wrap bg-muted/50 p-3 rounded-lg max-h-60 overflow-y-auto border">
+                    {viewDocument.content_text}
+                  </pre>
+                </div>
+              )}
 
               {/* File preview if available */}
               {viewDocument.file_url && (
-                <div>
-                  <Label className="text-muted-foreground">المعاينة</Label>
-                  <div className="border rounded p-2 mt-2">
+                <div className="space-y-2 pt-4">
+                  <Label className="text-muted-foreground">معاينة الملف المرفق</Label>
+                  <div className="border rounded-lg p-2 mt-2 h-[60vh] overflow-hidden">
                     {viewDocument.file_url.endsWith('.pdf') || viewDocument.file_url.includes('application/pdf') ? (
-                      <iframe src={viewDocument.file_url} className="w-full h-[60vh]" title="PDF Preview" />
+                      <iframe src={viewDocument.file_url} className="w-full h-full" title="PDF Preview" />
                     ) : (
-                      <img src={viewDocument.file_url} alt={viewDocument.title_ar} className="w-full h-auto object-contain max-h-[60vh]" />
+                      <img src={viewDocument.file_url} alt={viewDocument.title_ar} className="w-full h-full object-contain" />
                     )}
                   </div>
                 </div>
@@ -848,144 +861,146 @@ export default function LegalArchive() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="w-5 h-5 text-primary" />
-              تعديل الوثيقة
+              تعديل بيانات الملف
             </DialogTitle>
           </DialogHeader>
 
           {editDocument && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-              {/* ── LEFT COLUMN: File Preview / Management ── */}
-              <div className="border rounded-lg bg-muted/10 flex flex-col h-[600px] overflow-hidden sticky top-0">
-                <div className="p-3 border-b bg-muted/40 flex items-center justify-between">
-                  <Label className="flex items-center gap-2 font-semibold">
-                    <FileText className="w-4 h-4 text-primary" />
-                    {newFile ? "الملف الجديد (قيد الإضافة)" : "الملف الحالي"}
-                  </Label>
-                  {!isReplacingFile && !newFile && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsReplacingFile(true)}
-                      className="gap-1 h-7 text-xs"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      تغيير الملف
-                    </Button>
-                  )}
-                  {(isReplacingFile || newFile) && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive h-7 text-xs gap-1"
-                      onClick={() => {
-                        if (newFileUrl) URL.revokeObjectURL(newFileUrl);
-                        setNewFile(null);
-                        setNewFileUrl(null);
-                        setIsReplacingFile(false);
-                        setAnalysisStatus("");
-                      }}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                      إلغاء التغيير
-                    </Button>
-                  )}
-                </div>
+            <div className="flex flex-col gap-6">
+              {/* ── TOP SECTION: File Preview / Management ── */}
+              <div className="relative w-full h-[300px] overflow-hidden rounded-xl border z-0 mb-4">
+                <div className="border rounded-lg bg-muted/10 flex flex-col h-full overflow-hidden">
+                  <div className="p-3 border-b bg-muted/40 flex items-center justify-between">
+                    <Label className="flex items-center gap-2 font-semibold">
+                      <FileText className="w-4 h-4 text-primary" />
+                      {newFile ? "الملف الجديد (قيد الإضافة)" : "الملف الحالي"}
+                    </Label>
+                    {!isReplacingFile && !newFile && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsReplacingFile(true)}
+                        className="gap-1 h-7 text-xs"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        تغيير الملف
+                      </Button>
+                    )}
+                    {(isReplacingFile || newFile) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive h-7 text-xs gap-1"
+                        onClick={() => {
+                          if (newFileUrl) URL.revokeObjectURL(newFileUrl);
+                          setNewFile(null);
+                          setNewFileUrl(null);
+                          setIsReplacingFile(false);
+                          setAnalysisStatus("");
+                        }}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        إلغاء التغيير
+                      </Button>
+                    )}
+                  </div>
 
-                <div className="flex-1 overflow-hidden relative bg-slate-100 flex flex-col justify-center items-center">
-                  {!isReplacingFile && !newFile ? (
-                    /* Current File View */
-                    editDocument.file_url ? (
-                      editDocument.file_url.endsWith('.pdf') || editDocument.file_url.includes('application/pdf') ? (
-                        <iframe src={editDocument.file_url} className="w-full h-full" title="Current PDF" />
-                      ) : (
-                        <div className="p-4 w-full h-full flex items-center justify-center overflow-auto">
-                          <img src={editDocument.file_url} alt="Current" className="max-w-full max-h-full object-contain shadow-md" />
-                        </div>
-                      )
-                    ) : (
-                      <div className="text-center p-8 text-muted-foreground">
-                        <FileText className="w-16 h-16 mx-auto mb-2 opacity-20" />
-                        <p>لا يوجد ملف مرفق حالياً</p>
-                        <Button variant="outline" className="mt-4" onClick={() => setIsReplacingFile(true)}>
-                          <Upload className="w-4 h-4 ml-2" />
-                          إضافة ملف
-                        </Button>
-                      </div>
-                    )
-                  ) : newFile && newFileUrl ? (
-                    /* New File View */
-                    <div className="w-full h-full flex flex-col">
-                      <div className="flex-1 relative">
-                        {newFile.type === 'application/pdf' ? (
-                          <iframe src={newFileUrl} className="w-full h-full" title="New PDF" />
+                  <div className="flex-1 overflow-hidden relative bg-slate-100 flex flex-col justify-center items-center">
+                    {!isReplacingFile && !newFile ? (
+                      /* Current File View */
+                      editDocument.file_url ? (
+                        editDocument.file_url.endsWith('.pdf') || editDocument.file_url.includes('application/pdf') ? (
+                          <iframe src={editDocument.file_url} className="w-full h-full" title="Current PDF" />
                         ) : (
                           <div className="p-4 w-full h-full flex items-center justify-center overflow-auto">
-                            <img src={newFileUrl} alt="New" className="max-w-full max-h-full object-contain shadow-md" />
+                            <img src={editDocument.file_url} alt="Current" className="max-w-full max-h-full object-contain shadow-md" />
                           </div>
-                        )}
-                      </div>
-                      {/* Analysis Actions Bar */}
-                      <div className="p-3 bg-white border-t space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-green-600 font-medium truncate flex-1">
-                            ✅ {newFile.name}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {(newFile.size / (1024 * 1024)).toFixed(1)} MB
-                          </span>
-                        </div>
-
-                        {!isAnalyzing ? (
-                          <Button
-                            type="button"
-                            onClick={handleAnalyzeNewFile}
-                            className="w-full gap-2"
-                            variant="secondary"
-                          >
-                            <Sparkles className="w-4 h-4 text-purple-600" />
-                            تحليل واستخراج البيانات تلقائياً
+                        )
+                      ) : (
+                        <div className="text-center p-8 text-muted-foreground">
+                          <FileText className="w-16 h-16 mx-auto mb-2 opacity-20" />
+                          <p>لا يوجد ملف مرفق حالياً</p>
+                          <Button variant="outline" className="mt-4" onClick={() => setIsReplacingFile(true)}>
+                            <Upload className="w-4 h-4 ml-2" />
+                            إضافة ملف
                           </Button>
-                        ) : (
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>{analysisStatus}</span>
-                              <span>{analysisProgress}%</span>
+                        </div>
+                      )
+                    ) : newFile && newFileUrl ? (
+                      /* New File View */
+                      <div className="w-full h-full flex flex-col">
+                        <div className="flex-1 relative">
+                          {newFile.type === 'application/pdf' ? (
+                            <iframe src={newFileUrl} className="w-full h-full" title="New PDF" />
+                          ) : (
+                            <div className="p-4 w-full h-full flex items-center justify-center overflow-auto">
+                              <img src={newFileUrl} alt="New" className="max-w-full max-h-full object-contain shadow-md" />
                             </div>
-                            <Progress value={analysisProgress} className="h-1.5" />
+                          )}
+                        </div>
+                        {/* Analysis Actions Bar */}
+                        <div className="p-3 bg-white border-t space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-green-600 font-medium truncate flex-1">
+                              ✅ {newFile.name}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {(newFile.size / (1024 * 1024)).toFixed(1)} MB
+                            </span>
                           </div>
-                        )}
+
+                          {!isAnalyzing ? (
+                            <Button
+                              type="button"
+                              onClick={handleAnalyzeNewFile}
+                              className="w-full gap-2"
+                              variant="secondary"
+                            >
+                              <Sparkles className="w-4 h-4 text-purple-600" />
+                              تحليل واستخراج البيانات تلقائياً
+                            </Button>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>{analysisStatus}</span>
+                                <span>{analysisProgress}%</span>
+                              </div>
+                              <Progress value={analysisProgress} className="h-1.5" />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    /* Upload Zone */
-                    <div className="p-8 w-full max-w-md mx-auto">
-                      <div
-                        className="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer hover:border-primary/50 hover:bg-white/50 transition-all bg-white/20"
-                        onClick={() => editFileInputRef.current?.click()}
-                      >
-                        <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                        <h3 className="font-semibold text-lg mb-2">اضغط لرفع ملف جديد</h3>
-                        <p className="text-sm text-muted-foreground mb-6">
-                          PDF أو صور (PNG, JPG) - الحد الأقصى 20 م.ب
-                        </p>
-                        <Button variant="outline">اختيار ملف</Button>
+                    ) : (
+                      /* Upload Zone */
+                      <div className="p-8 w-full max-w-md mx-auto">
+                        <div
+                          className="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer hover:border-primary/50 hover:bg-white/50 transition-all bg-white/20"
+                          onClick={() => editFileInputRef.current?.click()}
+                        >
+                          <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                          <h3 className="font-semibold text-lg mb-2">اضغط لرفع ملف جديد</h3>
+                          <p className="text-sm text-muted-foreground mb-6">
+                            PDF أو صور (PNG, JPG) - الحد الأقصى 20 م.ب
+                          </p>
+                          <Button variant="outline">اختيار ملف</Button>
+                        </div>
+                        <input
+                          ref={editFileInputRef}
+                          type="file"
+                          accept=".pdf,image/png,image/jpeg,image/webp"
+                          onChange={handleEditFileSelect}
+                          className="hidden"
+                        />
                       </div>
-                      <input
-                        ref={editFileInputRef}
-                        type="file"
-                        accept=".pdf,image/png,image/jpeg,image/webp"
-                        onChange={handleEditFileSelect}
-                        className="hidden"
-                      />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* ── RIGHT COLUMN: Form Fields ── */}
-              <form onSubmit={handleEditSubmit} className="flex flex-col h-full space-y-4 overflow-y-auto pr-1">
+              {/* ── BOTTOM SECTION: Form Fields ── */}
+              <form onSubmit={handleEditSubmit} className="flex flex-col space-y-4">
                 <Alert className="bg-blue-50 border-blue-100 dark:bg-blue-950/20 dark:border-blue-900">
                   <Pencil className="h-4 w-4 text-blue-500" />
                   <AlertTitle className="text-blue-700 dark:text-blue-300">وضع التعديل</AlertTitle>
@@ -1032,10 +1047,11 @@ export default function LegalArchive() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>رقم الوثيقة</Label>
+                    <Label>رقم الملف</Label>
                     <Input
                       value={editFormData.document_number}
                       onChange={(e) => setEditFormData({ ...editFormData, document_number: e.target.value })}
+                      placeholder="الرقم / السنة"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1043,6 +1059,8 @@ export default function LegalArchive() {
                     <DateInput
                       value={editFormData.document_date}
                       onChange={(date) => setEditFormData({ ...editFormData, document_date: date })}
+                      placeholder="يوم/شهر/سنة"
+                      dir="rtl"
                     />
                   </div>
                 </div>
@@ -1092,8 +1110,6 @@ export default function LegalArchive() {
                   </div>
                 </div>
 
-                <div className="flex-1"></div>
-
                 {/* ── Action buttons ── */}
                 <div className="flex gap-3 justify-end pt-4 border-t mt-auto sticky bottom-0 bg-background/95 backdrop-blur py-2">
                   <Button type="button" variant="outline" onClick={closeEditModal} disabled={isAnalyzing || updateMutation.isPending}>
@@ -1123,29 +1139,37 @@ export default function LegalArchive() {
       <Dialog open={!!docToDelete} onOpenChange={() => setDocToDelete(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>تأكيد الحذف</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              تأكيد الحذف
+            </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p>هل أنت متأكد أنك تريد حذف هذه الوثيقة؟ هذا الإجراء لا يمكن التراجع عنه.</p>
+            <p>هل أنت متأكد أنك تريد حذف هذه الوثيقة؟ <strong className="font-semibold">هذا الإجراء لا يمكن التراجع عنه.</strong></p>
+            {docToDelete?.file_name && <p className="text-sm text-muted-foreground mt-2">سيتم حذف الملف المرفق ({docToDelete.file_name}) من المخزن أيضاً.</p>}
           </div>
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setDocToDelete(null)}>إلغاء</Button>
+            <Button variant="outline" onClick={() => setDocToDelete(null)} disabled={deleteMutation.isPending}>إلغاء</Button>
             <Button
-              className="bg-destructive text-destructive-foreground"
+              variant="destructive"
+              disabled={deleteMutation.isPending}
               onClick={async () => {
                 if (!docToDelete) return;
                 // attempt to remove storage file if present
-                try {
-                  await removeFromStorage(docToDelete.file_name || null);
-                } catch (err) {
-                  console.warn('Storage removal error', err);
+                if (docToDelete.file_name) {
+                  try {
+                    await removeFromStorage(docToDelete.file_name);
+                  } catch (err) {
+                    console.warn('Storage removal error during delete', err);
+                    toast({ title: "تحذير", description: "لم يتمكن من حذف الملف المرفق من المخزن, قد تحتاج لحذفه يدوياً", variant: "default" });
+                  }
                 }
                 // delete DB record
                 deleteMutation.mutate(docToDelete.id);
                 setDocToDelete(null);
               }}
             >
-              حذف
+              {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'نعم، قم بالحذف'}
             </Button>
           </div>
         </DialogContent>
