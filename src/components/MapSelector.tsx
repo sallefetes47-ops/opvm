@@ -319,7 +319,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                 </div>
 
                 {/* Legend */}
-                <div className="absolute bottom-4 left-4 bg-white/95 p-3 rounded-lg shadow-lg z-[1000] text-xs text-right rtl border border-slate-200 backdrop-blur-sm" dir="rtl">
+                <div className="absolute bottom-4 left-4 bg-white/95 p-3 rounded-lg shadow-lg z-[40] text-xs text-right rtl border border-slate-200 backdrop-blur-sm" dir="rtl">
                     <div className="font-bold flex items-center gap-2 mb-2 text-slate-700 border-b pb-1">
                         <Zap className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                         مفتاح الخريطة

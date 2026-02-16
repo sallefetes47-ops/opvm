@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import MapSelector from "@/components/MapSelector";
+import PermitLocationPicker from "@/components/PermitLocationPicker";
 import DocumentAnalyzer, { AnalysisResult } from "@/components/DocumentAnalyzer";
 
 // UI Components
@@ -385,17 +386,26 @@ export default function ArchivePage() {
               {/* METADATA FORM */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>رقم الملف</Label>
-                  <Input
-                    value={editFormData.file_number || ''}
-                    onChange={e => setEditFormData({ ...editFormData, file_number: e.target.value })}
-                  />
+                  <Label>رقم الملف / السنة</Label>
+                  <div className="flex gap-2" dir="ltr">
+                    <div className="bg-muted px-3 py-2 rounded-md text-sm border min-w-[60px] text-center">
+                      {editFormData.year || '----'}
+                    </div>
+                    <div className="flex items-center px-2 text-muted-foreground">/</div>
+                    <Input
+                      value={editFormData.file_number || ''}
+                      onChange={e => setEditFormData({ ...editFormData, file_number: e.target.value })}
+                      className="text-right flex-1"
+                      dir="rtl"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>الاسم الكامل</Label>
                   <Input
                     value={editFormData.full_name || ''}
                     onChange={e => setEditFormData({ ...editFormData, full_name: e.target.value })}
+                    className="text-right"
                   />
                 </div>
                 <div className="space-y-2">
@@ -418,6 +428,23 @@ export default function ArchivePage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Map Location Picker */}
+              <div className="space-y-2 pt-2 border-t">
+                <PermitLocationPicker
+                  value={
+                    editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
+                      editFormData.location_lat !== null && editFormData.location_lng !== null
+                      ? { lat: editFormData.location_lat, lng: editFormData.location_lng }
+                      : null
+                  }
+                  onChange={(loc) => setEditFormData({
+                    ...editFormData,
+                    location_lat: loc?.lat ?? null,
+                    location_lng: loc?.lng ?? null
+                  })}
+                />
               </div>
 
               <Separator />
@@ -508,6 +535,6 @@ export default function ArchivePage() {
         </DialogContent>
       </Dialog>
 
-    </div>
+    </div >
   );
 }
