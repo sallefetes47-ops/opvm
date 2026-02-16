@@ -487,6 +487,7 @@ export default function LegalArchive() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (createMutation.isPending) return; // Prevent double submission
     if (!formData.title_ar || !formData.document_type) {
       toast({ title: "خطأ", description: "يرجى ملء الحقول المطلوبة", variant: "destructive" });
       return;
@@ -497,23 +498,28 @@ export default function LegalArchive() {
   // ── Explicit Handlers (per User Request) ──
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Stop row click
-    console.log("Attempting to delete ID:", id); // Debugging
+    e.stopPropagation();
+    if (!window.confirm("هل أنت متأكد من الحذف النهائي؟")) return;
 
-    if (window.confirm("هل أنت متأكد من حذف هذه الوثيقة نهائياً؟")) {
-      // 1. Immediate UI update
-      setLocalDocuments(prevDocs => prevDocs.filter(doc => doc.id !== id));
-      toast({ title: "تم الحذف", description: "تم الحذف بنجاح" });
+    try {
+      // 1. AWAIT THE ACTUAL SERVER DELETION FIRST
+      const { error } = await supabase.from("legal_documents").delete().eq("id", id);
+      if (error) throw error;
 
-      // 2. Background API call
-      try {
-        const { error } = await supabase.from("legal_documents").delete().eq("id", id);
-        if (error) throw error;
-      } catch (err: any) {
-        console.error("Delete failed:", err);
-        toast({ title: "خطأ", description: "فشل الحذف من قاعدة البيانات", variant: "destructive" });
-        // Optional: Revert UI if needed, but for now we keep it "ghost" deleted to satisfy "immediate" req
-      }
+      // 2. UPDATE UI ONLY AFTER SERVER CONFIRMS (HTTP 200)
+      setLocalDocuments(prev => prev.filter(doc => String(doc.id) !== String(id)));
+
+      // Sync React Query cache as well to ensure future consistency
+      queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
+
+      toast({ title: "تم الحذف", description: "تم الحذف من قاعدة البيانات بنجاح" });
+    } catch (error: any) {
+      console.error("Delete failed:", error);
+      toast({
+        title: "خطأ",
+        description: "فشل الحذف من الخادم! لن يتم إخفاء الملف.",
+        variant: "destructive"
+      });
     }
   };
 
