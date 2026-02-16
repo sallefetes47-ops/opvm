@@ -387,85 +387,87 @@ export default function ArchivePage() {
               {/* STRICT GRID LAYOUT */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                {/* RIGHT COLUMN: FORM INPUTS */}
-                <div className="space-y-5 order-2 lg:order-1">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* RIGHT COLUMN: FORM INPUTS */}
+                  <div className="space-y-4 order-2 lg:order-1">
+                    <div className="space-y-2">
+                      <Label className="text-right block">رقم الملف / السنة</Label>
+                      <Input
+                        value={editFormData.file_number && editFormData.year ? `${editFormData.file_number} / ${editFormData.year}` : editFormData.file_number || ''}
+                        onChange={e => {
+                          // Simple parser to allow editing
+                          const val = e.target.value;
+                          const parts = val.split('/').map(s => s.trim());
+                          setEditFormData({
+                            ...editFormData,
+                            file_number: parts[0] || '',
+                            year: parts[1] ? parseInt(parts[1]) : editFormData.year
+                          });
+                        }}
+                        className="text-right font-mono font-bold text-lg"
+                        dir="ltr"
+                        placeholder="رقم / سنة"
+                      />
+                    </div>
 
-                  {/* File Number Composite Field */}
-                  <div className="space-y-2">
-                    <Label className="text-right block">رقم الملف / السنة</Label>
-                    <div className="flex flex-row-reverse items-center gap-2" dir="rtl">
-                      <div className="relative flex-1">
-                        <Input
-                          value={editFormData.file_number || ''}
-                          onChange={e => setEditFormData({ ...editFormData, file_number: e.target.value })}
-                          className="text-right font-mono font-bold text-lg" // Brute force text-right
-                          dir="rtl"
-                          placeholder="رقم الملف"
-                        />
-                      </div>
-                      <span className="text-xl font-bold text-muted-foreground">/</span>
-                      <div className="bg-muted px-4 py-2 rounded-md border min-w-[80px] text-center font-mono font-bold text-lg text-muted-foreground">
-                        {editFormData.year || selectedFile?.year || new Date().getFullYear()}
-                      </div>
+                    <div className="space-y-2">
+                      <Label className="text-right block">الاسم الكامل</Label>
+                      <Input
+                        value={editFormData.full_name || ''}
+                        onChange={e => setEditFormData({ ...editFormData, full_name: e.target.value })}
+                        className="text-right"
+                        dir="rtl"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-right block">العنوان</Label>
+                      <Input
+                        value={editFormData.address || ''}
+                        onChange={e => setEditFormData({ ...editFormData, address: e.target.value })}
+                        className="text-right"
+                        dir="rtl"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-right block">البلدية</Label>
+                      <Select
+                        value={editFormData.municipality || 'غرداية'}
+                        onValueChange={v => setEditFormData({ ...editFormData, municipality: v as "غرداية" | "العطف" | "بونورة" })}
+                        dir="rtl"
+                      >
+                        <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          <SelectItem value="غرداية" className="text-right justify-end">غرداية</SelectItem>
+                          <SelectItem value="العطف" className="text-right justify-end">العطف</SelectItem>
+                          <SelectItem value="بونورة" className="text-right justify-end">بونورة</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-right block">الاسم الكامل</Label>
-                    <Input
-                      value={editFormData.full_name || ''}
-                      onChange={e => setEditFormData({ ...editFormData, full_name: e.target.value })}
-                      className="text-right"
-                      dir="rtl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-right block">العنوان</Label>
-                    <Input
-                      value={editFormData.address || ''}
-                      onChange={e => setEditFormData({ ...editFormData, address: e.target.value })}
-                      className="text-right"
-                      dir="rtl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-right block">البلدية</Label>
-                    <Select
-                      value={editFormData.municipality || 'غرداية'}
-                      onValueChange={v => setEditFormData({ ...editFormData, municipality: v as "غرداية" | "العطف" | "بونورة" })}
-                    >
-                      <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between" dir="rtl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        <SelectItem value="غرداية" className="text-right justify-end">غرداية</SelectItem>
-                        <SelectItem value="العطف" className="text-right justify-end">العطف</SelectItem>
-                        <SelectItem value="بونورة" className="text-right justify-end">بونورة</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* LEFT COLUMN: MAP */}
-                <div className="space-y-2 order-1 lg:order-2">
-                  <Label className="text-right block">تحديد الموقع الجغرافي</Label>
-                  {/* STRICT CAGE FOR MAP */}
-                  <div className="relative w-full h-[350px] overflow-hidden rounded-xl border border-gray-300 z-10">
-                    <PermitLocationPicker
-                      value={
-                        editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
-                          editFormData.location_lat !== null && editFormData.location_lng !== null
-                          ? { lat: editFormData.location_lat, lng: editFormData.location_lng }
-                          : null
-                      }
-                      onChange={(loc) => setEditFormData({
-                        ...editFormData,
-                        location_lat: loc?.lat ?? null,
-                        location_lng: loc?.lng ?? null
-                      })}
-                    />
+                  {/* LEFT COLUMN: MAP */}
+                  <div className="space-y-2 order-1 lg:order-2">
+                    <Label className="text-right block">تحديد الموقع الجغرافي</Label>
+                    {/* STRICT CAGE FOR MAP */}
+                    <div className="relative w-full h-[350px] overflow-hidden rounded-xl border border-gray-300 z-0 bg-slate-100">
+                      <PermitLocationPicker
+                        value={
+                          editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
+                            editFormData.location_lat !== null && editFormData.location_lng !== null
+                            ? { lat: editFormData.location_lat, lng: editFormData.location_lng }
+                            : null
+                        }
+                        onChange={(loc) => setEditFormData({
+                          ...editFormData,
+                          location_lat: loc?.lat ?? null,
+                          location_lng: loc?.lng ?? null
+                        })}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

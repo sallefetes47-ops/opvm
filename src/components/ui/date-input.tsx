@@ -77,7 +77,7 @@ export function DateInput({
         type="text"
         value={inputValue}
         onChange={handleInputChange}
-        placeholder="سنة/شهر/يوم"
+        placeholder="يوم/شهر/سنة"
         className={cn("flex-1 text-right font-mono", className)}
         disabled={disabled}
         dir="rtl"
