@@ -130,6 +130,15 @@ const loadDocs = () => {
   return initialData;
 };
 
+const readFileAsBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function LegalArchive() {
   const { user, role, isViewer } = useAuth();
   const { toast } = useToast();
@@ -245,16 +254,29 @@ export default function LegalArchive() {
   };
 
   const createMutation = useMutation({
-    mutationFn: async (data: DocumentFormData) => {
+    mutationFn: async ({ data, file }: { data: DocumentFormData; file: File | null }) => {
       // PROMISE WRAPPER FOR SYNC LOCAL STORAGE
-      return new Promise<void>((resolve) => {
+      return new Promise<void>(async (resolve) => {
+        let fileBase64 = null;
+        let fileName = null;
+        if (file) {
+          try {
+            fileBase64 = await readFileAsBase64(file);
+            fileName = file.name;
+          } catch (e) {
+            console.error("File read error", e);
+          }
+        }
+
         const newDoc = {
           id: crypto.randomUUID(),
           ...data,
           document_date: data.document_date ? format(data.document_date, "yyyy-MM-dd") : null,
           keywords: data.keywords.split(",").map(k => k.trim()).filter(Boolean),
           created_at: new Date().toISOString(),
-          status: 'active'
+          status: 'active',
+          file_base64: fileBase64,
+          file_name: fileName || undefined
         };
         const current = loadDocs();
         const updated = [newDoc, ...current];
@@ -275,7 +297,16 @@ export default function LegalArchive() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data, file }: { id: string; data: DocumentFormData; file: File | null }) => {
-      return new Promise<void>((resolve) => {
+      return new Promise<void>(async (resolve) => {
+        let fileBase64 = null;
+        let fileName = null;
+        if (file) {
+          try {
+            fileBase64 = await readFileAsBase64(file);
+            fileName = file.name;
+          } catch (e) { console.error(e); }
+        }
+
         const current = loadDocs();
         const updated = current.map((doc: any) => {
           if (doc.id === id) {
@@ -284,8 +315,9 @@ export default function LegalArchive() {
               ...data,
               document_date: data.document_date ? format(data.document_date, "yyyy-MM-dd") : null,
               keywords: data.keywords.split(",").map(k => k.trim()).filter(Boolean),
-              // Mock file url if file provided (normally needs upload)
-              file_url: file ? URL.createObjectURL(file) : doc.file_url
+              // Update file if new one provided, else keep old
+              file_base64: fileBase64 || doc.file_base64,
+              file_name: fileName || doc.file_name
             };
           }
           return doc;
@@ -470,7 +502,7 @@ export default function LegalArchive() {
       toast({ title: "خطأ", description: "يرجى ملء الحقول المطلوبة", variant: "destructive" });
       return;
     }
-    createMutation.mutate(formData);
+    createMutation.mutate({ data: formData, file: newFile });
   };
 
   // ── Explicit Handlers (per User Request) ──
@@ -512,13 +544,28 @@ export default function LegalArchive() {
     toast({ title: "تم الحذف نهائياً", description: "تم حذف الملف من قاعدة البيانات المحلية" });
   };
 
-  const handleViewOriginal = (e: React.MouseEvent, fileUrl: string | null) => {
+  const handleViewOriginal = (e: React.MouseEvent, fileUrl: string | null, fileBase64?: string | null) => {
     e.stopPropagation(); // Stop row click
-    if (!fileUrl || fileUrl === "") {
-      toast({ title: "خطأ", description: "عذراً، هذا الملف تجريبي ولا يحتوي على رابط أصلي.", variant: "destructive" });
+
+    // 1. If it's a newly uploaded file stored as Base64 in localStorage
+    if (fileBase64) {
+      const win = window.open();
+      if (win) {
+        win.document.write(`<iframe src="${fileBase64}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+      } else {
+        toast({ title: "محظور", description: "يرجى السماح بالنوافذ المنبثقة (Pop-ups) في متصفحك", variant: "destructive" });
+      }
       return;
     }
-    window.open(fileUrl, '_blank', 'noopener,noreferrer');
+
+    // 2. If it's a standard web URL
+    if (fileUrl && fileUrl.trim() !== "") {
+      window.open(fileUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    // 3. If it's mock data with no actual file attached
+    toast({ title: "خطأ", description: "عذراً، هذا الملف تجريبي ولا يحتوي على وثيقة أصلية مرفقة.", variant: "destructive" });
   };
 
 
@@ -836,8 +883,8 @@ export default function LegalArchive() {
                                 size="icon"
                                 variant="ghost"
                                 className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                                disabled={!doc.file_url}
-                                onClick={(e) => handleViewOriginal(e, doc.file_url)}
+                                disabled={!doc.file_url && !doc.file_base64}
+                                onClick={(e) => handleViewOriginal(e, doc.file_url, doc.file_base64)}
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </Button>
