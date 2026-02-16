@@ -194,16 +194,17 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
             {/* ── Map panel ── */}
             {isOpen && (
                 <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground text-right border-b pb-2 mb-2">
                         انقر على الخريطة لتحديد الموقع │ النقاط الملونة = عقود موجودة
                     </p>
 
-                    <div style={{ height: '300px', borderRadius: '8px', overflow: 'hidden' }}>
+                    {/* STRICT CAGE FOR MAP */}
+                    <div className="relative w-full h-[350px] overflow-hidden rounded-xl border border-gray-300 shadow-sm bg-slate-50">
                         <MapContainer
                             center={mapCenter}
                             zoom={mapZoom}
                             scrollWheelZoom={true}
-                            style={{ width: '100%', height: '100%' }}
+                            style={{ height: '100%', width: '100%', zIndex: 10 }}
                             zoomControl={true}
                             maxBounds={MAX_BOUNDS}
                             maxBoundsViscosity={1.0}

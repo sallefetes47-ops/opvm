@@ -384,37 +384,44 @@ export default function ArchivePage() {
           ) : (
             <div className="space-y-6">
               {/* METADATA FORM */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* RIGHT COLUMN: FORM FIELDS */}
-                <div className="space-y-4">
+              {/* STRICT GRID LAYOUT */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                {/* RIGHT COLUMN: FORM INPUTS */}
+                <div className="space-y-5 order-2 lg:order-1">
+
+                  {/* File Number Composite Field */}
                   <div className="space-y-2">
-                    <Label>رقم الملف / السنة</Label>
-                    <div className="flex gap-2" dir="ltr">
-                      <div className="bg-muted px-3 py-2 rounded-md text-sm border min-w-[60px] text-center flex items-center justify-center font-mono">
+                    <Label className="text-right block">رقم الملف / السنة</Label>
+                    <div className="flex flex-row-reverse items-center gap-2" dir="rtl">
+                      <div className="relative flex-1">
+                        <Input
+                          value={editFormData.file_number || ''}
+                          onChange={e => setEditFormData({ ...editFormData, file_number: e.target.value })}
+                          className="text-right font-mono font-bold text-lg" // Brute force text-right
+                          dir="rtl"
+                          placeholder="رقم الملف"
+                        />
+                      </div>
+                      <span className="text-xl font-bold text-muted-foreground">/</span>
+                      <div className="bg-muted px-4 py-2 rounded-md border min-w-[80px] text-center font-mono font-bold text-lg text-muted-foreground">
                         {editFormData.year || selectedFile?.year || new Date().getFullYear()}
                       </div>
-                      <div className="flex items-center px-2 text-muted-foreground font-bold">/</div>
-                      <Input
-                        value={editFormData.file_number || ''}
-                        onChange={e => setEditFormData({ ...editFormData, file_number: e.target.value })}
-                        className="text-right flex-1 font-mono"
-                        dir="rtl"
-                        placeholder="رقم الملف"
-                      />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>الاسم الكامل</Label>
+                    <Label className="text-right block">الاسم الكامل</Label>
                     <Input
                       value={editFormData.full_name || ''}
                       onChange={e => setEditFormData({ ...editFormData, full_name: e.target.value })}
                       className="text-right"
+                      dir="rtl"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>العنوان</Label>
+                    <Label className="text-right block">العنوان</Label>
                     <Input
                       value={editFormData.address || ''}
                       onChange={e => setEditFormData({ ...editFormData, address: e.target.value })}
@@ -424,7 +431,7 @@ export default function ArchivePage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>البلدية</Label>
+                    <Label className="text-right block">البلدية</Label>
                     <Select
                       value={editFormData.municipality || 'غرداية'}
                       onValueChange={v => setEditFormData({ ...editFormData, municipality: v as "غرداية" | "العطف" | "بونورة" })}
@@ -442,23 +449,22 @@ export default function ArchivePage() {
                 </div>
 
                 {/* LEFT COLUMN: MAP */}
-                <div className="space-y-2">
-                  <Label>تحديد الموقع الجغرافي</Label>
-                  <div className="relative w-full h-[300px] rounded-lg overflow-hidden border z-0">
-                    <PermitLocationPicker
-                      value={
-                        editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
-                          editFormData.location_lat !== null && editFormData.location_lng !== null
-                          ? { lat: editFormData.location_lat, lng: editFormData.location_lng }
-                          : null
-                      }
-                      onChange={(loc) => setEditFormData({
-                        ...editFormData,
-                        location_lat: loc?.lat ?? null,
-                        location_lng: loc?.lng ?? null
-                      })}
-                    />
-                  </div>
+                <div className="space-y-2 order-1 lg:order-2">
+                  <Label className="text-right block">تحديد الموقع الجغرافي</Label>
+                  {/* Map Component handles its own caging now */}
+                  <PermitLocationPicker
+                    value={
+                      editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
+                        editFormData.location_lat !== null && editFormData.location_lng !== null
+                        ? { lat: editFormData.location_lat, lng: editFormData.location_lng }
+                        : null
+                    }
+                    onChange={(loc) => setEditFormData({
+                      ...editFormData,
+                      location_lat: loc?.lat ?? null,
+                      location_lng: loc?.lng ?? null
+                    })}
+                  />
                 </div>
               </div>
 
