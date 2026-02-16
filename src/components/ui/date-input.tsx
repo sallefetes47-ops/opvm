@@ -74,10 +74,11 @@ export function DateInput({
   return (
     <div className={cn("flex flex-row-reverse items-center gap-2", className)} dir="rtl">
       <Input
+        type="text"
         value={inputValue}
         onChange={handleInputChange}
         placeholder="سنة/شهر/يوم"
-        className="flex-1 text-right font-mono"
+        className={cn("flex-1 text-right font-mono", className)}
         disabled={disabled}
         dir="rtl"
       />

@@ -451,8 +451,8 @@ export default function ArchivePage() {
                 {/* LEFT COLUMN: MAP */}
                 <div className="space-y-2 order-1 lg:order-2">
                   <Label className="text-right block">تحديد الموقع الجغرافي</Label>
-                  {/* Map Component handles its own caging now */}
-                  <div className="relative w-full h-[300px] overflow-hidden rounded-xl border border-gray-300 z-0">
+                  {/* STRICT CAGE FOR MAP */}
+                  <div className="relative w-full h-[350px] overflow-hidden rounded-xl border border-gray-300 z-10">
                     <PermitLocationPicker
                       value={
                         editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
