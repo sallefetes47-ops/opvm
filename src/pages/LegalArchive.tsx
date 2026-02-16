@@ -514,31 +514,31 @@ export default function LegalArchive() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>الرقم</TableHead>
-                  <TableHead>العنوان</TableHead>
-                  <TableHead>النوع</TableHead>
-                  <TableHead>التاريخ</TableHead>
-                  <TableHead>كلمات مفتاحية</TableHead>
-                  <TableHead>الإجراءات</TableHead>
+                  <TableHead className="w-[10%] text-right py-4 px-6">الرقم</TableHead>
+                  <TableHead className="w-[30%] text-right py-4 px-6">العنوان</TableHead>
+                  <TableHead className="w-[10%] text-center py-4 px-6">النوع</TableHead>
+                  <TableHead className="w-[15%] text-right py-4 px-6">التاريخ</TableHead>
+                  <TableHead className="w-[15%] text-right py-4 px-6">كلمات مفتاحية</TableHead>
+                  <TableHead className="w-[20%] text-left py-4 px-6">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredDocuments.map((doc) => (
                   <TableRow key={doc.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setViewDocument(doc)}>
-                    <TableCell className="font-medium">{doc.document_number}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-right py-4 px-6 font-medium">{doc.document_number}</TableCell>
+                    <TableCell className="text-right py-4 px-6">
                       <div className="flex flex-col">
                         <span>{doc.title_ar}</span>
                         {doc.title_fr && <span className="text-xs text-muted-foreground">{doc.title_fr}</span>}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center py-4 px-6">
                       <Badge variant="secondary" className="font-normal">{doc.document_type}</Badge>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">
+                    <TableCell className="text-right py-4 px-6 whitespace-nowrap">
                       {doc.document_date ? format(new Date(doc.document_date), "dd/MM/yyyy") : "-"}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-right py-4 px-6">
                       <div className="flex flex-wrap gap-1">
                         {doc.keywords?.slice(0, 2).map((k: string, i: number) => (
                           <span key={i} className="text-xs bg-primary/5 px-1.5 py-0.5 rounded text-primary">
@@ -550,9 +550,9 @@ export default function LegalArchive() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-left py-4 px-6">
                       <TooltipProvider>
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-3" onClick={(e) => e.stopPropagation()}>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
