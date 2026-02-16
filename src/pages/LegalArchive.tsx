@@ -14,7 +14,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Scale, Plus, Eye, Trash, Search, Pencil, Upload, FileText, RefreshCw, X, Sparkles, AlertTriangle, ChevronDown } from "lucide-react";
+import { Loader2, Scale, Plus, Eye, Trash2, Search, Pencil, Upload, FileText, RefreshCw, X, Sparkles, AlertTriangle, ChevronDown, ExternalLink } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -718,27 +719,61 @@ export default function LegalArchive() {
                       {doc.language === "ar" ? "العربية" : doc.language === "fr" ? "الفرنسية" : "ثنائي اللغة"}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => setViewDocument(doc)} title="عرض التفاصيل">
-                          <Eye className="w-5 h-5" />
-                        </Button>
-                        {canEdit && (
-                          <Button size="icon" variant="ghost" onClick={() => openEditModal(doc)} title="تعديل الوثيقة">
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {canEdit && role === "admin" && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setDocToDelete(doc)}
-                            title="حذف الوثيقة"
-                          >
-                            <Trash className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
+                      <TooltipProvider delayDuration={200}>
+                        <div className="flex flex-row gap-4 items-center justify-center">
+                          {/* Edit */}
+                          {canEdit && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost" onClick={() => openEditModal(doc)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top"><p>تعديل</p></TooltipContent>
+                            </Tooltip>
+                          )}
+                          {/* View Summary */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" onClick={() => setViewDocument(doc)}>
+                                <Eye className="h-5 w-5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top"><p>عرض الملخص</p></TooltipContent>
+                          </Tooltip>
+                          {/* View Original File */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                disabled={!doc.file_url}
+                                onClick={() => doc.file_url && window.open(doc.file_url, '_blank')}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top"><p>معاينة الملف الأصلي</p></TooltipContent>
+                          </Tooltip>
+                          {/* Delete */}
+                          {canEdit && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => setDocToDelete(doc)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top"><p>حذف</p></TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TooltipProvider>
                     </TableCell>
                   </TableRow>
                 ))?? <TableRow><TableCell colSpan={6} className="text-center">لا يوجد</TableCell></TableRow>}
