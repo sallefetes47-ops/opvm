@@ -384,67 +384,82 @@ export default function ArchivePage() {
           ) : (
             <div className="space-y-6">
               {/* METADATA FORM */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>رقم الملف / السنة</Label>
-                  <div className="flex gap-2" dir="ltr">
-                    <div className="bg-muted px-3 py-2 rounded-md text-sm border min-w-[60px] text-center">
-                      {editFormData.year || '----'}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* RIGHT COLUMN: FORM FIELDS */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>رقم الملف / السنة</Label>
+                    <div className="flex gap-2" dir="ltr">
+                      <div className="bg-muted px-3 py-2 rounded-md text-sm border min-w-[60px] text-center flex items-center justify-center font-mono">
+                        {editFormData.year || selectedFile?.year || new Date().getFullYear()}
+                      </div>
+                      <div className="flex items-center px-2 text-muted-foreground font-bold">/</div>
+                      <Input
+                        value={editFormData.file_number || ''}
+                        onChange={e => setEditFormData({ ...editFormData, file_number: e.target.value })}
+                        className="text-right flex-1 font-mono"
+                        dir="rtl"
+                        placeholder="رقم الملف"
+                      />
                     </div>
-                    <div className="flex items-center px-2 text-muted-foreground">/</div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>الاسم الكامل</Label>
                     <Input
-                      value={editFormData.file_number || ''}
-                      onChange={e => setEditFormData({ ...editFormData, file_number: e.target.value })}
-                      className="text-right flex-1"
+                      value={editFormData.full_name || ''}
+                      onChange={e => setEditFormData({ ...editFormData, full_name: e.target.value })}
+                      className="text-right"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>العنوان</Label>
+                    <Input
+                      value={editFormData.address || ''}
+                      onChange={e => setEditFormData({ ...editFormData, address: e.target.value })}
+                      className="text-right"
                       dir="rtl"
                     />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>الاسم الكامل</Label>
-                  <Input
-                    value={editFormData.full_name || ''}
-                    onChange={e => setEditFormData({ ...editFormData, full_name: e.target.value })}
-                    className="text-right"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>العنوان</Label>
-                  <Input
-                    value={editFormData.address || ''}
-                    onChange={e => setEditFormData({ ...editFormData, address: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>البلدية</Label>
-                  <Select
-                    value={editFormData.municipality || 'غرداية'}
-                    onValueChange={v => setEditFormData({ ...editFormData, municipality: v as "غرداية" | "العطف" | "بونورة" })}
-                  >                 <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="غرداية">غرداية</SelectItem>
-                      <SelectItem value="العطف">العطف</SelectItem>
-                      <SelectItem value="بونورة">بونورة</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
-              {/* Map Location Picker */}
-              <div className="space-y-2 pt-2 border-t">
-                <PermitLocationPicker
-                  value={
-                    editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
-                      editFormData.location_lat !== null && editFormData.location_lng !== null
-                      ? { lat: editFormData.location_lat, lng: editFormData.location_lng }
-                      : null
-                  }
-                  onChange={(loc) => setEditFormData({
-                    ...editFormData,
-                    location_lat: loc?.lat ?? null,
-                    location_lng: loc?.lng ?? null
-                  })}
-                />
+                  <div className="space-y-2">
+                    <Label>البلدية</Label>
+                    <Select
+                      value={editFormData.municipality || 'غرداية'}
+                      onValueChange={v => setEditFormData({ ...editFormData, municipality: v as "غرداية" | "العطف" | "بونورة" })}
+                    >
+                      <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between" dir="rtl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="غرداية" className="text-right justify-end">غرداية</SelectItem>
+                        <SelectItem value="العطف" className="text-right justify-end">العطف</SelectItem>
+                        <SelectItem value="بونورة" className="text-right justify-end">بونورة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* LEFT COLUMN: MAP */}
+                <div className="space-y-2">
+                  <Label>تحديد الموقع الجغرافي</Label>
+                  <div className="relative w-full h-[300px] rounded-lg overflow-hidden border z-0">
+                    <PermitLocationPicker
+                      value={
+                        editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
+                          editFormData.location_lat !== null && editFormData.location_lng !== null
+                          ? { lat: editFormData.location_lat, lng: editFormData.location_lng }
+                          : null
+                      }
+                      onChange={(loc) => setEditFormData({
+                        ...editFormData,
+                        location_lat: loc?.lat ?? null,
+                        location_lng: loc?.lng ?? null
+                      })}
+                    />
+                  </div>
+                </div>
               </div>
 
               <Separator />

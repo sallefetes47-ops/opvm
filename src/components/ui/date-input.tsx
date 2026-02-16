@@ -72,35 +72,38 @@ export function DateInput({
   };
 
   return (
-    <div className={cn("flex gap-2", className)} dir="rtl">
+    <div className={cn("flex flex-row-reverse items-center gap-2", className)} dir="rtl">
+      <Input
+        value={inputValue}
+        onChange={handleInputChange}
+        placeholder="سنة/شهر/يوم"
+        className="flex-1 text-right font-mono"
+        disabled={disabled}
+        dir="rtl"
+      />
       <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
-            size="icon"
-            disabled={disabled}
-            type="button"
+            variant={"outline"}
+            className={cn(
+              "w-10 h-10 p-0 text-left font-normal",
+              !value && "text-muted-foreground"
+            )}
+            onClick={() => setIsCalendarOpen(true)}
           >
             <CalendarIcon className="h-4 w-4" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 text-right" align="start" dir="rtl">
           <Calendar
             mode="single"
             selected={value}
             onSelect={handleCalendarSelect}
             initialFocus
-            locale={ar}
+            locale={ar} // Ensure Arabic locale
           />
         </PopoverContent>
       </Popover>
-      <Input
-        value={inputValue}
-        onChange={handleInputChange}
-        placeholder={placeholder === "DD/MM/YYYY" ? "يوم/شهر/سنة" : placeholder}
-        className="flex-1 text-right"
-        disabled={disabled}
-      />
     </div>
   );
 }
