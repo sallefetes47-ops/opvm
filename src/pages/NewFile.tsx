@@ -254,7 +254,7 @@ export default function NewFile() {
                   setFormData({ ...formData, municipality: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
                   <SelectValue placeholder="اختر البلدية" />
                 </SelectTrigger>
                 <SelectContent>
@@ -271,7 +271,7 @@ export default function NewFile() {
                 value={formData.permit_type}
                 onValueChange={handlePermitTypeChange}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
                   <SelectValue placeholder="اختر نوع العقد" />
                 </SelectTrigger>
                 <SelectContent>
@@ -450,7 +450,7 @@ export default function NewFile() {
                   });
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
                   <SelectValue placeholder="اختر نوع السند" />
                 </SelectTrigger>
                 <SelectContent>
@@ -580,7 +580,7 @@ export default function NewFile() {
                   setFormData({ ...formData, committee_opinion: value, rejection_reason: "" })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
                   <SelectValue placeholder="اختر رأي اللجنة" />
                 </SelectTrigger>
                 <SelectContent>

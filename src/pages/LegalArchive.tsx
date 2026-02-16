@@ -536,7 +536,7 @@ export default function LegalArchive() {
                         value={formData.document_type}
                         onValueChange={(value) => setFormData({ ...formData, document_type: value })}
                       >
-                        <SelectTrigger className={autoFillClass("document_type")}>
+                        <SelectTrigger className={cn(autoFillClass("document_type"), "text-right flex flex-row-reverse items-center justify-between")}>
                           <SelectValue placeholder="اختر النوع" />
                         </SelectTrigger>
                         <SelectContent>
@@ -601,7 +601,7 @@ export default function LegalArchive() {
                         value={formData.language}
                         onValueChange={(value) => setFormData({ ...formData, language: value })}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>

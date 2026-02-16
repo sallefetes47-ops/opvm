@@ -199,7 +199,7 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                     </p>
 
                     {/* STRICT CAGE FOR MAP */}
-                    <div className="relative w-full h-[350px] overflow-hidden rounded-xl border border-gray-300 shadow-sm bg-slate-50">
+                    <div className="relative w-full h-full overflow-hidden rounded-xl border border-gray-300 shadow-sm bg-slate-50">
                         <MapContainer
                             center={mapCenter}
                             zoom={mapZoom}

@@ -235,7 +235,7 @@ export default function Restudy() {
                   setSearchParams({ ...searchParams, municipality: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
                   <SelectValue placeholder="اختر البلدية" />
                 </SelectTrigger>
                 <SelectContent>
@@ -254,7 +254,7 @@ export default function Restudy() {
                   setSearchParams({ ...searchParams, permit_type: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
                   <SelectValue placeholder="اختر نوع العقد (اختياري)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -397,7 +397,7 @@ export default function Restudy() {
                       setRestudyData({ ...restudyData, new_opinion: value, new_reason: "" })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
                       <SelectValue placeholder="اختر القرار" />
                     </SelectTrigger>
                     <SelectContent>

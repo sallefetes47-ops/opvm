@@ -452,19 +452,21 @@ export default function ArchivePage() {
                 <div className="space-y-2 order-1 lg:order-2">
                   <Label className="text-right block">تحديد الموقع الجغرافي</Label>
                   {/* Map Component handles its own caging now */}
-                  <PermitLocationPicker
-                    value={
-                      editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
-                        editFormData.location_lat !== null && editFormData.location_lng !== null
-                        ? { lat: editFormData.location_lat, lng: editFormData.location_lng }
-                        : null
-                    }
-                    onChange={(loc) => setEditFormData({
-                      ...editFormData,
-                      location_lat: loc?.lat ?? null,
-                      location_lng: loc?.lng ?? null
-                    })}
-                  />
+                  <div className="relative w-full h-[300px] overflow-hidden rounded-xl border border-gray-300 z-0">
+                    <PermitLocationPicker
+                      value={
+                        editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
+                          editFormData.location_lat !== null && editFormData.location_lng !== null
+                          ? { lat: editFormData.location_lat, lng: editFormData.location_lng }
+                          : null
+                      }
+                      onChange={(loc) => setEditFormData({
+                        ...editFormData,
+                        location_lat: loc?.lat ?? null,
+                        location_lng: loc?.lng ?? null
+                      })}
+                    />
+                  </div>
                 </div>
               </div>
 

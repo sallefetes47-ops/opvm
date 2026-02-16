@@ -64,7 +64,7 @@ export default function Summons() {
         .from("summons")
         .select("*")
         .order("summons_date", { ascending: false });
-      
+
       if (error) throw error;
       return data;
     },
@@ -124,8 +124,8 @@ export default function Summons() {
     createMutation.mutate(formData);
   };
 
-  const filteredSummons = summonsList?.filter(s => 
-    s.summons_number?.includes(searchTerm) || 
+  const filteredSummons = summonsList?.filter(s =>
+    s.summons_number?.includes(searchTerm) ||
     s.venue?.includes(searchTerm)
   );
 
@@ -141,7 +141,7 @@ export default function Summons() {
             <p className="text-muted-foreground">إدارة استدعاءات أعضاء اللجنة</p>
           </div>
         </div>
-        
+
         {canEdit && (
           <div className="flex gap-2">
             <FileImport
@@ -156,82 +156,82 @@ export default function Summons() {
                   إضافة استدعاء
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>إضافة استدعاء جديد</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>تاريخ الاستدعاء</Label>
-                    <DateInput
-                      value={formData.summons_date}
-                      onChange={(date) => setFormData({ ...formData, summons_date: date })}
-                      placeholder="DD/MM/YYYY"
-                    />
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>إضافة استدعاء جديد</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>تاريخ الاستدعاء</Label>
+                      <DateInput
+                        value={formData.summons_date}
+                        onChange={(date) => setFormData({ ...formData, summons_date: date })}
+                        placeholder="DD/MM/YYYY"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>رقم الاستدعاء</Label>
+                      <Input
+                        value={formData.summons_number}
+                        onChange={(e) => setFormData({ ...formData, summons_number: e.target.value })}
+                        placeholder="مثال: 2026/001"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>رقم الاستدعاء</Label>
+                    <Label>أعضاء اللجنة (مفصولين بفاصلة)</Label>
                     <Input
-                      value={formData.summons_number}
-                      onChange={(e) => setFormData({ ...formData, summons_number: e.target.value })}
-                      placeholder="مثال: 2026/001"
+                      value={formData.committee_members}
+                      onChange={(e) => setFormData({ ...formData, committee_members: e.target.value })}
+                      placeholder="العضو الأول، العضو الثاني، ..."
                     />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>أعضاء اللجنة (مفصولين بفاصلة)</Label>
-                  <Input
-                    value={formData.committee_members}
-                    onChange={(e) => setFormData({ ...formData, committee_members: e.target.value })}
-                    placeholder="العضو الأول، العضو الثاني، ..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>مكان الاجتماع</Label>
-                  <Input
-                    value={formData.venue}
-                    onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
-                    placeholder="أدخل مكان الاجتماع"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>حالة الحضور</Label>
-                  <Select
-                    value={formData.attendance_status}
-                    onValueChange={(value) => setFormData({ ...formData, attendance_status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الحالة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="مكتمل">مكتمل</SelectItem>
-                      <SelectItem value="جزئي">جزئي</SelectItem>
-                      <SelectItem value="لم ينعقد">لم ينعقد</SelectItem>
-                      <SelectItem value="معلق">معلق</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>ملاحظات</Label>
-                  <Textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="ملاحظات إضافية"
-                    rows={2}
-                  />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    إلغاء
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                    {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <div className="space-y-2">
+                    <Label>مكان الاجتماع</Label>
+                    <Input
+                      value={formData.venue}
+                      onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+                      placeholder="أدخل مكان الاجتماع"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>حالة الحضور</Label>
+                    <Select
+                      value={formData.attendance_status}
+                      onValueChange={(value) => setFormData({ ...formData, attendance_status: value })}
+                    >
+                      <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
+                        <SelectValue placeholder="اختر الحالة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="مكتمل">مكتمل</SelectItem>
+                        <SelectItem value="جزئي">جزئي</SelectItem>
+                        <SelectItem value="لم ينعقد">لم ينعقد</SelectItem>
+                        <SelectItem value="معلق">معلق</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ملاحظات</Label>
+                    <Textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="ملاحظات إضافية"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      إلغاء
+                    </Button>
+                    <Button type="submit" disabled={createMutation.isPending} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
+                      {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </div>
