@@ -279,24 +279,24 @@ export default function Summons() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>الرقم</TableHead>
-                  <TableHead>التاريخ</TableHead>
-                  <TableHead>المكان</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>الإجراءات</TableHead>
+                  <TableHead className="w-[10%] text-right py-4 px-6">الرقم</TableHead>
+                  <TableHead className="w-[20%] text-right py-4 px-6">التاريخ</TableHead>
+                  <TableHead className="w-[35%] text-right py-4 px-6">المكان</TableHead>
+                  <TableHead className="w-[15%] text-center py-4 px-6">الحالة</TableHead>
+                  <TableHead className="w-[20%] text-left py-4 px-6">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredSummons.map((summons) => (
                   <TableRow key={summons.id}>
-                    <TableCell className="font-medium">{summons.summons_number || "-"}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-right py-4 px-6 font-medium">{summons.summons_number || "-"}</TableCell>
+                    <TableCell className="text-right py-4 px-6">
                       {summons.summons_date ? format(new Date(summons.summons_date), "d MMMM yyyy", { locale: ar }) : "-"}
                     </TableCell>
-                    <TableCell>{summons.venue || "-"}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-right py-4 px-6">{summons.venue || "-"}</TableCell>
+                    <TableCell className="text-center py-4 px-6">
                       <span className={cn(
-                        "px-2 py-1 rounded-full text-xs",
+                        "px-2 py-1 rounded-full text-xs inline-block",
                         summons.attendance_status === "مكتمل" && "bg-green-100 text-green-800",
                         summons.attendance_status === "جزئي" && "bg-yellow-100 text-yellow-800",
                         summons.attendance_status === "لم ينعقد" && "bg-red-100 text-red-800",
@@ -305,19 +305,20 @@ export default function Summons() {
                         {summons.attendance_status || "-"}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
+                    <TableCell className="text-left py-4 px-6">
+                      <div className="flex items-center justify-end gap-3">
                         {/* View Original (File) */}
                         <Button
                           size="icon"
                           variant="ghost"
                           className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                           onClick={(e) => viewOriginalDocument(e, summons)}
+                          title="معاينة الملف"
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>
 
-                        <Button size="icon" variant="ghost" onClick={() => setViewSummons(summons)}>
+                        <Button size="icon" variant="ghost" onClick={() => setViewSummons(summons)} title="عرض التفاصيل">
                           <Eye className="w-4 h-4" />
                         </Button>
 
@@ -328,6 +329,7 @@ export default function Summons() {
                               variant="ghost"
                               className="text-green-600 hover:text-green-800 hover:bg-green-50"
                               onClick={() => restoreDocument(summons.id)}
+                              title="استرجاع"
                             >
                               <RefreshCcw className="h-4 w-4" />
                             </Button>
@@ -336,6 +338,7 @@ export default function Summons() {
                               variant="ghost"
                               className="text-red-600 hover:text-red-800 hover:bg-red-50"
                               onClick={() => permanentDeleteDocument(summons.id)}
+                              title="حذف نهائي"
                             >
                               <Trash className="h-4 w-4" />
                             </Button>
@@ -347,6 +350,7 @@ export default function Summons() {
                               variant="ghost"
                               className="text-red-500 hover:text-red-700 hover:bg-red-50"
                               onClick={() => softDeleteDocument(summons.id)}
+                              title="نقل للسلة"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
