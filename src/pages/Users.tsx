@@ -168,7 +168,7 @@ export default function UsersPage() {
                         }
                         disabled={updateRoleMutation.isPending}
                       >
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-32 text-right flex flex-row-reverse items-center justify-between">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
