@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Scale, Plus, Eye, Trash, Search, Pencil, Upload, FileText, RefreshCw, X, Sparkles, AlertTriangle } from "lucide-react";
+import { Loader2, Scale, Plus, Eye, Trash, Search, Pencil, Upload, FileText, RefreshCw, X, Sparkles, AlertTriangle, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -641,20 +641,23 @@ export default function LegalArchive() {
             </div>
             <div className="flex items-center gap-2">
               <Label className="text-sm">النوع:</Label>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="border rounded px-2 py-1 text-sm !text-right !bg-white !appearance-none !pr-3 !pl-8 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat !bg-[left_0.5rem_center]"
-                dir="rtl"
-              >
-                <option value="all">الكل</option>
-                <option value="مرسوم">مرسوم</option>
-                <option value="قرار">قرار</option>
-                <option value="تعليمة">تعليمة</option>
-                <option value="منشور">منشور</option>
-                <option value="قانون">قانون</option>
-                <option value="أمر">أمر</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="border rounded px-3 py-1 text-sm !text-right !bg-white !appearance-none !pl-10 !pr-3 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  dir="rtl"
+                >
+                  <option value="all">الكل</option>
+                  <option value="مرسوم">مرسوم</option>
+                  <option value="قرار">قرار</option>
+                  <option value="تعليمة">تعليمة</option>
+                  <option value="منشور">منشور</option>
+                  <option value="قانون">قانون</option>
+                  <option value="أمر">أمر</option>
+                </select>
+                <ChevronDown className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
+              </div>
             </div>
           </div>
         </CardContent>

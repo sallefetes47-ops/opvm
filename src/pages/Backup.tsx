@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Download, Upload, FolderSync, FileJson, FileSpreadsheet, FileCode, Loader2, AlertTriangle, FileText, Database as DatabaseIcon, CheckCircle, AlertCircle, FileImage } from "lucide-react";
+import { Download, Upload, FolderSync, FileJson, FileSpreadsheet, FileCode, Loader2, AlertTriangle, FileText, Database as DatabaseIcon, CheckCircle, AlertCircle, FileImage, ChevronDown } from "lucide-react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -743,18 +743,21 @@ export default function Backup() {
                   {importFileType === 'csv' && (
                     <div className="mt-2">
                       <Label className="text-xs">استيراد CSV إلى جدول:</Label>
-                      <select
-                        value={importTargetTable}
-                        onChange={(e) => setImportTargetTable(e.target.value)}
-                        className="mt-1 w-full border rounded px-2 py-1 text-sm !text-right !bg-white !appearance-none !pr-3 !pl-8 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat !bg-[left_0.5rem_center]"
-                        dir="rtl"
-                      >
-                        <option value="files">الملفات</option>
-                        <option value="file_studies">سجل الدراسات</option>
-                        <option value="meeting_minutes">محاضر الجلسات</option>
-                        <option value="summons">الاستدعاءات</option>
-                        <option value="legal_documents">المراسيم والتعليمات</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={importTargetTable}
+                          onChange={(e) => setImportTargetTable(e.target.value)}
+                          className="mt-1 w-full border rounded px-3 py-2 text-sm !text-right !bg-white !appearance-none !pl-10 !pr-3 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                          dir="rtl"
+                        >
+                          <option value="files">الملفات</option>
+                          <option value="file_studies">سجل الدراسات</option>
+                          <option value="meeting_minutes">محاضر الجلسات</option>
+                          <option value="summons">الاستدعاءات</option>
+                          <option value="legal_documents">المراسيم والتعليمات</option>
+                        </select>
+                        <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">تأكد أن رؤوس CSV تطابق أسماء الحقول في الجدول المستهدف</p>
                     </div>
                   )}
