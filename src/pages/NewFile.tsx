@@ -419,29 +419,36 @@ export default function NewFile() {
           <CardContent className="space-y-4">
             <div className="space-y-3">
               <Label>نوع السند *</Label>
-              <RadioGroup
+              <Select
                 value={formData.ownership_type}
-                onValueChange={(value: OwnershipType | OwnershipTypeForNonBuilding) =>
-                  setFormData({ ...formData, ownership_type: value, section: "", property_group: "", lot_number: "", subdivision_name: "" })
-                }
-                className="flex flex-wrap gap-6"
+                onValueChange={(value: OwnershipType | OwnershipTypeForNonBuilding) => {
+                  // If switching to something other than "دفتر عقاري", clear section/ilot
+                  const isRealEstateDeed = value === "دفتر عقاري";
+
+                  setFormData({
+                    ...formData,
+                    ownership_type: value,
+                    // Clear cadastre fields if not "دفتر عقاري"
+                    section: isRealEstateDeed ? formData.section : "",
+                    property_group: isRealEstateDeed ? formData.property_group : "",
+                    // Also handle certificate of benefit cleanup if needed
+                    lot_number: value !== "شهادة إستفادة" ? "" : formData.lot_number,
+                    subdivision_name: value !== "شهادة إستفادة" ? "" : formData.subdivision_name,
+                  });
+                }}
               >
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <RadioGroupItem value="عقد ملكية" id="deed" />
-                  <Label htmlFor="deed" className="cursor-pointer">عقد ملكية</Label>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <RadioGroupItem value="دفتر عقاري" id="booklet" />
-                  <Label htmlFor="booklet" className="cursor-pointer">دفتر عقاري</Label>
-                </div>
-                {/* شهادة إستفادة only visible for رخصة بناء */}
-                {formData.permit_type === "رخصة بناء" && (
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <RadioGroupItem value="شهادة إستفادة" id="certificate" />
-                    <Label htmlFor="certificate" className="cursor-pointer">شهادة إستفادة</Label>
-                  </div>
-                )}
-              </RadioGroup>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر نوع السند" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="عقد ملكية">عقد ملكية</SelectItem>
+                  <SelectItem value="دفتر عقاري">دفتر عقاري</SelectItem>
+                  {/* شهادة إستفادة only visible for رخصة بناء */}
+                  {formData.permit_type === "رخصة بناء" && (
+                    <SelectItem value="شهادة إستفادة">شهادة إستفادة</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             {formData.ownership_type === "شهادة إستفادة" && (
@@ -477,34 +484,36 @@ export default function NewFile() {
             )}
 
             {/* Cadastral Data - Manual Entry */}
-            {["رخصة بناء", "رخصة تجزئة", "رخصة هدم", "شهادة تقسيم"].includes(formData.permit_type) && (
-              <div className="grid gap-4 md:grid-cols-2 pt-4 border-t border-border mt-4">
-                <div className="md:col-span-2">
-                  <Label className="text-base font-semibold">بيانات المسح العقاري (إدخال يدوي)</Label>
-                  <p className="text-xs text-muted-foreground mb-3">يمكنك إدخال معلومات القسم ومجموعة الملكية يدوياً في حال عدم توفرها آلياً</p>
+            {/* CONDITIONAL: Only show if ownership type is "دفتر عقاري" */}
+            {formData.ownership_type === "دفتر عقاري" &&
+              ["رخصة بناء", "رخصة تجزئة", "رخصة هدم", "شهادة تقسيم"].includes(formData.permit_type) && (
+                <div className="grid gap-4 md:grid-cols-2 pt-4 border-t border-border mt-4">
+                  <div className="md:col-span-2">
+                    <Label className="text-base font-semibold">بيانات المسح العقاري (إدخال يدوي)</Label>
+                    <p className="text-xs text-muted-foreground mb-3">يمكنك إدخال معلومات القسم ومجموعة الملكية يدوياً</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="section">القسم العقاري (Section) *</Label>
+                    <Input
+                      id="section"
+                      value={formData.section}
+                      onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                      placeholder="أدخل رقم القسم"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="property_group">مجموعة الملكية (Ilot) *</Label>
+                    <Input
+                      id="property_group"
+                      value={formData.property_group}
+                      onChange={(e) => setFormData({ ...formData, property_group: e.target.value })}
+                      placeholder="أدخل رقم مجموعة الملكية"
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="section">القسم العقاري (Section) {formData.ownership_type === "دفتر عقاري" ? "*" : ""}</Label>
-                  <Input
-                    id="section"
-                    value={formData.section}
-                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                    placeholder="أدخل رقم القسم"
-                    required={formData.ownership_type === "دفتر عقاري"}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="property_group">مجموعة الملكية (Ilot) {formData.ownership_type === "دفتر عقاري" ? "*" : ""}</Label>
-                  <Input
-                    id="property_group"
-                    value={formData.property_group}
-                    onChange={(e) => setFormData({ ...formData, property_group: e.target.value })}
-                    placeholder="أدخل رقم مجموعة الملكية"
-                    required={formData.ownership_type === "دفتر عقاري"}
-                  />
-                </div>
-              </div>
-            )}
+              )}
 
             {formData.ownership_type !== "شهادة إستفادة" && (
               <div className="space-y-2">
