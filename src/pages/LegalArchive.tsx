@@ -20,6 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDocumentManager } from "@/hooks/useDocumentManager";
+import { FileDropZone } from "@/components/FileDropZone";
 
 // --- Constants & Types ---
 const STORAGE_KEY = "opvm_documents";
@@ -77,7 +78,6 @@ export default function LegalArchive() {
   const [analysisStatus, setAnalysisStatus] = useState("");
   const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
   const [isReplacingFile, setIsReplacingFile] = useState(false);
-  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   // Search & Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -148,8 +148,6 @@ export default function LegalArchive() {
 
     setIsSubmitting(true);
     try {
-      // Convert keywords string to array if needed, but hook takes 'any'
-      // We'll prepare data exactly as we want it stored, minus internal fields
       const dataToSave = {
         ...formData,
         document_date: formData.document_date ? format(formData.document_date, "yyyy-MM-dd") : null,
@@ -212,17 +210,10 @@ export default function LegalArchive() {
     setAnalysisStatus("");
   };
 
-  const handleEditFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.size > 20 * 1024 * 1024) {
-        toast({ title: "خطأ", description: "حجم الملف كبير جداً. الحد الأقصى 20 ميجابايت", variant: "destructive" });
-        return;
-      }
-      setNewFile(file);
-      const url = URL.createObjectURL(file);
-      setNewFileUrl(url);
-    }
+  const handleEditFileSelect = (file: File) => {
+    setNewFile(file);
+    const url = URL.createObjectURL(file);
+    setNewFileUrl(url);
   };
 
   const handleAnalyzeNewFile = async () => {
@@ -434,24 +425,14 @@ export default function LegalArchive() {
                         </div>
                       </div>
 
-                      {/* File Input */}
-                      <div className="col-span-2 space-y-2 border rounded-lg p-4 bg-slate-50 dark:bg-slate-900/50">
+                      {/* File Drop Zone */}
+                      <div className="col-span-2 space-y-2">
                         <Label className="block text-sm font-medium mb-2">الملف المرفق (PDF/صورة) *</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="file"
-                            accept=".pdf,image/png,image/jpeg,image/webp"
-                            onChange={(e) => setNewFile(e.target.files?.[0] || null)}
-                            className="cursor-pointer file:bg-primary file:text-primary-foreground file:border-0 file:rounded-md file:px-2 file:py-1 file:mr-4 file:text-sm file:font-medium hover:file:bg-primary/90"
-                            required
-                          />
-                        </div>
-                        {newFile && (
-                          <p className="text-xs text-green-600 mt-1 flex items-center gap-1 font-medium">
-                            <FileText className="w-3 h-3" />
-                            تم اختيار: {newFile.name} ({(newFile.size / 1024 / 1024).toFixed(2)} MB)
-                          </p>
-                        )}
+                        <FileDropZone
+                          onFileSelect={setNewFile}
+                          selectedFile={newFile}
+                          onClear={() => setNewFile(null)}
+                        />
                       </div>
 
                       <div className="flex gap-2 justify-end">
@@ -835,13 +816,18 @@ export default function LegalArchive() {
                           </div>
                         )
                       ) : (
-                        <div className="text-center p-8 text-muted-foreground">
-                          <FileText className="w-16 h-16 mx-auto mb-2 opacity-20" />
-                          <p>لا يوجد ملف مرفق حالياً</p>
-                          <Button variant="outline" className="mt-4" onClick={() => setIsReplacingFile(true)}>
-                            <Upload className="w-4 h-4 ml-2" />
-                            إضافة ملف
-                          </Button>
+                        <div className="text-center p-8 w-full h-full flex items-center justify-center">
+                          <div className="w-full max-w-sm">
+                            <FileDropZone
+                              onFileSelect={handleEditFileSelect}
+                              selectedFile={newFile}
+                              onClear={() => {
+                                if (newFileUrl) URL.revokeObjectURL(newFileUrl);
+                                setNewFile(null);
+                                setNewFileUrl(null);
+                              }}
+                            />
+                          </div>
                         </div>
                       )
                     ) : newFile && newFileUrl ? (
@@ -888,29 +874,7 @@ export default function LegalArchive() {
                           )}
                         </div>
                       </div>
-                    ) : (
-                      /* Upload Zone */
-                      <div className="p-8 w-full max-w-md mx-auto">
-                        <div
-                          className="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer hover:border-primary/50 hover:bg-white/50 transition-all bg-white/20"
-                          onClick={() => editFileInputRef.current?.click()}
-                        >
-                          <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                          <h3 className="font-semibold text-lg mb-2">اضغط لرفع ملف جديد</h3>
-                          <p className="text-sm text-muted-foreground mb-6">
-                            PDF أو صور (PNG, JPG) - الحد الأقصى 20 م.ب
-                          </p>
-                          <Button variant="outline">اختيار ملف</Button>
-                        </div>
-                        <input
-                          ref={editFileInputRef}
-                          type="file"
-                          accept=".pdf,image/png,image/jpeg,image/webp"
-                          onChange={handleEditFileSelect}
-                          className="hidden"
-                        />
-                      </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
