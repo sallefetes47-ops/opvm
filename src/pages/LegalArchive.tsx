@@ -520,14 +520,61 @@ export default function LegalArchive() {
   const autoFillClass = (field: string) =>
     autoFilledFields.has(field) ? "ring-2 ring-green-500/40 bg-green-500/5" : "";
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (createMutation.isPending) return; // Prevent double submission
+
     if (!formData.title_ar || !formData.document_type) {
       toast({ title: "خطأ", description: "يرجى ملء الحقول المطلوبة", variant: "destructive" });
       return;
     }
-    createMutation.mutate({ data: formData, file: newFile });
+
+    // 1. Validate File
+    if (!newFile) {
+      toast({ title: "خطأ", description: "يرجى إرفاق ملف الوثيقة (PDF/Image)", variant: "destructive" });
+      return;
+    }
+
+    try {
+      // 2. Generate File Hash
+      const fileHash = await calculateFileHash(newFile);
+
+      // 3. Check for Duplicates
+      const currentDocs = loadDocs();
+      if (currentDocs.some((doc: any) => doc.file_hash === fileHash)) {
+        toast({ title: "مرفوض", description: "رفض الرفع: نفس محتوى الملف موجود مسبقاً في الأرشيف!", variant: "destructive" });
+        return; // STOP EXECUTION
+      }
+
+      // 4. Convert File to Base64
+      const base64Data = await readFileAsBase64(newFile);
+
+      // 5. Create the Full Document Object
+      const newDocument = {
+        id: crypto.randomUUID(),
+        ...formData,
+        document_date: formData.document_date ? format(formData.document_date, "yyyy-MM-dd") : null,
+        keywords: formData.keywords.split(",").map(k => k.trim()).filter(Boolean),
+        created_at: new Date().toISOString(),
+        status: 'active',
+        file_base64: base64Data, // CRITICAL: Save the actual file data
+        file_hash: fileHash,     // CRITICAL: Save the fingerprint
+        file_name: newFile.name
+      };
+
+      // 6. Save to Storage & Update State
+      const updatedDocs = [newDocument, ...currentDocs];
+      syncToStorage(updatedDocs);
+
+      toast({ title: "تم الحفظ", description: "تم إضافة الوثيقة وحفظ الملف بنجاح" });
+      setIsAddDialogOpen(false);
+      resetForm();
+      setNewFile(null);
+      setNewFileUrl(null);
+
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({ title: "خطأ", description: "حدث خطأ أثناء معالجة الملف", variant: "destructive" });
+    }
   };
 
   // ── Explicit Handlers (per User Request) ──
