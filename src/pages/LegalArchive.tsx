@@ -112,6 +112,24 @@ function parseArabicLegalText(rawText: string, data: Record<string, any>): Recor
   return result;
 }
 
+
+
+const STORAGE_KEY = "opvm_documents";
+
+const mockDocuments = [
+  { id: "1", title_ar: "مرسوم تنفيذي 23-14", document_type: "مرسوم", document_number: "23-14", document_date: "2023-01-15", status: "active", description: "يحدد كيفيات تطبيق أحكام القانون..." },
+  { id: "2", title_ar: "قرار وزاري مشترك", document_type: "قرار", document_number: "22-55", document_date: "2022-11-20", status: "active", description: "يتضمن المصادقة على المخطط التوجيهي..." },
+  { id: "3", title_ar: "تعليمة رقم 05", document_type: "تعليمة", document_number: "05", document_date: "2024-02-01", status: "active", description: "تتعلّق بتسهيل إجراءات منح رخص البناء..." }
+];
+
+const loadDocs = () => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) return JSON.parse(saved);
+  const initialData = mockDocuments.map(doc => ({ ...doc, status: doc.status || 'active' }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+  return initialData;
+};
+
 export default function LegalArchive() {
   const { user, role, isViewer } = useAuth();
   const { toast } = useToast();
@@ -119,7 +137,6 @@ export default function LegalArchive() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewDocument, setViewDocument] = useState<any>(null);
   const [previewDocument, setPreviewDocument] = useState<any>(null);
-  const [docToDelete, setDocToDelete] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
@@ -147,7 +164,7 @@ export default function LegalArchive() {
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // ── Local State for Immediate UI Updates ──
-  const [localDocuments, setLocalDocuments] = useState<any[]>([]);
+  const [allDocuments, setAllDocuments] = useState<any[]>(loadDocs());
   const [showRecycleBin, setShowRecycleBin] = useState(false);
 
   // Analysis state
@@ -218,45 +235,36 @@ export default function LegalArchive() {
     });
   };
 
-  const { data: documents, isLoading } = useQuery({
-    queryKey: ["legal-documents"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("legal_documents")
-        .select("*")
-        .order("document_date", { ascending: false });
+  // ── Replace useQuery with Local State ──
+  // const { data: documents } = useQuery... (Removed for Local Storage Override)
 
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Sync React Query data to local state
-  useEffect(() => {
-    if (documents) {
-      setLocalDocuments(documents);
-    }
-  }, [documents]);
+  // ── Sync Helper ──
+  const syncToStorage = (newDocs: any[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newDocs));
+    setAllDocuments(newDocs);
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: DocumentFormData) => {
-      const { error } = await supabase.from("legal_documents").insert({
-        title_ar: data.title_ar,
-        title_fr: data.title_fr || null,
-        document_type: data.document_type,
-        document_number: data.document_number,
-        document_date: data.document_date ? format(data.document_date, "yyyy-MM-dd") : null,
-        description: data.description,
-        content_text: data.content_text,
-        keywords: data.keywords.split(",").map(k => k.trim()).filter(Boolean),
-        language: data.language,
-        created_by: user?.id,
+      // PROMISE WRAPPER FOR SYNC LOCAL STORAGE
+      return new Promise<void>((resolve) => {
+        const newDoc = {
+          id: crypto.randomUUID(),
+          ...data,
+          document_date: data.document_date ? format(data.document_date, "yyyy-MM-dd") : null,
+          keywords: data.keywords.split(",").map(k => k.trim()).filter(Boolean),
+          created_at: new Date().toISOString(),
+          status: 'active'
+        };
+        const current = loadDocs();
+        const updated = [newDoc, ...current];
+        syncToStorage(updated);
+        resolve();
       });
-      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
-      toast({ title: "تم الحفظ", description: "تم حفظ الوثيقة بنجاح" });
+      queryClient.invalidateQueries({ queryKey: ["legal-documents"] }); // No-op really
+      toast({ title: "تم الحفظ", description: "تم حفظ الوثيقة محلياً بنجاح" });
       setIsAddDialogOpen(false);
       resetForm();
     },
@@ -265,60 +273,29 @@ export default function LegalArchive() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("legal_documents").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      // Backend confirmed deletion — now force refetch to sync UI
-      queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
-      toast({ title: "تم الحذف", description: "تم حذف الوثيقة بنجاح" });
-    },
-    onError: (error) => {
-      toast({ title: "خطأ في الحذف", description: error.message || "حدث خطأ أثناء الحذف من قاعدة البيانات", variant: "destructive" });
-    },
-  });
-
-  // ── UPDATE mutation ──
   const updateMutation = useMutation({
     mutationFn: async ({ id, data, file }: { id: string; data: DocumentFormData; file: File | null }) => {
-      const updatePayload: Record<string, any> = {
-        title_ar: data.title_ar,
-        title_fr: data.title_fr || null,
-        document_type: data.document_type,
-        document_number: data.document_number,
-        document_date: data.document_date ? format(data.document_date, "yyyy-MM-dd") : null,
-        description: data.description,
-        content_text: data.content_text,
-        keywords: data.keywords.split(",").map(k => k.trim()).filter(Boolean),
-        language: data.language,
-      };
-
-      // If a new file is being uploaded, upload it to storage first
-      if (file) {
-        const ext = file.name.split('.').pop() || 'pdf';
-        const fileName = `legal_${id}_${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from('documents')
-          .upload(fileName, file, { upsert: true });
-        if (uploadError) {
-          console.warn('File upload error:', uploadError);
-        } else {
-          const { data: urlData } = supabase.storage
-            .from('documents')
-            .getPublicUrl(fileName);
-          updatePayload.file_url = urlData.publicUrl;
-          updatePayload.file_name = fileName;
-        }
-      }
-
-      const { error } = await supabase.from("legal_documents").update(updatePayload).eq("id", id);
-      if (error) throw error;
+      return new Promise<void>((resolve) => {
+        const current = loadDocs();
+        const updated = current.map((doc: any) => {
+          if (doc.id === id) {
+            return {
+              ...doc,
+              ...data,
+              document_date: data.document_date ? format(data.document_date, "yyyy-MM-dd") : null,
+              keywords: data.keywords.split(",").map(k => k.trim()).filter(Boolean),
+              // Mock file url if file provided (normally needs upload)
+              file_url: file ? URL.createObjectURL(file) : doc.file_url
+            };
+          }
+          return doc;
+        });
+        syncToStorage(updated);
+        resolve();
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
-      toast({ title: "تم التحديث", description: "تم تحديث الوثيقة بنجاح" });
+      toast({ title: "تم التحديث", description: "تم تحديث الوثيقة محلياً بنجاح" });
       closeEditModal();
     },
     onError: (error) => {
@@ -498,51 +475,41 @@ export default function LegalArchive() {
 
   // ── Explicit Handlers (per User Request) ──
 
-  const handleSoftDelete = async (e: React.MouseEvent, id: string) => {
+  const handleSoftDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    // Optimistic Update
-    setLocalDocuments(prevDocs => prevDocs.map(doc =>
-      String(doc.id) === String(id) ? { ...doc, status: 'trashed' } : doc
-    ));
-    toast({ title: "تم النقل للمحذوفات", description: "تم نقل الملف إلى سلة المحذوفات" });
 
-    // Background Update
-    const { error } = await supabase.from("legal_documents").update({ status: 'trashed' }).eq("id", id);
-    if (error) {
-      console.error("Soft delete failed", error);
-      toast({ title: "خطأ", description: "فشل تحديث الحالة في الخادم", variant: "destructive" });
-    }
+    // 1. Mutate local storage directly
+    let currentDocs = loadDocs();
+    currentDocs = currentDocs.map((doc: any) =>
+      doc.id === id ? { ...doc, status: 'trashed' } : doc
+    );
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentDocs));
+
+    // 2. Sync React State immediately
+    setAllDocuments(currentDocs);
+    toast({ title: "تم النقل للمحذوفات", description: "تم نقل الملف إلى سلة المحذوفات محلياً" });
   };
 
-  const handleRestore = async (e: React.MouseEvent, id: string) => {
+  const handleRestore = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setLocalDocuments(prevDocs => prevDocs.map(doc =>
-      String(doc.id) === String(id) ? { ...doc, status: 'active' } : doc
-    ));
+    let currentDocs = loadDocs();
+    currentDocs = currentDocs.map((doc: any) =>
+      doc.id === id ? { ...doc, status: 'active' } : doc
+    );
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentDocs));
+    setAllDocuments(currentDocs);
     toast({ title: "تم الاسترجاع", description: "تم استرجاع الملف بنجاح" });
-
-    const { error } = await supabase.from("legal_documents").update({ status: 'active' }).eq("id", id);
-    if (error) {
-      console.error("Restore failed", error);
-      toast({ title: "خطأ", description: "فشل الاسترجاع في الخادم", variant: "destructive" });
-    }
   };
 
-  const handlePermanentDelete = async (e: React.MouseEvent, id: string) => {
+  const handlePermanentDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (!window.confirm("حذف نهائي! لا يمكن التراجع. هل أنت متأكد؟")) return;
 
-    try {
-      const { error } = await supabase.from("legal_documents").delete().eq("id", id);
-      if (error) throw error;
-
-      setLocalDocuments(prevDocs => prevDocs.filter(doc => String(doc.id) !== String(id)));
-      queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
-
-      toast({ title: "تم الحذف نهائياً", description: "تم حذف الملف من قاعدة البيانات" });
-    } catch (err: any) {
-      toast({ title: "خطأ", description: "فشل الحذف النهائي", variant: "destructive" });
-    }
+    let currentDocs = loadDocs();
+    currentDocs = currentDocs.filter((doc: any) => doc.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentDocs));
+    setAllDocuments(currentDocs);
+    toast({ title: "تم الحذف نهائياً", description: "تم حذف الملف من قاعدة البيانات المحلية" });
   };
 
   const handleViewOriginal = (e: React.MouseEvent, fileUrl: string | null) => {
@@ -555,7 +522,7 @@ export default function LegalArchive() {
   };
 
 
-  const filteredDocuments = localDocuments?.filter(d => {
+  const filteredDocuments = allDocuments?.filter(d => {
     // 1. Recycle Bin Filter
     const isTrashed = d.status === 'trashed';
     if (showRecycleBin) {
@@ -779,7 +746,7 @@ export default function LegalArchive() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {false ? ( // isLoading bypassed
             <div className="flex justify-center p-8">
               <Loader2 className="w-6 h-6 animate-spin" />
             </div>
@@ -1323,52 +1290,6 @@ export default function LegalArchive() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!docToDelete} onOpenChange={() => setDocToDelete(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              تأكيد الحذف
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p>هل أنت متأكد أنك تريد حذف هذه الوثيقة؟ <strong className="font-semibold">هذا الإجراء لا يمكن التراجع عنه.</strong></p>
-            {docToDelete?.file_name && <p className="text-sm text-muted-foreground mt-2">سيتم حذف الملف المرفق ({docToDelete.file_name}) من المخزن أيضاً.</p>}
-          </div>
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={() => setDocToDelete(null)} disabled={deleteMutation.isPending}>إلغاء</Button>
-            <Button
-              variant="destructive"
-              disabled={deleteMutation.isPending}
-              onClick={async () => {
-                if (!docToDelete) return;
-
-                // Attempt to remove storage file if present
-                if (docToDelete.file_name) {
-                  try {
-                    await removeFromStorage(docToDelete.file_name);
-                  } catch (err) {
-                    console.warn('Storage removal error during delete', err);
-                  }
-                }
-
-                // AWAIT the backend delete — only proceed if it succeeds
-                try {
-                  await deleteMutation.mutateAsync(docToDelete.id);
-                  // Backend confirmed — now close the dialog
-                  setDocToDelete(null);
-                } catch (err) {
-                  // Error toast is handled by onError callback
-                  // Dialog stays open so user can retry or cancel
-                }
-              }}
-            >
-              {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'نعم، قم بالحذف'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
