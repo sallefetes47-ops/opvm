@@ -216,7 +216,7 @@ export default function NewFile() {
   const showRejectionReason = formData.committee_opinion === "تحفظ" || formData.committee_opinion === "مرفوض";
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6" dir="rtl">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
           <FilePlus className="w-5 h-5 text-primary" />
@@ -242,11 +242,13 @@ export default function NewFile() {
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 placeholder="أدخل الاسم الكامل للمالك"
                 required
+                className="text-right"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="municipality">البلدية *</Label>
               <Select
+                dir="rtl"
                 value={formData.municipality}
                 onValueChange={(value: Municipality) =>
                   setFormData({ ...formData, municipality: value })
@@ -265,6 +267,7 @@ export default function NewFile() {
             <div className="space-y-2">
               <Label htmlFor="permit_type">نوع عقد التعمير</Label>
               <Select
+                dir="rtl"
                 value={formData.permit_type}
                 onValueChange={handlePermitTypeChange}
               >
@@ -287,6 +290,7 @@ export default function NewFile() {
                 onChange={(e) => setFormData({ ...formData, file_number: e.target.value })}
                 placeholder="أدخل رقم الملف"
                 required
+                className="text-right"
               />
             </div>
             <div className="space-y-2">
@@ -298,6 +302,7 @@ export default function NewFile() {
                 onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
                 min={2000}
                 max={2100}
+                className="text-right"
               />
             </div>
           </CardContent>
@@ -319,6 +324,7 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
+                  className="text-right"
                 />
               </div>
               <div className="space-y-2">
@@ -330,6 +336,7 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, built_area: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
+                  className="text-right"
                 />
               </div>
               <div className="space-y-2">
@@ -339,6 +346,7 @@ export default function NewFile() {
                   value={formData.engineer_name}
                   onChange={(e) => setFormData({ ...formData, engineer_name: e.target.value })}
                   placeholder="أدخل اسم مكتب الدراسات"
+                  className="text-right"
                 />
               </div>
             </CardContent>
@@ -361,6 +369,7 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
+                  className="text-right"
                 />
               </div>
               <div className="space-y-2">
@@ -372,6 +381,7 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, plots_count: e.target.value })}
                   placeholder="0"
                   min="1"
+                  className="text-right"
                 />
               </div>
             </CardContent>
@@ -394,6 +404,7 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
+                  className="text-right"
                 />
               </div>
               <div className="space-y-2">
@@ -405,6 +416,7 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, shares_count: e.target.value })}
                   placeholder="0"
                   min="1"
+                  className="text-right"
                 />
               </div>
             </CardContent>
@@ -420,6 +432,7 @@ export default function NewFile() {
             <div className="space-y-3">
               <Label>نوع السند *</Label>
               <Select
+                dir="rtl"
                 value={formData.ownership_type}
                 onValueChange={(value: OwnershipType | OwnershipTypeForNonBuilding) => {
                   // If switching to something other than "دفتر عقاري", clear section/ilot
@@ -460,6 +473,7 @@ export default function NewFile() {
                     value={formData.lot_number}
                     onChange={(e) => setFormData({ ...formData, lot_number: e.target.value })}
                     placeholder="أدخل رقم القطعة"
+                    className="text-right"
                   />
                 </div>
                 <div className="space-y-2">
@@ -469,6 +483,7 @@ export default function NewFile() {
                     value={formData.subdivision_name}
                     onChange={(e) => setFormData({ ...formData, subdivision_name: e.target.value })}
                     placeholder="أدخل اسم التجزئة"
+                    className="text-right"
                   />
                 </div>
                 <div className="space-y-2">
@@ -478,6 +493,7 @@ export default function NewFile() {
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     placeholder="أدخل العنوان"
+                    className="text-right"
                   />
                 </div>
               </div>
@@ -500,6 +516,7 @@ export default function NewFile() {
                       onChange={(e) => setFormData({ ...formData, section: e.target.value })}
                       placeholder="أدخل رقم القسم"
                       required
+                      className="text-right"
                     />
                   </div>
                   <div className="space-y-2">
@@ -510,6 +527,7 @@ export default function NewFile() {
                       onChange={(e) => setFormData({ ...formData, property_group: e.target.value })}
                       placeholder="أدخل رقم مجموعة الملكية"
                       required
+                      className="text-right"
                     />
                   </div>
                 </div>
@@ -524,6 +542,7 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="أدخل العنوان الكامل"
                   required
+                  className="text-right"
                 />
               </div>
             )}
@@ -555,6 +574,7 @@ export default function NewFile() {
             <div className="space-y-2 md:col-span-2">
               <Label>رأي اللجنة</Label>
               <Select
+                dir="rtl"
                 value={formData.committee_opinion}
                 onValueChange={(value: CommitteeOpinion) =>
                   setFormData({ ...formData, committee_opinion: value, rejection_reason: "" })
@@ -596,6 +616,7 @@ export default function NewFile() {
                   placeholder="اذكر سبب التحفظ أو الرفض بالتفصيل..."
                   rows={4}
                   required
+                  className="text-right"
                 />
               </div>
             )}
@@ -609,7 +630,7 @@ export default function NewFile() {
                     type="file"
                     accept=".pdf,image/*"
                     onChange={handleElectronicPermitFile}
-                    className="flex-1"
+                    className="flex-1 text-right"
                     id="electronic_permit"
                   />
                   {formData.electronic_permit_file && (
