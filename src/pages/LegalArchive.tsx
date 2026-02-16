@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Scale, Plus, Eye, Trash2, Search, Pencil, Upload, FileText, RefreshCw, X, Sparkles, AlertTriangle, ChevronDown, ExternalLink } from "lucide-react";
+import { Loader2, Scale, Plus, Eye, Trash2, Search, Pencil, Upload, FileText, RefreshCw, X, Sparkles, AlertTriangle, ChevronDown, ExternalLink, RefreshCcw, Trash } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -148,6 +148,7 @@ export default function LegalArchive() {
 
   // ── Local State for Immediate UI Updates ──
   const [localDocuments, setLocalDocuments] = useState<any[]>([]);
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
 
   // Analysis state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -497,29 +498,50 @@ export default function LegalArchive() {
 
   // ── Explicit Handlers (per User Request) ──
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleSoftDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!window.confirm("هل أنت متأكد من الحذف النهائي؟")) return;
+    // Optimistic Update
+    setLocalDocuments(prevDocs => prevDocs.map(doc =>
+      String(doc.id) === String(id) ? { ...doc, status: 'trashed' } : doc
+    ));
+    toast({ title: "تم النقل للمحذوفات", description: "تم نقل الملف إلى سلة المحذوفات" });
+
+    // Background Update
+    const { error } = await supabase.from("legal_documents").update({ status: 'trashed' }).eq("id", id);
+    if (error) {
+      console.error("Soft delete failed", error);
+      toast({ title: "خطأ", description: "فشل تحديث الحالة في الخادم", variant: "destructive" });
+    }
+  };
+
+  const handleRestore = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setLocalDocuments(prevDocs => prevDocs.map(doc =>
+      String(doc.id) === String(id) ? { ...doc, status: 'active' } : doc
+    ));
+    toast({ title: "تم الاسترجاع", description: "تم استرجاع الملف بنجاح" });
+
+    const { error } = await supabase.from("legal_documents").update({ status: 'active' }).eq("id", id);
+    if (error) {
+      console.error("Restore failed", error);
+      toast({ title: "خطأ", description: "فشل الاسترجاع في الخادم", variant: "destructive" });
+    }
+  };
+
+  const handlePermanentDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!window.confirm("حذف نهائي! لا يمكن التراجع. هل أنت متأكد؟")) return;
 
     try {
-      // 1. AWAIT THE ACTUAL SERVER DELETION FIRST
       const { error } = await supabase.from("legal_documents").delete().eq("id", id);
       if (error) throw error;
 
-      // 2. UPDATE UI ONLY AFTER SERVER CONFIRMS (HTTP 200)
-      setLocalDocuments(prev => prev.filter(doc => String(doc.id) !== String(id)));
-
-      // Sync React Query cache as well to ensure future consistency
+      setLocalDocuments(prevDocs => prevDocs.filter(doc => String(doc.id) !== String(id)));
       queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
 
-      toast({ title: "تم الحذف", description: "تم الحذف من قاعدة البيانات بنجاح" });
-    } catch (error: any) {
-      console.error("Delete failed:", error);
-      toast({
-        title: "خطأ",
-        description: "فشل الحذف من الخادم! لن يتم إخفاء الملف.",
-        variant: "destructive"
-      });
+      toast({ title: "تم الحذف نهائياً", description: "تم حذف الملف من قاعدة البيانات" });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: "فشل الحذف النهائي", variant: "destructive" });
     }
   };
 
@@ -534,6 +556,14 @@ export default function LegalArchive() {
 
 
   const filteredDocuments = localDocuments?.filter(d => {
+    // 1. Recycle Bin Filter
+    const isTrashed = d.status === 'trashed';
+    if (showRecycleBin) {
+      if (!isTrashed) return false;
+    } else {
+      if (isTrashed) return false;
+    }
+
     const term = searchTerm?.trim();
     if (term) {
       const searchContent = `${d.title_ar || ''} ${d.title_fr || ''} ${d.document_number || ''} ${d.content_text || ''} ${(d.keywords || []).join(' ')}`;
@@ -635,7 +665,6 @@ export default function LegalArchive() {
                         onChange={(date) => setFormData({ ...formData, document_date: date })}
                         placeholder="يوم/شهر/سنة"
                         className={autoFillClass("document_date")}
-                        dir="rtl"
                       />
                     </div>
                   </div>
@@ -697,6 +726,14 @@ export default function LegalArchive() {
                 </form>
               </DialogContent>
             </Dialog>
+            <Button
+              variant={showRecycleBin ? "destructive" : "outline"}
+              onClick={() => setShowRecycleBin(!showRecycleBin)}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              {showRecycleBin ? "العودة للأرشيف" : "سلة المحذوفات"}
+            </Button>
           </div>
         )}
       </div>
@@ -737,7 +774,9 @@ export default function LegalArchive() {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>قائمة الوثائق القانونية</CardTitle>
+          <CardTitle>
+            {showRecycleBin ? "سلة المحذوفات (وثائق محذوفة)" : "قائمة الوثائق القانونية"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -838,21 +877,54 @@ export default function LegalArchive() {
                             </TooltipTrigger>
                             <TooltipContent side="top"><p>معاينة الملف الأصلي</p></TooltipContent>
                           </Tooltip>
-                          {/* Delete */}
-                          {canEdit && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                  onClick={(e) => handleDelete(e, doc.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top"><p>حذف</p></TooltipContent>
-                            </Tooltip>
+                          {/* Recycle Bin Actions */}
+                          {showRecycleBin ? (
+                            <>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-green-600 hover:text-green-800 hover:bg-green-50"
+                                    onClick={(e) => handleRestore(e, doc.id)}
+                                  >
+                                    <RefreshCcw className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>استرجاع</p></TooltipContent>
+                              </Tooltip>
+
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                                    onClick={(e) => handlePermanentDelete(e, doc.id)}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>حذف نهائي</p></TooltipContent>
+                              </Tooltip>
+                            </>
+                          ) : (
+                            /* Normal Actions */
+                            canEdit && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    onClick={(e) => handleSoftDelete(e, doc.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top"><p>حذف (نقل للسلة)</p></TooltipContent>
+                              </Tooltip>
+                            )
                           )}
                         </div>
                       </TooltipProvider>
@@ -1177,7 +1249,6 @@ export default function LegalArchive() {
                       value={editFormData.document_date}
                       onChange={(date) => setEditFormData({ ...editFormData, document_date: date })}
                       placeholder="يوم/شهر/سنة"
-                      dir="rtl"
                     />
                   </div>
                 </div>

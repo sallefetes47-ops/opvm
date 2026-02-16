@@ -186,6 +186,7 @@ export type Database = {
           id: string
           keywords: string[] | null
           language: string | null
+          status: "active" | "trashed" // Added status field
           title_ar: string
           title_fr: string | null
           updated_at: string
@@ -203,6 +204,7 @@ export type Database = {
           id?: string
           keywords?: string[] | null
           language?: string | null
+          status?: "active" | "trashed" // Added status field
           title_ar: string
           title_fr?: string | null
           updated_at?: string
@@ -220,6 +222,7 @@ export type Database = {
           id?: string
           keywords?: string[] | null
           language?: string | null
+          status?: "active" | "trashed" // Added status field
           title_ar?: string
           title_fr?: string | null
           updated_at?: string
