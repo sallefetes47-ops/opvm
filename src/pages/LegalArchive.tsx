@@ -155,40 +155,19 @@ export default function LegalArchive() {
 
   const canEdit = !isViewer && role !== "viewer";
 
-  // ── Smart View Original File handler with Blob caching ──
-  const handleViewOriginalFile = useCallback(async (doc: any) => {
-    if (!doc.file_url) return;
-
-    // Check cache first — instant open if already fetched
-    if (fileCache.current[doc.id]) {
-      window.open(fileCache.current[doc.id], '_blank');
+  // ── Smart View Original File handler ──
+  const handleViewOriginalFile = useCallback((doc: any) => {
+    if (!doc.file_url) {
+      toast({
+        title: "غير متوفر",
+        description: "عذراً، رابط الملف الأصلي غير متوفر لهذه الوثيقة",
+        variant: "destructive",
+      });
       return;
     }
 
-    // First time: fetch, blob, cache, open
-    try {
-      toast({ title: "جاري التحميل...", description: "يرجى الانتظار أثناء تحميل الملف الأصلي" });
-
-      const response = await fetch(doc.file_url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-
-      // Cache for future clicks
-      fileCache.current[doc.id] = blobUrl;
-
-      window.open(blobUrl, '_blank');
-    } catch (err: any) {
-      console.error("Failed to fetch original file:", err);
-      // Fallback: open the direct URL if blob fetching fails (e.g. CORS)
-      window.open(doc.file_url, '_blank');
-      toast({
-        title: "تحذير",
-        description: "تم فتح الملف مباشرة (قد لا يعمل التخزين المؤقت)",
-        variant: "default",
-      });
-    }
+    // Open the file directly in a new tab
+    window.open(doc.file_url, '_blank', 'noopener,noreferrer');
   }, [toast]);
 
   const handleDataExtracted = (data: Record<string, any>) => {
@@ -278,13 +257,35 @@ export default function LegalArchive() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("legal_documents").delete().eq("id", id);
       if (error) throw error;
+      return id;
+    },
+    onMutate: async (id: string) => {
+      // Cancel outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["legal-documents"] });
+
+      // Snapshot current data for rollback
+      const previousDocs = queryClient.getQueryData(["legal-documents"]);
+
+      // Optimistically remove row from cache — instant UI update
+      queryClient.setQueryData(["legal-documents"], (old: any[] | undefined) =>
+        old ? old.filter((doc: any) => doc.id !== id) : []
+      );
+
+      return { previousDocs };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
       toast({ title: "تم الحذف", description: "تم حذف الوثيقة بنجاح" });
     },
-    onError: (error) => {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    onError: (error, _id, context) => {
+      // Rollback on failure
+      if (context?.previousDocs) {
+        queryClient.setQueryData(["legal-documents"], context.previousDocs);
+      }
+      toast({ title: "خطأ في الحذف", description: error.message, variant: "destructive" });
+    },
+    onSettled: () => {
+      // Always refetch to stay in sync with server
+      queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
     },
   });
 
@@ -1248,18 +1249,24 @@ export default function LegalArchive() {
               disabled={deleteMutation.isPending}
               onClick={async () => {
                 if (!docToDelete) return;
-                // attempt to remove storage file if present
-                if (docToDelete.file_name) {
+                const deleteId = docToDelete.id;
+                const deleteFileName = docToDelete.file_name;
+
+                // Close dialog first
+                setDocToDelete(null);
+
+                // Attempt to remove storage file if present
+                if (deleteFileName) {
                   try {
-                    await removeFromStorage(docToDelete.file_name);
+                    await removeFromStorage(deleteFileName);
                   } catch (err) {
                     console.warn('Storage removal error during delete', err);
                     toast({ title: "تحذير", description: "لم يتمكن من حذف الملف المرفق من المخزن, قد تحتاج لحذفه يدوياً", variant: "default" });
                   }
                 }
-                // delete DB record
-                deleteMutation.mutate(docToDelete.id);
-                setDocToDelete(null);
+
+                // Delete DB record — row will vanish instantly via optimistic update
+                deleteMutation.mutate(deleteId);
               }}
             >
               {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'نعم، قم بالحذف'}
