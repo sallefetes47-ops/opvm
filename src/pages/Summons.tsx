@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,11 +10,12 @@ import { DateInput } from "@/components/ui/date-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Users, Plus, Eye, Trash, Search } from "lucide-react";
+import { Loader2, Users, Plus, Eye, Trash, Search, Trash2, RefreshCcw, ExternalLink, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { FileImport } from "@/components/FileImport";
+import { useDocumentManager } from "@/hooks/useDocumentManager";
 
 interface SummonsFormData {
   summons_date: Date | undefined;
@@ -27,13 +26,30 @@ interface SummonsFormData {
   notes: string;
 }
 
+const STORAGE_KEY = "opvm_summons";
+
 export default function Summons() {
   const { user, role, isViewer } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+
+  // Use shared document manager hook
+  const {
+    activeDocuments,
+    trashedDocuments,
+    addDocument,
+    softDeleteDocument,
+    restoreDocument,
+    permanentDeleteDocument,
+    viewOriginalDocument
+  } = useDocumentManager({ storageKey: STORAGE_KEY });
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewSummons, setViewSummons] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
+  const [newFile, setNewFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState<SummonsFormData>({
     summons_date: undefined,
     summons_number: "",
@@ -57,56 +73,26 @@ export default function Summons() {
     setIsAddDialogOpen(true);
   };
 
-  const { data: summonsList, isLoading } = useQuery({
-    queryKey: ["summons"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("summons")
-        .select("*")
-        .order("summons_date", { ascending: false });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
 
-      if (error) throw error;
-      return data;
-    },
-  });
+    if (!newFile) {
+      toast({ title: "خطأ", description: "يرجى إرفاق ملف الاستدعاء (PDF/Image)", variant: "destructive" });
+      return;
+    }
 
-  const createMutation = useMutation({
-    mutationFn: async (data: SummonsFormData) => {
-      const { error } = await supabase.from("summons").insert({
-        summons_date: data.summons_date ? format(data.summons_date, "yyyy-MM-dd") : null,
-        summons_number: data.summons_number,
-        committee_members: data.committee_members.split(",").map(m => m.trim()).filter(Boolean),
-        venue: data.venue,
-        attendance_status: data.attendance_status,
-        notes: data.notes,
-        created_by: user?.id,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["summons"] });
-      toast({ title: "تم الحفظ", description: "تم حفظ الاستدعاء بنجاح" });
+    setIsSubmitting(true);
+    try {
+      await addDocument(formData, newFile);
       setIsAddDialogOpen(false);
       resetForm();
-    },
-    onError: (error) => {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("summons").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["summons"] });
-      toast({ title: "تم الحذف", description: "تم حذف الاستدعاء بنجاح" });
-    },
-    onError: (error) => {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    },
-  });
+    } catch (error) {
+      // Error handled in hook (toast)
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -117,16 +103,16 @@ export default function Summons() {
       attendance_status: "",
       notes: "",
     });
+    setNewFile(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    createMutation.mutate(formData);
-  };
+  // Switch between Active and Trashed based on Recycle Bin toggle
+  const displayedDocs = showRecycleBin ? trashedDocuments : activeDocuments;
 
-  const filteredSummons = summonsList?.filter(s =>
+  const filteredSummons = displayedDocs.filter(s =>
     s.summons_number?.includes(searchTerm) ||
-    s.venue?.includes(searchTerm)
+    s.venue?.includes(searchTerm) ||
+    (s.committee_members || "").includes(searchTerm)
   );
 
   return (
@@ -144,94 +130,127 @@ export default function Summons() {
 
         {canEdit && (
           <div className="flex gap-2">
-            <FileImport
-              documentType="summons"
-              onDataExtracted={handleDataExtracted}
-              buttonLabel="استيراد من ملف"
-            />
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                  <Plus className="w-4 h-4 ml-2" />
-                  إضافة استدعاء
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>إضافة استدعاء جديد</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>تاريخ الاستدعاء</Label>
-                      <DateInput
-                        value={formData.summons_date}
-                        onChange={(date) => setFormData({ ...formData, summons_date: date })}
-                        placeholder="DD/MM/YYYY"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>رقم الاستدعاء</Label>
-                      <Input
-                        value={formData.summons_number}
-                        onChange={(e) => setFormData({ ...formData, summons_number: e.target.value })}
-                        placeholder="مثال: 2026/001"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>أعضاء اللجنة (مفصولين بفاصلة)</Label>
-                    <Input
-                      value={formData.committee_members}
-                      onChange={(e) => setFormData({ ...formData, committee_members: e.target.value })}
-                      placeholder="العضو الأول، العضو الثاني، ..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>مكان الاجتماع</Label>
-                    <Input
-                      value={formData.venue}
-                      onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
-                      placeholder="أدخل مكان الاجتماع"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>حالة الحضور</Label>
-                    <Select
-                      value={formData.attendance_status}
-                      onValueChange={(value) => setFormData({ ...formData, attendance_status: value })}
-                    >
-                      <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
-                        <SelectValue placeholder="اختر الحالة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="مكتمل">مكتمل</SelectItem>
-                        <SelectItem value="جزئي">جزئي</SelectItem>
-                        <SelectItem value="لم ينعقد">لم ينعقد</SelectItem>
-                        <SelectItem value="معلق">معلق</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>ملاحظات</Label>
-                    <Textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="ملاحظات إضافية"
-                      rows={2}
-                    />
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                      إلغاء
+            {!showRecycleBin && (
+              <>
+                <FileImport
+                  documentType="summons"
+                  onDataExtracted={handleDataExtracted}
+                  buttonLabel="استيراد من ملف"
+                />
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
+                      <Plus className="w-4 h-4 ml-2" />
+                      إضافة استدعاء
                     </Button>
-                    <Button type="submit" disabled={createMutation.isPending} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                      {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>إضافة استدعاء جديد</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>تاريخ الاستدعاء</Label>
+                          <DateInput
+                            value={formData.summons_date}
+                            onChange={(date) => setFormData({ ...formData, summons_date: date })}
+                            placeholder="DD/MM/YYYY"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>رقم الاستدعاء</Label>
+                          <Input
+                            value={formData.summons_number}
+                            onChange={(e) => setFormData({ ...formData, summons_number: e.target.value })}
+                            placeholder="مثال: 2026/001"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>أعضاء اللجنة (مفصولين بفاصلة)</Label>
+                        <Input
+                          value={formData.committee_members}
+                          onChange={(e) => setFormData({ ...formData, committee_members: e.target.value })}
+                          placeholder="العضو الأول، العضو الثاني، ..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>مكان الاجتماع</Label>
+                        <Input
+                          value={formData.venue}
+                          onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+                          placeholder="أدخل مكان الاجتماع"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>حالة الحضور</Label>
+                        <Select
+                          value={formData.attendance_status}
+                          onValueChange={(value) => setFormData({ ...formData, attendance_status: value })}
+                        >
+                          <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
+                            <SelectValue placeholder="اختر الحالة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="مكتمل">مكتمل</SelectItem>
+                            <SelectItem value="جزئي">جزئي</SelectItem>
+                            <SelectItem value="لم ينعقد">لم ينعقد</SelectItem>
+                            <SelectItem value="معلق">معلق</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>ملاحظات</Label>
+                        <Textarea
+                          value={formData.notes}
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          placeholder="ملاحظات إضافية"
+                          rows={2}
+                        />
+                      </div>
+
+                      {/* File Input Inserted */}
+                      <div className="space-y-2 border rounded-lg p-4 bg-slate-50 dark:bg-slate-900/50">
+                        <Label className="block text-sm font-medium mb-2">ملف الاستدعاء (PDF/صورة) *</Label>
+                        <Input
+                          type="file"
+                          accept=".pdf,image/*"
+                          onChange={(e) => setNewFile(e.target.files?.[0] || null)}
+                          className="w-full cursor-pointer file:bg-primary file:text-primary-foreground file:border-0 file:rounded-md file:px-2 file:py-1 file:mr-4 file:text-sm file:font-medium hover:file:bg-primary/90"
+                          required
+                        />
+                        {newFile && (
+                          <p className="text-xs text-green-600 mt-1 flex items-center gap-1 font-medium">
+                            <FileText className="w-3 h-3" />
+                            تم اختيار: {newFile.name} ({(newFile.size / 1024 / 1024).toFixed(2)} MB)
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 justify-end">
+                        <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                          إلغاء
+                        </Button>
+                        <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
+                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
+
+            {/* Recycle Bin Toggle */}
+            <Button
+              variant={showRecycleBin ? "destructive" : "outline"}
+              onClick={() => setShowRecycleBin(!showRecycleBin)}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              {showRecycleBin ? "العودة للقائمة" : "سلة المحذوفات"}
+            </Button>
           </div>
         )}
       </div>
@@ -254,15 +273,15 @@ export default function Summons() {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>قائمة الاستدعاءات</CardTitle>
+          <CardTitle>
+            {showRecycleBin ? "سلة المحذوفات (الاستدعاءات)" : "قائمة الاستدعاءات"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="w-6 h-6 animate-spin" />
-            </div>
-          ) : filteredSummons?.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">لا توجد استدعاءات</p>
+          {filteredSummons.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              {showRecycleBin ? "سلة المحذوفات فارغة" : "لا توجد استدعاءات"}
+            </p>
           ) : (
             <Table>
               <TableHeader>
@@ -275,7 +294,7 @@ export default function Summons() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSummons?.map((summons) => (
+                {filteredSummons.map((summons) => (
                   <TableRow key={summons.id}>
                     <TableCell className="font-medium">{summons.summons_number || "-"}</TableCell>
                     <TableCell>
@@ -295,18 +314,50 @@ export default function Summons() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
+                        {/* View Original (File) */}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                          onClick={(e) => viewOriginalDocument(e, summons)}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+
                         <Button size="icon" variant="ghost" onClick={() => setViewSummons(summons)}>
                           <Eye className="w-4 h-4" />
                         </Button>
-                        {canEdit && role === "admin" && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-destructive"
-                            onClick={() => deleteMutation.mutate(summons.id)}
-                          >
-                            <Trash className="w-4 h-4" />
-                          </Button>
+
+                        {showRecycleBin ? (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-green-600 hover:text-green-800 hover:bg-green-50"
+                              onClick={() => restoreDocument(summons.id)}
+                            >
+                              <RefreshCcw className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                              onClick={() => permanentDeleteDocument(summons.id)}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          canEdit && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => softDeleteDocument(summons.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )
                         )}
                       </div>
                     </TableCell>
@@ -318,7 +369,7 @@ export default function Summons() {
         </CardContent>
       </Card>
 
-      {/* View Dialog */}
+      {/* View Dialog (Details) */}
       <Dialog open={!!viewSummons} onOpenChange={() => setViewSummons(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -340,7 +391,7 @@ export default function Summons() {
               </div>
               <div>
                 <Label className="text-muted-foreground">أعضاء اللجنة</Label>
-                <p className="font-medium">{viewSummons.committee_members?.join("، ") || "-"}</p>
+                <p className="font-medium">{viewSummons.committee_members || "-"}</p>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div>

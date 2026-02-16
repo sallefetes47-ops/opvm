@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,11 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { DateInput } from "@/components/ui/date-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, FileText, Plus, Eye, Trash, Search } from "lucide-react";
+import { Loader2, FileText, Plus, Eye, Trash, Search, Trash2, RefreshCcw, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { FileImport } from "@/components/FileImport";
+import { useDocumentManager } from "@/hooks/useDocumentManager";
 
 interface MinuteFormData {
   session_date: Date | undefined;
@@ -26,13 +25,30 @@ interface MinuteFormData {
   notes: string;
 }
 
+const STORAGE_KEY = "opvm_minutes";
+
 export default function Minutes() {
   const { user, role, isViewer } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+
+  // Use shared document manager hook
+  const {
+    activeDocuments,
+    trashedDocuments,
+    addDocument,
+    softDeleteDocument,
+    restoreDocument,
+    permanentDeleteDocument,
+    viewOriginalDocument
+  } = useDocumentManager({ storageKey: STORAGE_KEY });
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewMinute, setViewMinute] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
+  const [newFile, setNewFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState<MinuteFormData>({
     session_date: undefined,
     session_number: "",
@@ -56,56 +72,26 @@ export default function Minutes() {
     setIsAddDialogOpen(true);
   };
 
-  const { data: minutes, isLoading } = useQuery({
-    queryKey: ["meeting-minutes"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("meeting_minutes")
-        .select("*")
-        .order("session_date", { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
 
-  const createMutation = useMutation({
-    mutationFn: async (data: MinuteFormData) => {
-      const { error } = await supabase.from("meeting_minutes").insert({
-        session_date: data.session_date ? format(data.session_date, "yyyy-MM-dd") : null,
-        session_number: data.session_number,
-        attendees: data.attendees.split(",").map(a => a.trim()).filter(Boolean),
-        agenda: data.agenda,
-        decisions: data.decisions,
-        notes: data.notes,
-        created_by: user?.id,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["meeting-minutes"] });
-      toast({ title: "تم الحفظ", description: "تم حفظ محضر الجلسة بنجاح" });
+    if (!newFile) {
+      toast({ title: "خطأ", description: "يرجى إرفاق ملف المحضر (PDF/Image)", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await addDocument(formData, newFile);
       setIsAddDialogOpen(false);
       resetForm();
-    },
-    onError: (error) => {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("meeting_minutes").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["meeting-minutes"] });
-      toast({ title: "تم الحذف", description: "تم حذف المحضر بنجاح" });
-    },
-    onError: (error) => {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-    },
-  });
+    } catch (error) {
+      // Error handled in hook (toast)
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -116,15 +102,14 @@ export default function Minutes() {
       decisions: "",
       notes: "",
     });
+    setNewFile(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    createMutation.mutate(formData);
-  };
+  // Switch between Active and Trashed based on Recycle Bin toggle
+  const displayedDocs = showRecycleBin ? trashedDocuments : activeDocuments;
 
-  const filteredMinutes = minutes?.filter(m => 
-    m.session_number?.includes(searchTerm) || 
+  const filteredMinutes = displayedDocs.filter(m =>
+    m.session_number?.includes(searchTerm) ||
     m.agenda?.includes(searchTerm) ||
     m.decisions?.includes(searchTerm)
   );
@@ -141,90 +126,123 @@ export default function Minutes() {
             <p className="text-muted-foreground">إدارة محاضر اجتماعات اللجنة</p>
           </div>
         </div>
-        
+
         {canEdit && (
           <div className="flex gap-2">
-            <FileImport
-              documentType="meeting_minutes"
-              onDataExtracted={handleDataExtracted}
-              buttonLabel="استيراد من ملف"
-            />
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                  <Plus className="w-4 h-4 ml-2" />
-                  إضافة محضر
-                </Button>
-              </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>إضافة محضر جلسة جديد</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>تاريخ الجلسة</Label>
-                    <DateInput
-                      value={formData.session_date}
-                      onChange={(date) => setFormData({ ...formData, session_date: date })}
-                      placeholder="DD/MM/YYYY"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>رقم الجلسة</Label>
-                    <Input
-                      value={formData.session_number}
-                      onChange={(e) => setFormData({ ...formData, session_number: e.target.value })}
-                      placeholder="مثال: 2026/01"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>الحاضرون (مفصولين بفاصلة)</Label>
-                  <Input
-                    value={formData.attendees}
-                    onChange={(e) => setFormData({ ...formData, attendees: e.target.value })}
-                    placeholder="الاسم الأول، الاسم الثاني، ..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>جدول الأعمال</Label>
-                  <Textarea
-                    value={formData.agenda}
-                    onChange={(e) => setFormData({ ...formData, agenda: e.target.value })}
-                    placeholder="أدخل جدول الأعمال"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>القرارات</Label>
-                  <Textarea
-                    value={formData.decisions}
-                    onChange={(e) => setFormData({ ...formData, decisions: e.target.value })}
-                    placeholder="أدخل القرارات المتخذة"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>ملاحظات</Label>
-                  <Textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="ملاحظات إضافية"
-                    rows={2}
-                  />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    إلغاء
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                    {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+            {!showRecycleBin && (
+              <>
+                <FileImport
+                  documentType="meeting_minutes"
+                  onDataExtracted={handleDataExtracted}
+                  buttonLabel="استيراد من ملف"
+                />
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
+                      <Plus className="w-4 h-4 ml-2" />
+                      إضافة محضر
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>إضافة محضر جلسة جديد</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>تاريخ الجلسة</Label>
+                          <DateInput
+                            value={formData.session_date}
+                            onChange={(date) => setFormData({ ...formData, session_date: date })}
+                            placeholder="DD/MM/YYYY"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>رقم الجلسة</Label>
+                          <Input
+                            value={formData.session_number}
+                            onChange={(e) => setFormData({ ...formData, session_number: e.target.value })}
+                            placeholder="مثال: 2026/01"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>الحاضرون (مفصولين بفاصلة)</Label>
+                        <Input
+                          value={formData.attendees}
+                          onChange={(e) => setFormData({ ...formData, attendees: e.target.value })}
+                          placeholder="الاسم الأول، الاسم الثاني، ..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>جدول الأعمال</Label>
+                        <Textarea
+                          value={formData.agenda}
+                          onChange={(e) => setFormData({ ...formData, agenda: e.target.value })}
+                          placeholder="أدخل جدول الأعمال"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>القرارات</Label>
+                        <Textarea
+                          value={formData.decisions}
+                          onChange={(e) => setFormData({ ...formData, decisions: e.target.value })}
+                          placeholder="أدخل القرارات المتخذة"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>ملاحظات</Label>
+                        <Textarea
+                          value={formData.notes}
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          placeholder="ملاحظات إضافية"
+                          rows={2}
+                        />
+                      </div>
+
+                      {/* File Input Inserted */}
+                      <div className="space-y-2 border rounded-lg p-4 bg-slate-50 dark:bg-slate-900/50">
+                        <Label className="block text-sm font-medium mb-2">ملف المحضر (PDF/صورة) *</Label>
+                        <Input
+                          type="file"
+                          accept=".pdf,image/*"
+                          onChange={(e) => setNewFile(e.target.files?.[0] || null)}
+                          className="w-full cursor-pointer file:bg-primary file:text-primary-foreground file:border-0 file:rounded-md file:px-2 file:py-1 file:mr-4 file:text-sm file:font-medium hover:file:bg-primary/90"
+                          required
+                        />
+                        {newFile && (
+                          <p className="text-xs text-green-600 mt-1 flex items-center gap-1 font-medium">
+                            <FileText className="w-3 h-3" />
+                            تم اختيار: {newFile.name} ({(newFile.size / 1024 / 1024).toFixed(2)} MB)
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 justify-end">
+                        <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                          إلغاء
+                        </Button>
+                        <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
+                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
+
+            {/* Recycle Bin Toggle */}
+            <Button
+              variant={showRecycleBin ? "destructive" : "outline"}
+              onClick={() => setShowRecycleBin(!showRecycleBin)}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              {showRecycleBin ? "العودة للقائمة" : "سلة المحذوفات"}
+            </Button>
           </div>
         )}
       </div>
@@ -247,15 +265,15 @@ export default function Minutes() {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>قائمة المحاضر</CardTitle>
+          <CardTitle>
+            {showRecycleBin ? "سلة المحذوفات (المحاضر)" : "قائمة المحاضر"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="w-6 h-6 animate-spin" />
-            </div>
-          ) : filteredMinutes?.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">لا توجد محاضر</p>
+          {filteredMinutes.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              {showRecycleBin ? "سلة المحذوفات فارغة" : "لا توجد محاضر"}
+            </p>
           ) : (
             <Table>
               <TableHeader>
@@ -267,27 +285,59 @@ export default function Minutes() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMinutes?.map((minute) => (
+                {filteredMinutes.map((minute) => (
                   <TableRow key={minute.id}>
                     <TableCell className="font-medium">{minute.session_number || "-"}</TableCell>
                     <TableCell>
                       {minute.session_date ? format(new Date(minute.session_date), "d MMMM yyyy", { locale: ar }) : "-"}
                     </TableCell>
-                    <TableCell>{minute.attendees?.length || 0}</TableCell>
+                    <TableCell>{minute.attendees?.split(',').length || 0}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
+                        {/* View Original (File) */}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                          onClick={(e) => viewOriginalDocument(e, minute)}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+
                         <Button size="icon" variant="ghost" onClick={() => setViewMinute(minute)}>
                           <Eye className="w-4 h-4" />
                         </Button>
-                        {canEdit && role === "admin" && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-destructive"
-                            onClick={() => deleteMutation.mutate(minute.id)}
-                          >
-                            <Trash className="w-4 h-4" />
-                          </Button>
+
+                        {showRecycleBin ? (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-green-600 hover:text-green-800 hover:bg-green-50"
+                              onClick={() => restoreDocument(minute.id)}
+                            >
+                              <RefreshCcw className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                              onClick={() => permanentDeleteDocument(minute.id)}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          canEdit && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => softDeleteDocument(minute.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )
                         )}
                       </div>
                     </TableCell>
@@ -321,7 +371,7 @@ export default function Minutes() {
               </div>
               <div>
                 <Label className="text-muted-foreground">الحاضرون</Label>
-                <p className="font-medium">{viewMinute.attendees?.join("، ") || "-"}</p>
+                <p className="font-medium">{viewMinute.attendees || "-"}</p>
               </div>
               <div>
                 <Label className="text-muted-foreground">جدول الأعمال</Label>
