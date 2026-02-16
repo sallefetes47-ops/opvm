@@ -150,8 +150,46 @@ export default function LegalArchive() {
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisStatus, setAnalysisStatus] = useState("");
   const editFileInputRef = useRef<HTMLInputElement>(null);
+  // ── Smart file cache: stores Blob URLs keyed by document ID ──
+  const fileCache = useRef<Record<string, string>>({});
 
   const canEdit = !isViewer && role !== "viewer";
+
+  // ── Smart View Original File handler with Blob caching ──
+  const handleViewOriginalFile = useCallback(async (doc: any) => {
+    if (!doc.file_url) return;
+
+    // Check cache first — instant open if already fetched
+    if (fileCache.current[doc.id]) {
+      window.open(fileCache.current[doc.id], '_blank');
+      return;
+    }
+
+    // First time: fetch, blob, cache, open
+    try {
+      toast({ title: "جاري التحميل...", description: "يرجى الانتظار أثناء تحميل الملف الأصلي" });
+
+      const response = await fetch(doc.file_url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Cache for future clicks
+      fileCache.current[doc.id] = blobUrl;
+
+      window.open(blobUrl, '_blank');
+    } catch (err: any) {
+      console.error("Failed to fetch original file:", err);
+      // Fallback: open the direct URL if blob fetching fails (e.g. CORS)
+      window.open(doc.file_url, '_blank');
+      toast({
+        title: "تحذير",
+        description: "تم فتح الملف مباشرة (قد لا يعمل التخزين المؤقت)",
+        variant: "default",
+      });
+    }
+  }, [toast]);
 
   const handleDataExtracted = (data: Record<string, any>) => {
     // Apply regex fallback parsing on the raw text
@@ -755,7 +793,7 @@ export default function LegalArchive() {
                             </TooltipTrigger>
                             <TooltipContent side="top"><p>عرض الملخص</p></TooltipContent>
                           </Tooltip>
-                          {/* View Original File */}
+                          {/* View Original File (Smart Cached) */}
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -765,7 +803,7 @@ export default function LegalArchive() {
                                 disabled={!doc.file_url}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (doc.file_url) window.open(doc.file_url, '_blank');
+                                  handleViewOriginalFile(doc);
                                 }}
                               >
                                 <ExternalLink className="h-4 w-4" />
