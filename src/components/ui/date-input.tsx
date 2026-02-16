@@ -16,12 +16,12 @@ interface DateInputProps {
   disabled?: boolean;
 }
 
-export function DateInput({ 
-  value, 
-  onChange, 
-  placeholder = "DD/MM/YYYY", 
+export function DateInput({
+  value,
+  onChange,
+  placeholder = "DD/MM/YYYY",
   className,
-  disabled = false 
+  disabled = false
 }: DateInputProps) {
   const [inputValue, setInputValue] = React.useState(
     value ? format(value, "dd/MM/yyyy") : ""
@@ -39,17 +39,17 @@ export function DateInput({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
-    
+
     // Auto-format: add slashes after day and month
     if (val.length === 2 && inputValue.length === 1) {
       val += "/";
     } else if (val.length === 5 && inputValue.length === 4) {
       val += "/";
     }
-    
+
     // Limit length
     if (val.length > 10) return;
-    
+
     setInputValue(val);
 
     // Try to parse the date
@@ -72,15 +72,7 @@ export function DateInput({
   };
 
   return (
-    <div className={cn("flex gap-2", className)}>
-      <Input
-        value={inputValue}
-        onChange={handleInputChange}
-        placeholder={placeholder}
-        className="flex-1"
-        disabled={disabled}
-        dir="ltr"
-      />
+    <div className={cn("flex gap-2", className)} dir="rtl">
       <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -102,6 +94,13 @@ export function DateInput({
           />
         </PopoverContent>
       </Popover>
+      <Input
+        value={inputValue}
+        onChange={handleInputChange}
+        placeholder={placeholder === "DD/MM/YYYY" ? "يوم/شهر/سنة" : placeholder}
+        className="flex-1 text-right"
+        disabled={disabled}
+      />
     </div>
   );
 }
