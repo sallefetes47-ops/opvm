@@ -809,6 +809,24 @@ export default function LegalArchive() {
                       </Select>
                     </div>
                   </div>
+                  <div className="col-span-2 space-y-2 border rounded-lg p-4 bg-slate-50 dark:bg-slate-900/50">
+                    <Label className="block text-sm font-medium mb-2">الملف المرفق (PDF/صورة) *</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept=".pdf,image/png,image/jpeg,image/webp"
+                        onChange={(e) => setNewFile(e.target.files?.[0] || null)}
+                        className="cursor-pointer file:bg-primary file:text-primary-foreground file:border-0 file:rounded-md file:px-2 file:py-1 file:mr-4 file:text-sm file:font-medium hover:file:bg-primary/90"
+                        required
+                      />
+                    </div>
+                    {newFile && (
+                      <p className="text-xs text-green-600 mt-1 flex items-center gap-1 font-medium">
+                        <FileText className="w-3 h-3" />
+                        تم اختيار: {newFile.name} ({(newFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </p>
+                    )}
+                  </div>
                   <div className="flex gap-2 justify-end">
                     <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                       إلغاء
