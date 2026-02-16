@@ -271,33 +271,34 @@ export default function Minutes() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>رقم الجلسة</TableHead>
-                  <TableHead>التاريخ</TableHead>
-                  <TableHead>عدد الحاضرين</TableHead>
-                  <TableHead>الإجراءات</TableHead>
+                  <TableHead className="w-[15%] text-right py-4 px-6">رقم الجلسة</TableHead>
+                  <TableHead className="w-[20%] text-right py-4 px-6">التاريخ</TableHead>
+                  <TableHead className="w-[35%] text-center py-4 px-6">عدد الحاضرين</TableHead>
+                  <TableHead className="w-[30%] text-left py-4 px-6">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredMinutes.map((minute) => (
                   <TableRow key={minute.id}>
-                    <TableCell className="font-medium">{minute.session_number || "-"}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-right py-4 px-6 font-medium">{minute.session_number || "-"}</TableCell>
+                    <TableCell className="text-right py-4 px-6">
                       {minute.session_date ? format(new Date(minute.session_date), "d MMMM yyyy", { locale: ar }) : "-"}
                     </TableCell>
-                    <TableCell>{minute.attendees?.split(',').length || 0}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
+                    <TableCell className="text-center py-4 px-6">{minute.attendees?.split(',').length || 0}</TableCell>
+                    <TableCell className="text-left py-4 px-6">
+                      <div className="flex items-center justify-end gap-3">
                         {/* View Original (File) */}
                         <Button
                           size="icon"
                           variant="ghost"
                           className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                           onClick={(e) => viewOriginalDocument(e, minute)}
+                          title="معاينة الملف"
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>
 
-                        <Button size="icon" variant="ghost" onClick={() => setViewMinute(minute)}>
+                        <Button size="icon" variant="ghost" onClick={() => setViewMinute(minute)} title="عرض التفاصيل">
                           <Eye className="w-4 h-4" />
                         </Button>
 
@@ -308,6 +309,7 @@ export default function Minutes() {
                               variant="ghost"
                               className="text-green-600 hover:text-green-800 hover:bg-green-50"
                               onClick={() => restoreDocument(minute.id)}
+                              title="استرجاع"
                             >
                               <RefreshCcw className="h-4 w-4" />
                             </Button>
@@ -316,6 +318,7 @@ export default function Minutes() {
                               variant="ghost"
                               className="text-red-600 hover:text-red-800 hover:bg-red-50"
                               onClick={() => permanentDeleteDocument(minute.id)}
+                              title="حذف نهائي"
                             >
                               <Trash className="h-4 w-4" />
                             </Button>
@@ -327,6 +330,7 @@ export default function Minutes() {
                               variant="ghost"
                               className="text-red-500 hover:text-red-700 hover:bg-red-50"
                               onClick={() => softDeleteDocument(minute.id)}
+                              title="نقل للسلة"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
