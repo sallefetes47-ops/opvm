@@ -127,8 +127,8 @@ export default function Restudy() {
       }
 
       // Map the new opinion to committee_opinion format
-      const committeeOpinion = restudyData.new_opinion === "مقبول" 
-        ? "رأي إيجابي" 
+      const committeeOpinion = restudyData.new_opinion === "مقبول"
+        ? "رأي إيجابي"
         : restudyData.new_opinion;
 
       // Insert into file_studies table
@@ -137,8 +137,8 @@ export default function Restudy() {
         study_date: format(restudyData.study_date, "yyyy-MM-dd"),
         permit_type: foundFile.permit_type,
         committee_opinion: committeeOpinion,
-        rejection_reason: (restudyData.new_opinion === "تحفظ" || restudyData.new_opinion === "مرفوض") 
-          ? restudyData.new_reason 
+        rejection_reason: (restudyData.new_opinion === "تحفظ" || restudyData.new_opinion === "مرفوض")
+          ? restudyData.new_reason
           : null,
         created_by: user?.id,
       });
@@ -151,8 +151,8 @@ export default function Restudy() {
         .update({
           committee_opinion: committeeOpinion as Database["public"]["Enums"]["committee_opinion"],
           session_date: format(restudyData.study_date, "yyyy-MM-dd"),
-          rejection_reason: (restudyData.new_opinion === "تحفظ" || restudyData.new_opinion === "مرفوض") 
-            ? restudyData.new_reason 
+          rejection_reason: (restudyData.new_opinion === "تحفظ" || restudyData.new_opinion === "مرفوض")
+            ? restudyData.new_reason
             : null,
         })
         .eq("id", foundFile.id);
@@ -205,7 +205,7 @@ export default function Restudy() {
   const showNewReason = restudyData.new_opinion === "تحفظ" || restudyData.new_opinion === "مرفوض";
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-6 max-w-3xl mx-auto" dir="rtl">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
           <RefreshCw className="w-5 h-5 text-primary" />
@@ -229,6 +229,7 @@ export default function Restudy() {
             <div className="space-y-2">
               <Label>البلدية *</Label>
               <Select
+                dir="rtl"
                 value={searchParams.municipality}
                 onValueChange={(value: Municipality) =>
                   setSearchParams({ ...searchParams, municipality: value })
@@ -247,6 +248,7 @@ export default function Restudy() {
             <div className="space-y-2">
               <Label>نوع عقد التعمير</Label>
               <Select
+                dir="rtl"
                 value={searchParams.permit_type}
                 onValueChange={(value: PermitType) =>
                   setSearchParams({ ...searchParams, permit_type: value })
@@ -269,6 +271,7 @@ export default function Restudy() {
                 value={searchParams.file_number}
                 onChange={(e) => setSearchParams({ ...searchParams, file_number: e.target.value })}
                 placeholder="أدخل رقم الملف"
+                className="text-right"
               />
             </div>
             <div className="space-y-2">
@@ -279,6 +282,7 @@ export default function Restudy() {
                 onChange={(e) => setSearchParams({ ...searchParams, year: e.target.value })}
                 min={2000}
                 max={2100}
+                className="text-right"
               />
             </div>
           </div>
@@ -326,7 +330,7 @@ export default function Restudy() {
                 <div className="space-y-1">
                   <Label className="text-muted-foreground text-sm">تاريخ الجلسة السابقة</Label>
                   <p className="font-medium bg-muted/50 p-2 rounded-md">
-                    {foundFile.session_date 
+                    {foundFile.session_date
                       ? format(new Date(foundFile.session_date), "d MMMM yyyy", { locale: ar })
                       : "غير محدد"}
                   </p>
@@ -387,6 +391,7 @@ export default function Restudy() {
                 <div className="space-y-2">
                   <Label>القرار الجديد *</Label>
                   <Select
+                    dir="rtl"
                     value={restudyData.new_opinion}
                     onValueChange={(value: "مقبول" | "تحفظ" | "مرفوض") =>
                       setRestudyData({ ...restudyData, new_opinion: value, new_reason: "" })
@@ -427,12 +432,13 @@ export default function Restudy() {
                     onChange={(e) => setRestudyData({ ...restudyData, new_reason: e.target.value })}
                     placeholder="اذكر أسباب التحفظ أو الرفض الجديدة..."
                     rows={4}
+                    className="text-right"
                   />
                 </div>
               )}
 
-              <Button 
-                onClick={() => addStudyMutation.mutate()} 
+              <Button
+                onClick={() => addStudyMutation.mutate()}
                 disabled={addStudyMutation.isPending}
                 className="w-full"
               >
