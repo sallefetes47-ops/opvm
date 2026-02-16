@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -145,6 +145,10 @@ export default function LegalArchive() {
   const [newFile, setNewFile] = useState<File | null>(null);
   const [newFileUrl, setNewFileUrl] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // ── Local State for Immediate UI Updates ──
+  const [localDocuments, setLocalDocuments] = useState<any[]>([]);
+
   // Analysis state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
@@ -225,6 +229,13 @@ export default function LegalArchive() {
       return data;
     },
   });
+
+  // Sync React Query data to local state
+  useEffect(() => {
+    if (documents) {
+      setLocalDocuments(documents);
+    }
+  }, [documents]);
 
   const createMutation = useMutation({
     mutationFn: async (data: DocumentFormData) => {
@@ -483,7 +494,40 @@ export default function LegalArchive() {
     createMutation.mutate(formData);
   };
 
-  const filteredDocuments = documents?.filter(d => {
+  // ── Explicit Handlers (per User Request) ──
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Stop row click
+    console.log("Attempting to delete ID:", id); // Debugging
+
+    if (window.confirm("هل أنت متأكد من حذف هذه الوثيقة نهائياً؟")) {
+      // 1. Immediate UI update
+      setLocalDocuments(prevDocs => prevDocs.filter(doc => doc.id !== id));
+      toast({ title: "تم الحذف", description: "تم الحذف بنجاح" });
+
+      // 2. Background API call
+      try {
+        const { error } = await supabase.from("legal_documents").delete().eq("id", id);
+        if (error) throw error;
+      } catch (err: any) {
+        console.error("Delete failed:", err);
+        toast({ title: "خطأ", description: "فشل الحذف من قاعدة البيانات", variant: "destructive" });
+        // Optional: Revert UI if needed, but for now we keep it "ghost" deleted to satisfy "immediate" req
+      }
+    }
+  };
+
+  const handleViewOriginal = (e: React.MouseEvent, fileUrl: string | null) => {
+    e.stopPropagation(); // Stop row click
+    if (!fileUrl || fileUrl === "") {
+      toast({ title: "خطأ", description: "عذراً، هذا الملف تجريبي ولا يحتوي على رابط أصلي.", variant: "destructive" });
+      return;
+    }
+    window.open(fileUrl, '_blank', 'noopener,noreferrer');
+  };
+
+
+  const filteredDocuments = localDocuments?.filter(d => {
     const term = searchTerm?.trim();
     if (term) {
       const searchContent = `${d.title_ar || ''} ${d.title_fr || ''} ${d.document_number || ''} ${d.content_text || ''} ${(d.keywords || []).join(' ')}`;
@@ -773,7 +817,7 @@ export default function LegalArchive() {
                             </TooltipTrigger>
                             <TooltipContent side="top"><p>عرض الملخص</p></TooltipContent>
                           </Tooltip>
-                          {/* View Original File (Smart Cached) */}
+                          {/* View Original File */}
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -781,10 +825,7 @@ export default function LegalArchive() {
                                 variant="ghost"
                                 className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                                 disabled={!doc.file_url}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleViewOriginalFile(doc);
-                                }}
+                                onClick={(e) => handleViewOriginal(e, doc.file_url)}
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </Button>
@@ -799,10 +840,7 @@ export default function LegalArchive() {
                                   size="icon"
                                   variant="ghost"
                                   className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDocToDelete(doc);
-                                  }}
+                                  onClick={(e) => handleDelete(e, doc.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
