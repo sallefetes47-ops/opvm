@@ -117,9 +117,9 @@ function parseArabicLegalText(rawText: string, data: Record<string, any>): Recor
 const STORAGE_KEY = "opvm_documents";
 
 const mockDocuments = [
-  { id: "1", title_ar: "مرسوم تنفيذي 23-14", document_type: "مرسوم", document_number: "23-14", document_date: "2023-01-15", status: "active", description: "يحدد كيفيات تطبيق أحكام القانون..." },
-  { id: "2", title_ar: "قرار وزاري مشترك", document_type: "قرار", document_number: "22-55", document_date: "2022-11-20", status: "active", description: "يتضمن المصادقة على المخطط التوجيهي..." },
-  { id: "3", title_ar: "تعليمة رقم 05", document_type: "تعليمة", document_number: "05", document_date: "2024-02-01", status: "active", description: "تتعلّق بتسهيل إجراءات منح رخص البناء..." }
+  { id: "1", title_ar: "مرسوم تنفيذي 23-14", document_type: "مرسوم", document_number: "23-14", document_date: "2023-01-15", status: "active", description: "يحدد كيفيات تطبيق أحكام القانون...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+  { id: "2", title_ar: "قرار وزاري مشترك", document_type: "قرار", document_number: "22-55", document_date: "2022-11-20", status: "active", description: "يتضمن المصادقة على المخطط التوجيهي...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+  { id: "3", title_ar: "تعليمة رقم 05", document_type: "تعليمة", document_number: "05", document_date: "2024-02-01", status: "active", description: "تتعلّق بتسهيل إجراءات منح رخص البناء...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
 ];
 
 const loadDocs = () => {
@@ -137,6 +137,13 @@ const readFileAsBase64 = (file: File): Promise<string> => {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+};
+
+const calculateFileHash = async (file: File): Promise<string> => {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
 export default function LegalArchive() {
@@ -256,15 +263,32 @@ export default function LegalArchive() {
   const createMutation = useMutation({
     mutationFn: async ({ data, file }: { data: DocumentFormData; file: File | null }) => {
       // PROMISE WRAPPER FOR SYNC LOCAL STORAGE
-      return new Promise<void>(async (resolve) => {
+      return new Promise<void>(async (resolve, reject) => {
         let fileBase64 = null;
         let fileName = null;
+        let fileHash = null;
+
         if (file) {
           try {
+            // 1. Calculate Hash
+            fileHash = await calculateFileHash(file);
+
+            // 2. Check Duplicates
+            const currentDocs = loadDocs();
+            const isDuplicate = currentDocs.some((doc: any) => doc.file_hash === fileHash);
+
+            if (isDuplicate) {
+              reject(new Error("عذراً، هذا الملف تم رفعه مسبقاً وموجود في الأرشيف!"));
+              return;
+            }
+
+            // 3. Read Content
             fileBase64 = await readFileAsBase64(file);
             fileName = file.name;
           } catch (e) {
-            console.error("File read error", e);
+            console.error("File processing error", e);
+            reject(e);
+            return;
           }
         }
 
@@ -276,7 +300,8 @@ export default function LegalArchive() {
           created_at: new Date().toISOString(),
           status: 'active',
           file_base64: fileBase64,
-          file_name: fileName || undefined
+          file_name: fileName || undefined,
+          file_hash: fileHash
         };
         const current = loadDocs();
         const updated = [newDoc, ...current];
@@ -544,28 +569,36 @@ export default function LegalArchive() {
     toast({ title: "تم الحذف نهائياً", description: "تم حذف الملف من قاعدة البيانات المحلية" });
   };
 
-  const handleViewOriginal = (e: React.MouseEvent, fileUrl: string | null, fileBase64?: string | null) => {
-    e.stopPropagation(); // Stop row click
+  const handleViewOriginal = async (e: React.MouseEvent, doc: any) => {
+    e.stopPropagation(); // Prevent row click
 
-    // 1. If it's a newly uploaded file stored as Base64 in localStorage
-    if (fileBase64) {
-      const win = window.open();
-      if (win) {
-        win.document.write(`<iframe src="${fileBase64}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-      } else {
-        toast({ title: "محظور", description: "يرجى السماح بالنوافذ المنبثقة (Pop-ups) في متصفحك", variant: "destructive" });
+    // Check if we have an uploaded Base64 file OR a web URL
+    const fileData = doc.file_base64 || doc.file_url;
+
+    if (!fileData) {
+      toast({ title: "خطأ", description: "عذراً، لا يوجد ملف مرفق مع هذه الوثيقة.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      // SCENARIO 1: It's a newly uploaded file stored as Base64 Data URL
+      if (fileData.startsWith('data:')) {
+        const res = await fetch(fileData);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+
+        // Free up memory after 10 seconds
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
       }
-      return;
+      // SCENARIO 2: It's a standard web URL (like our dummy PDF)
+      else {
+        window.open(fileData, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      console.error("Error opening file:", error);
+      toast({ title: "خطأ", description: "حدث خطأ أثناء محاولة فتح الملف.", variant: "destructive" });
     }
-
-    // 2. If it's a standard web URL
-    if (fileUrl && fileUrl.trim() !== "") {
-      window.open(fileUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
-    // 3. If it's mock data with no actual file attached
-    toast({ title: "خطأ", description: "عذراً، هذا الملف تجريبي ولا يحتوي على وثيقة أصلية مرفقة.", variant: "destructive" });
   };
 
 
@@ -884,7 +917,8 @@ export default function LegalArchive() {
                                 variant="ghost"
                                 className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                                 disabled={!doc.file_url && !doc.file_base64}
-                                onClick={(e) => handleViewOriginal(e, doc.file_url, doc.file_base64)}
+                                onClick={(e) => handleViewOriginal(e, doc)}
+                                title="معاينة الملف الأصلي"
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </Button>
