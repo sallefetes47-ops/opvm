@@ -132,15 +132,21 @@
   }
 }
 
-/* Force RTL for all Select and Dropdown elements across the app */
-select, [data-role="select"], [role="combobox"] {
-  direction: rtl !important;
-  text-align: right !important;
-  appearance: none !important; /* Hide native arrow */
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+/* 🚨 MASTER RTL OVERRIDE: THE DROPDOWN ARROW REVOLUTION */
+select {
+  appearance: none !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
   background-repeat: no-repeat !important;
-  background-position: left 0.75rem center !important; /* Force arrow to the LEFT */
+  background-position: left 0.75rem center !important;
   background-size: 1em !important;
   padding-left: 2.5rem !important;
   padding-right: 1rem !important;
+  text-align: right !important;
+  direction: rtl !important;
+}
+
+/* Force for Radix/Shadcn Select components too if they use native-like triggers */
+[data-role="select"], [role="combobox"] {
+  direction: rtl !important;
+  text-align: right !important;
 }
