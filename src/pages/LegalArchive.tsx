@@ -257,35 +257,14 @@ export default function LegalArchive() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("legal_documents").delete().eq("id", id);
       if (error) throw error;
-      return id;
-    },
-    onMutate: async (id: string) => {
-      // Cancel outgoing refetches so they don't overwrite our optimistic update
-      await queryClient.cancelQueries({ queryKey: ["legal-documents"] });
-
-      // Snapshot current data for rollback
-      const previousDocs = queryClient.getQueryData(["legal-documents"]);
-
-      // Optimistically remove row from cache — instant UI update
-      queryClient.setQueryData(["legal-documents"], (old: any[] | undefined) =>
-        old ? old.filter((doc: any) => doc.id !== id) : []
-      );
-
-      return { previousDocs };
     },
     onSuccess: () => {
+      // Backend confirmed deletion — now force refetch to sync UI
+      queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
       toast({ title: "تم الحذف", description: "تم حذف الوثيقة بنجاح" });
     },
-    onError: (error, _id, context) => {
-      // Rollback on failure
-      if (context?.previousDocs) {
-        queryClient.setQueryData(["legal-documents"], context.previousDocs);
-      }
-      toast({ title: "خطأ في الحذف", description: error.message, variant: "destructive" });
-    },
-    onSettled: () => {
-      // Always refetch to stay in sync with server
-      queryClient.invalidateQueries({ queryKey: ["legal-documents"] });
+    onError: (error) => {
+      toast({ title: "خطأ في الحذف", description: error.message || "حدث خطأ أثناء الحذف من قاعدة البيانات", variant: "destructive" });
     },
   });
 
@@ -1249,24 +1228,25 @@ export default function LegalArchive() {
               disabled={deleteMutation.isPending}
               onClick={async () => {
                 if (!docToDelete) return;
-                const deleteId = docToDelete.id;
-                const deleteFileName = docToDelete.file_name;
-
-                // Close dialog first
-                setDocToDelete(null);
 
                 // Attempt to remove storage file if present
-                if (deleteFileName) {
+                if (docToDelete.file_name) {
                   try {
-                    await removeFromStorage(deleteFileName);
+                    await removeFromStorage(docToDelete.file_name);
                   } catch (err) {
                     console.warn('Storage removal error during delete', err);
-                    toast({ title: "تحذير", description: "لم يتمكن من حذف الملف المرفق من المخزن, قد تحتاج لحذفه يدوياً", variant: "default" });
                   }
                 }
 
-                // Delete DB record — row will vanish instantly via optimistic update
-                deleteMutation.mutate(deleteId);
+                // AWAIT the backend delete — only proceed if it succeeds
+                try {
+                  await deleteMutation.mutateAsync(docToDelete.id);
+                  // Backend confirmed — now close the dialog
+                  setDocToDelete(null);
+                } catch (err) {
+                  // Error toast is handled by onError callback
+                  // Dialog stays open so user can retry or cancel
+                }
               }}
             >
               {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'نعم، قم بالحذف'}
