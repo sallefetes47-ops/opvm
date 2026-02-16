@@ -707,8 +707,8 @@ export default function LegalArchive() {
                       </span>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {doc.document_number && doc.document_date 
-                        ? `${doc.document_number} / ${new Date(doc.document_date).getFullYear()}` 
+                      {doc.document_number && doc.document_date
+                        ? `${doc.document_number} / ${new Date(doc.document_date).getFullYear()}`
                         : doc.document_number || "-"}
                     </TableCell>
                     <TableCell className="max-w-[300px] truncate" title={doc.title_ar}>{doc.title_ar}</TableCell>
@@ -725,7 +725,14 @@ export default function LegalArchive() {
                           {canEdit && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button size="icon" variant="ghost" onClick={() => openEditModal(doc)}>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditModal(doc);
+                                  }}
+                                >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
@@ -735,7 +742,14 @@ export default function LegalArchive() {
                           {/* View Summary */}
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button size="icon" variant="ghost" onClick={() => setViewDocument(doc)}>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setViewDocument(doc);
+                                }}
+                              >
                                 <Eye className="h-5 w-5" />
                               </Button>
                             </TooltipTrigger>
@@ -749,7 +763,10 @@ export default function LegalArchive() {
                                 variant="ghost"
                                 className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                                 disabled={!doc.file_url}
-                                onClick={() => doc.file_url && window.open(doc.file_url, '_blank')}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (doc.file_url) window.open(doc.file_url, '_blank');
+                                }}
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </Button>
@@ -764,7 +781,10 @@ export default function LegalArchive() {
                                   size="icon"
                                   variant="ghost"
                                   className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() => setDocToDelete(doc)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDocToDelete(doc);
+                                  }}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -776,7 +796,7 @@ export default function LegalArchive() {
                       </TooltipProvider>
                     </TableCell>
                   </TableRow>
-                ))?? <TableRow><TableCell colSpan={6} className="text-center">لا يوجد</TableCell></TableRow>}
+                )) ?? <TableRow><TableCell colSpan={6} className="text-center">لا يوجد</TableCell></TableRow>}
               </TableBody>
             </Table>
           )}
@@ -811,8 +831,8 @@ export default function LegalArchive() {
                 <div>
                   <Label className="text-muted-foreground">رقم الملف</Label>
                   <p className="font-medium">
-                    {viewDocument.document_number && viewDocument.document_date 
-                      ? `${viewDocument.document_number} / ${new Date(viewDocument.document_date).getFullYear()}` 
+                    {viewDocument.document_number && viewDocument.document_date
+                      ? `${viewDocument.document_number} / ${new Date(viewDocument.document_date).getFullYear()}`
                       : viewDocument.document_number || "-"}
                   </p>
                 </div>
