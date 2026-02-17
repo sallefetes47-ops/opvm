@@ -224,11 +224,12 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
             </CardHeader>
 
             <CardContent className="p-0 flex-1 relative bg-slate-100">
-                <div style={{ height: '600px', width: '100%' }}>
+                {/* STRICT MAP CAGE - CRITICAL FIX */}
+                <div className="relative w-full h-[500px] lg:h-[600px] z-0 isolate shrink-0 overflow-hidden">
                     <MapContainer
                         center={CENTER_POS}
                         zoom={16}
-                        style={{ height: '100%', width: '100%' }}
+                        style={{ height: '100%', width: '100%', zIndex: 1 }}
                         scrollWheelZoom={true}
                     >
                         <TileLayer
