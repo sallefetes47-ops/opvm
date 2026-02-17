@@ -209,13 +209,14 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                         انقر على الخريطة لتحديد الموقع │ النقاط الملونة = عقود موجودة
                     </p>
 
-                    {/* STRICT CAGE FOR MAP – explicit height required by Leaflet */}
-                    <div className="relative w-full overflow-hidden rounded-xl border border-gray-300 shadow-sm bg-slate-50 z-0" style={{ height: '400px', isolation: 'isolate' }}>
+                    {/* STRICT ISOLATED CAGE - BULLETPROOF FIX */}
+                    <div className="relative w-full h-[250px] min-h-[250px] max-h-[250px] overflow-hidden rounded-xl border-2 border-slate-300 isolate shrink-0 bg-slate-50">
                         <MapContainer
                             center={mapCenter}
                             zoom={mapZoom}
                             scrollWheelZoom={true}
-                            style={{ height: '100%', width: '100%', zIndex: 0 }}
+                            className="h-full w-full z-10"
+                            style={{ height: '100%', width: '100%' }}
                             zoomControl={true}
                             maxBounds={MAX_BOUNDS}
                             maxBoundsViscosity={1.0}
