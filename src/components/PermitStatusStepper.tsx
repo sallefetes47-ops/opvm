@@ -11,7 +11,6 @@ const STORAGE_KEY = "opvm_permit_statuses";
 const STEPS = [
     { label: "قيد الإيداع", description: "تسجيل الملف" },
     { label: "قيد الدراسة الفنية", description: "الدراسة والتحليل" },
-    { label: "موافقة مبدئية", description: "القرار الأولي" },
     { label: "مكتمل / مُسلم", description: "التسليم النهائي" },
 ] as const;
 
@@ -51,7 +50,9 @@ export default function PermitStatusStepper({ fileId, canEdit = false }: PermitS
     useEffect(() => {
         const statuses = readStatuses();
         const saved = statuses[fileId];
-        setCurrentStep(typeof saved === "number" ? saved : 0);
+        // Clamp to new STEPS length to handle legacy data (e.g. index 3 becoming 2)
+        const safeIndex = typeof saved === "number" ? saved : 0;
+        setCurrentStep(Math.min(safeIndex, STEPS.length - 1));
     }, [fileId]);
 
     /* ── Advance to next step ── */
@@ -140,8 +141,8 @@ export default function PermitStatusStepper({ fileId, canEdit = false }: PermitS
                                 {/* Label */}
                                 <div className="mt-2 text-center max-w-[80px]">
                                     <p className={`text-[11px] font-bold leading-tight ${isCompleted ? "text-emerald-600 dark:text-emerald-400" :
-                                            isCurrent ? "text-blue-600 dark:text-blue-400" :
-                                                "text-slate-400 dark:text-slate-500"
+                                        isCurrent ? "text-blue-600 dark:text-blue-400" :
+                                            "text-slate-400 dark:text-slate-500"
                                         }`}>
                                         {step.label}
                                     </p>
