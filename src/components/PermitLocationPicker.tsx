@@ -210,12 +210,12 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                     </p>
 
                     {/* STRICT CAGE FOR MAP – explicit height required by Leaflet */}
-                    <div className="relative w-full overflow-hidden rounded-xl border border-gray-300 shadow-sm bg-slate-50" style={{ height: '400px' }}>
+                    <div className="relative w-full overflow-hidden rounded-xl border border-gray-300 shadow-sm bg-slate-50 z-0" style={{ height: '400px', isolation: 'isolate' }}>
                         <MapContainer
                             center={mapCenter}
                             zoom={mapZoom}
                             scrollWheelZoom={true}
-                            style={{ height: '100%', width: '100%', zIndex: 10 }}
+                            style={{ height: '100%', width: '100%', zIndex: 0 }}
                             zoomControl={true}
                             maxBounds={MAX_BOUNDS}
                             maxBoundsViscosity={1.0}

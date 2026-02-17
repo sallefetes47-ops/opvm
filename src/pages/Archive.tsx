@@ -453,8 +453,8 @@ export default function ArchivePage() {
                   {/* LEFT COLUMN: MAP */}
                   <div className="space-y-2 order-1 lg:order-2">
                     <Label className="text-right block">تحديد الموقع الجغرافي</Label>
-                    {/* 🚨 THE MAP CAGE PROTOCOL */}
-                    <div className="relative w-full h-[300px] overflow-hidden rounded-xl border z-0 mb-4 shadow-inner">
+                    {/* Map cage: isolate z-index stacking so Leaflet can't escape the modal */}
+                    <div className="relative w-full overflow-hidden rounded-xl border z-0 mb-4 shadow-inner" style={{ isolation: 'isolate' }}>
                       <PermitLocationPicker
                         value={
                           editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
