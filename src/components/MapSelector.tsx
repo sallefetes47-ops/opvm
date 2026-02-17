@@ -243,7 +243,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
 
                         {/* Cadastre Info Popup */}
                         {cadastreInfo && (
-                            <Popup position={[cadastreInfo.lat, cadastreInfo.lng]} onClose={() => setCadastreInfo(null)}>
+                            <Popup position={[cadastreInfo.lat, cadastreInfo.lng]} eventHandlers={{ remove: () => setCadastreInfo(null) }}>
                                 <div className="text-right p-1 min-w-[200px]" dir="rtl">
                                     <h4 className="font-bold text-sm border-b pb-2 mb-2 flex items-center gap-2 bg-slate-50 p-1 rounded-t">
                                         <Satellite className="w-3 h-3 text-blue-500" />
