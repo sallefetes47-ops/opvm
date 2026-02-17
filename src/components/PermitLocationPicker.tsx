@@ -64,6 +64,17 @@ const createCustomMarkerIcon = (type: string | null) => {
 const DEFAULT_CENTER: [number, number] = [32.4810, 3.6900];
 const MAX_BOUNDS: L.LatLngBoundsExpression = [[32.42, 3.58], [32.55, 3.80]];
 
+/* ─── Map child: force invalidateSize on mount ─── */
+
+function MapResizer() {
+    const map = useMap();
+    useEffect(() => {
+        const timer = setTimeout(() => map.invalidateSize(), 300);
+        return () => clearTimeout(timer);
+    }, [map]);
+    return null;
+}
+
 /* ─── Map child: click to select location ─── */
 
 function ClickCapture({ onCapture }: { onCapture: (lat: number, lng: number) => void }) {
@@ -198,8 +209,8 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                         انقر على الخريطة لتحديد الموقع │ النقاط الملونة = عقود موجودة
                     </p>
 
-                    {/* STRICT CAGE FOR MAP */}
-                    <div className="relative w-full h-full overflow-hidden rounded-xl border border-gray-300 shadow-sm bg-slate-50">
+                    {/* STRICT CAGE FOR MAP – explicit height required by Leaflet */}
+                    <div className="relative w-full overflow-hidden rounded-xl border border-gray-300 shadow-sm bg-slate-50" style={{ height: '400px' }}>
                         <MapContainer
                             center={mapCenter}
                             zoom={mapZoom}
@@ -216,6 +227,9 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                                 url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
                                 maxZoom={20}
                             />
+
+                            {/* Recalculate size after accordion opens */}
+                            <MapResizer />
 
                             {/* Click to capture coordinates */}
                             <ClickCapture onCapture={handleMapClick} />
