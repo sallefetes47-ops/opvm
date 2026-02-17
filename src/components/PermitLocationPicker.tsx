@@ -225,12 +225,6 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                             zoom={mapZoom}
                             scrollWheelZoom={true}
                             style={{ height: '100%', width: '100%', zIndex: 0 }}
-                            whenReady={(e) => {
-                                // Force resize after modal animation
-                                setTimeout(() => {
-                                    e.target.invalidateSize();
-                                }, 300);
-                            }}
                             zoomControl={true}
                             maxBounds={MAX_BOUNDS}
                             maxBoundsViscosity={1.0}
