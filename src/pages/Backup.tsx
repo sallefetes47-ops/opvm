@@ -285,18 +285,20 @@ export default function Backup() {
         doc.setFont('Amiri');
         doc.setR2L(true);
 
-        // Add high-resolution Bureau Logo at the top center
+        // Add Bureau Logo at top center (graceful fallback to text if missing)
+        setExportProgress(30);
+        let logoLoaded = false;
         try {
-          setExportProgress(30);
-          const logoUrl = '/Capture.PNG'; // High-resolution logo in public
+          const logoUrl = '/Capture.PNG';
           const logoWidth = 40;
           const logoHeight = 30;
           const logoX = (pageWidth - logoWidth) / 2;
-          // Fetch image and convert to data URL for jsPDF
-          try {
-            const resp = await fetch(logoUrl);
-            if (resp.ok) {
-              const blob = await resp.blob();
+
+          const resp = await fetch(logoUrl);
+          if (resp.ok) {
+            const blob = await resp.blob();
+            // Validate it's actually an image
+            if (blob.type.startsWith('image/')) {
               const dataUrl: string = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result as string);
@@ -305,12 +307,19 @@ export default function Backup() {
               });
               doc.addImage(dataUrl, 'PNG', logoX, yPosition, logoWidth, logoHeight);
               yPosition += 35;
+              logoLoaded = true;
             }
-          } catch (innerErr) {
-            console.warn('Could not fetch logo for PDF:', innerErr);
           }
-        } catch (logoError) {
-          console.warn('Logo not available, continuing without it:', logoError);
+        } catch (logoErr) {
+          console.warn('Logo could not be loaded into PDF, continuing with text header only.', logoErr);
+        }
+
+        // Fallback: render text header if logo failed
+        if (!logoLoaded) {
+          doc.setFontSize(14);
+          doc.setFont('Amiri', 'normal');
+          doc.text(fixArabicText('ديوان حماية وادي ميزاب وترقيته'), pageWidth / 2, yPosition + 10, { align: 'center' });
+          yPosition += 20;
         }
 
         // Title
@@ -460,7 +469,7 @@ export default function Backup() {
       }
     } catch (error) {
       console.error('PDF generation error:', error);
-      toast({ title: "❌ خطأ", description: "فشل في إنشاء التقرير. تأكد من أن الشعار موجود", variant: "destructive" });
+      toast({ title: "❌ خطأ", description: `فشل في إنشاء التقرير: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`, variant: "destructive" });
     }
     setTimeout(() => setExportProgress(0), 1000);
     setIsExporting(false);
