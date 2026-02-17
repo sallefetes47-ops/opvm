@@ -209,14 +209,28 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                         انقر على الخريطة لتحديد الموقع │ النقاط الملونة = عقود موجودة
                     </p>
 
-                    {/* STRICT ISOLATED CAGE - BULLETPROOF FIX */}
-                    <div className="relative w-full h-[250px] min-h-[250px] max-h-[250px] overflow-hidden rounded-xl border-2 border-slate-300 isolate shrink-0 bg-slate-50">
+                    {/* TRIPLE-CHECK: Explicit inline styles to force layout if Tailwind fails in Modal */}
+                    <div style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '250px',
+                        overflow: 'hidden',
+                        borderRadius: '0.75rem',
+                        border: '2px solid #cbd5e1',
+                        zIndex: 0,
+                        isolation: 'isolate'
+                    }}>
                         <MapContainer
                             center={mapCenter}
                             zoom={mapZoom}
                             scrollWheelZoom={true}
-                            className="h-full w-full z-10"
-                            style={{ height: '100%', width: '100%' }}
+                            style={{ height: '100%', width: '100%', zIndex: 0 }}
+                            whenReady={(e) => {
+                                // Force resize after modal animation
+                                setTimeout(() => {
+                                    e.target.invalidateSize();
+                                }, 300);
+                            }}
                             zoomControl={true}
                             maxBounds={MAX_BOUNDS}
                             maxBoundsViscosity={1.0}
