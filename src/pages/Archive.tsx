@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import MapSelector from "@/components/MapSelector";
 import PermitLocationPicker from "@/components/PermitLocationPicker";
 import DocumentAnalyzer, { AnalysisResult } from "@/components/DocumentAnalyzer";
-import PermitStatusStepper from "@/components/PermitStatusStepper";
+
 
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -539,10 +539,7 @@ export default function ArchivePage() {
                 </div>
               </div>
 
-              {/* ── Status Timeline Stepper ── */}
-              <Separator />
-              <PermitStatusStepper fileId={selectedFile.id} canEdit={canEdit} />
-              <Separator />
+
               {fileStudies.length > 0 && (
                 <div className="mt-6 border-t pt-4">
                   <h4 className="font-semibold mb-2">سجل الدراسات</h4>
