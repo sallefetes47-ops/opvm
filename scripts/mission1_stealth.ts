@@ -2,58 +2,72 @@
 import { chromium } from 'playwright-extra';
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 
-// Add the stealth plugin to Playwright
+// Add the stealth plugin to Playwright to bypass detection
 chromium.use(stealthPlugin());
 
 const TARGET_URL = 'https://geoportal.asal.dz/';
 
 async function runStealthMission() {
-    console.log('🕵️ Starting Mission 1: Stealth Mode...');
+    console.log('🚀 Mission 1 Initialization: Starting Stealth Browser...');
 
     try {
+        // 2. Browser Config: Non-headless
         const browser = await chromium.launch({
-            headless: false, // User requested to see what's happening
-            args: ['--start-maximized'] // Optional: Open maximized
+            headless: false,
+            args: ['--start-maximized']
         });
 
         const context = await browser.newContext({
-            viewport: null, // Allow window resizing to determine viewport
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', // Spoof UA
+            viewport: null, // Allow window resizing
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         });
 
         const page = await context.newPage();
 
         console.log(`🌍 Navigating to ${TARGET_URL}...`);
-        await page.goto(TARGET_URL, { waitUntil: 'networkidle' });
+        // 3. Navigation
+        await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded' }); // domcontentloaded is faster than networkidle for initial load
 
-        console.log('⏳ Waiting for map to load and loading screen to disappear...');
+        console.log('⏳ Waiting for map container and layers to initialize...');
 
-        // Wait for a common map element (usually canvas or specific ID) and ensuring loading overlay is gone
-        // Note: Selectors depend on the specific site structure. Generally map apps have a canvas or a div with id='map'
-        // We will wait for a generic 'canvas' or specific map container, and ensure no loading spinner is visible.
-
-        // Example strategy: Wait for the main map container
+        // 4. Wait Logic: Smart wait for map elements
+        // We wait for a generic indicator of a map library (Leaflet, OpenLayers, ESRI JS API, etc.)
+        // Common classes: .ol-viewport, .leaflet-container, .esri-view, or just a canvas
         try {
-            await page.waitForSelector('canvas', { state: 'visible', timeout: 30000 });
-            // Or specific ID if known, e.g., #map, #viewDiv
-            // await page.waitForSelector('#map', { state: 'visible' });
+            await Promise.race([
+                page.waitForSelector('canvas', { state: 'visible', timeout: 60000 }), // WebGL maps
+                page.waitForSelector('.ol-viewport', { state: 'visible', timeout: 60000 }), // OpenLayers
+                page.waitForSelector('.leaflet-container', { state: 'visible', timeout: 60000 }), // Leaflet
+                page.waitForSelector('#map', { state: 'visible', timeout: 60000 }), // Generic ID
+                page.waitForSelector('#viewDiv', { state: 'visible', timeout: 60000 }) // ArcGIS
+            ]);
         } catch (e) {
-            console.log('⚠️ Could not find canvas immediately, checking page title...');
+            console.warn('⚠️ Specific map selector not found within timeout. Checking for general activity...');
         }
 
-        // Heuristic: Wait a bit more to be sure "loading" is done
-        await page.waitForTimeout(5000);
+        // Additional Wait: Ensure network activity settles down (tiles loaded)
+        try {
+            await page.waitForLoadState('networkidle', { timeout: 15000 });
+        } catch (e) {
+            // Ignore timeout on networkidle, map might be streaming tiles constantly
+        }
 
-        console.log("✅ تمت المرحلة الأولى: تم اختراق الموقع بنجاح");
-        console.log("✅ Mission 1 Complete: Website penetrated successfully");
+        // 5. Verification Log
+        console.log('✅ Mission 1: Portal accessed and map is ready.');
 
-        // Keep it open for a bit so the user can see
-        await page.waitForTimeout(10000);
+        // Keep browser open for user validation
+        console.log('👀 Keeping browser open for monitoring...');
+        await page.waitForTimeout(60000); // Keep open for 1 minute or until closed manually
 
         await browser.close();
 
     } catch (error) {
         console.error('❌ Mission Failed:', error);
+        // Suggest installing dependencies if they are missing
+        if (error instanceof Error && error.message.includes('Cannot find module')) {
+            console.log('\n💡 DATA: It seems some dependencies are missing. Please run:');
+            console.log('npm install playwright playwright-extra puppeteer-extra-plugin-stealth');
+        }
     }
 }
 
