@@ -103,13 +103,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
     }, []);
 
     // --- STATE ---
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [tempCoords, setTempCoords] = useState<{ lat: number; lng: number } | null>(null);
-    const [contractForm, setContractForm] = useState({
-        full_name: '',
-        file_number: '',
-        year: new Date().getFullYear(),
-    });
 
     const [cadastreInfo, setCadastreInfo] = useState<{
         section: string;
