@@ -1,25 +1,57 @@
-import React from 'react';
-import MzabMap from '../components/MzabMap'; // استيراد المكون الذي برمجناه مع Gemini
+import React, { useState } from 'react';
+import MzabMap from '../components/MzabMap';
 
 const UrbanMap: React.FC = () => {
-    return (
-        <div style={{ padding: '20px', height: '100%' }}>
-            <h2 style={{ color: '#2c3e50', marginBottom: '20px' }}>
-                المخطط المسحي العقاري - وادي ميزاب (المرسوم 15-19)
-            </h2>
+    // حالة تخزين بيانات القطعة المختارة
+    const [formData, setFormData] = useState({ section: '', ilot: '' });
 
-            <div style={{
-                border: '2px solid #e0e0e0',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-            }}>
-                {/* استدعاء الخريطة التي تحتوي على بيانات القسم ومجموعة الملكية */}
-                <MzabMap />
+    const handleParcelSelect = (data: { section: string; ilot: string }) => {
+        setFormData(data); // ملء البيانات آلياً عند الضغط على الخريطة
+    };
+
+    return (
+        <div style={{ display: 'flex', gap: '20px', padding: '20px', height: '100%' }}>
+
+            {/* القسم الأيمن: الخريطة التفاعلية */}
+            <div style={{ flex: 2 }}>
+                <h3 style={{ marginBottom: '10px' }}>اختر القطعة الأرضية من المخطط (وادي ميزاب)</h3>
+                <MzabMap onParcelSelect={handleParcelSelect} />
             </div>
 
-            <div style={{ marginTop: '15px', color: '#666', fontSize: '14px' }}>
-                💡 نصيحة: اضغط على أي قطعة أرضية لاستخراج القسم (Section) ومجموعة الملكية (Ilot) آلياً.
+            {/* القسم الأيسر: استمارة المرسوم 15-19 */}
+            <div style={{ flex: 1, backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+                <h3 style={{ color: '#d32f2f', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>طلب تسوية (المرسوم 15-19)</h3>
+
+                <form style={{ marginTop: '20px' }}>
+                    <div style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '5px' }}>القسم العقاري (Section):</label>
+                        <input
+                            type="text"
+                            value={formData.section}
+                            readOnly // القيمة تأتي من الخريطة مباشرة
+                            style={{ width: '100%', padding: '8px', backgroundColor: '#f9f9f9', border: '1px solid #ccc' }}
+                        />
+                    </div>
+
+                    <div style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '5px' }}>مجموعة الملكية (Ilot):</label>
+                        <input
+                            type="text"
+                            value={formData.ilot}
+                            readOnly
+                            style={{ width: '100%', padding: '8px', backgroundColor: '#f9f9f9', border: '1px solid #ccc' }}
+                        />
+                    </div>
+
+                    <div style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '5px' }}>اسم صاحب الطلب:</label>
+                        <input type="text" style={{ width: '100%', padding: '8px' }} placeholder="أدخل الاسم الكامل" />
+                    </div>
+
+                    <button type="button" style={{ width: '100%', padding: '10px', backgroundColor: '#2c3e50', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                        حفظ وإصدار عقد التعمير
+                    </button>
+                </form>
             </div>
         </div>
     );
