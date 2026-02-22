@@ -36,21 +36,21 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                 {geoJsonData && (
                     <GeoJSON
                         data={geoJsonData}
-                        style={{ color: '#FFD700', weight: 1.5, fillOpacity: 0.2 }} // اللون الأصفر الذهبي
+                        style={{
+                            color: '#FF0000',     // 🔴 لون الحدود (أحمر)
+                            weight: 2,            // 📏 سمك الخط (زدناه قليلاً ليكون أوضح)
+                            fillColor: '#FF0000', // 🔴 لون التعبئة الداخلية
+                            fillOpacity: 0.1      // 👁️ شفافية عالية (10%) لكي ترى أسطح المنازل بوضوح تحتها
+                        }}
                         eventHandlers={{
                             click: (e) => {
                                 const props = e.propagatedFrom.feature.properties;
                                 if (onParcelSelect) {
-                                    // إرسال البيانات للاستمارة آلياً
                                     onParcelSelect({ section: props.SECTION, ilot: props.ILOT });
                                 }
                             }
                         }}
                     />
                 )}
-            </MapContainer>
-        </div>
-    );
-};
 
-export default MzabValleyMap;
+                export default MzabValleyMap;
