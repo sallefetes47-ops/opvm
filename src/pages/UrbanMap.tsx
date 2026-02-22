@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MzabValleyMap } from '../components/MzabValleyMap';
+import { MapErrorBoundary } from '../components/MapErrorBoundary';
 import { jsPDF } from 'jspdf';
 
 const UrbanMap = () => {
@@ -23,9 +24,11 @@ const UrbanMap = () => {
 
     return (
         <div style={{ display: 'flex', gap: '20px', padding: '20px', height: '90vh' }}>
-            {/* قسم الخريطة */}
+            {/* قسم الخريطة - محمي بـ Error Boundary */}
             <div style={{ flex: 2, borderRadius: '15px', overflow: 'hidden', border: '1px solid #ddd' }}>
-                <MzabValleyMap onParcelSelect={handleSelect} />
+                <MapErrorBoundary>
+                    <MzabValleyMap onParcelSelect={handleSelect} />
+                </MapErrorBoundary>
             </div>
 
             {/* قسم الاستمارة */}
@@ -35,19 +38,19 @@ const UrbanMap = () => {
                 <div style={{ marginTop: '20px' }}>
                     <label>القسم (آلي من الخريطة):</label>
                     <input type="text" value={parcelData.section} readOnly style={inputStyle} />
-                    
+
                     <label>المجموعة (آلي من الخريطة):</label>
                     <input type="text" value={parcelData.ilot} readOnly style={inputStyle} />
-                    
+
                     <label>اسم صاحب الطلب:</label>
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         placeholder="أدخل الاسم هنا"
-                        onChange={(e) => setParcelData({...parcelData, owner: e.target.value})}
-                        style={inputStyle} 
+                        onChange={(e) => setParcelData({ ...parcelData, owner: e.target.value })}
+                        style={inputStyle}
                     />
 
-                    <button 
+                    <button
                         onClick={exportToPDF}
                         disabled={!parcelData.section}
                         style={btnStyle}>
