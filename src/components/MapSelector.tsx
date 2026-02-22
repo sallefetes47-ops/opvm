@@ -141,25 +141,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
         }
     });
 
-    // 2. Mutations
-    const createMutation = useMutation({
-        mutationFn: async (coords: { lat: number; lng: number }) => {
-            const { error } = await supabase.from('files').insert({
-                ...contractForm,
-                location_lat: coords.lat,
-                location_lng: coords.lng,
-                created_by: user?.id
-            });
-            if (error) throw error;
-        },
-        onSuccess: () => {
-            toast({ title: "Success", description: "Contract added to map" });
-            queryClient.invalidateQueries({ queryKey: ['map-contracts-stable'] });
-            setIsAddModalOpen(false);
-            setContractForm({ full_name: '', file_number: '', year: new Date().getFullYear() });
-        },
-        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
-    });
+    // 2. Mutations (Removed deprecated createMutation for point markers)
 
     // Cadastre Fetch Logic
     const handleCadastreFetch = async (lat: number, lng: number) => {
@@ -208,9 +190,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
 
     const handleMapClick = (lat: number, lng: number) => {
         handleCadastreFetch(lat, lng);
-        if (canEdit) {
-            setTempCoords({ lat, lng });
-        }
     };
 
     const getCoords = (item: any): [number, number] | null => {
@@ -254,13 +233,19 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                                 data={cadastreGeoJson}
                                 style={(feature: any) => {
                                     const p = feature?.properties;
-                                    const section = p?.SECTION || "";
-                                    const ilot = p?.ILOT || p?.group || "";
+                                    const sectionStr = p?.SECTION || "";
+                                    const ilotStr = p?.ILOT || p?.group || "";
+
+                                    const section = Number(sectionStr);
+                                    const ilot = Number(ilotStr);
 
                                     // Check if this feature has an associated contract
-                                    const matchedContract = rawContracts?.find(
-                                        (c: any) => c.section === section && (c.property_group === ilot || c.ilot === ilot)
-                                    );
+                                    const matchedContract = rawContracts?.find((c: any) => {
+                                        const cSection = Number(c.section);
+                                        const cIlot = Number(c.property_group || c.ilot);
+                                        return !isNaN(section) && !isNaN(cSection) && !isNaN(ilot) && !isNaN(cIlot) &&
+                                            section === cSection && ilot === cIlot;
+                                    });
 
                                     if (matchedContract) {
                                         const contractType = (matchedContract as any).permit_type || (matchedContract as any).contract_type;
@@ -283,15 +268,22 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                                 }}
                                 onEachFeature={(feature: any, layer: any) => {
                                     const p = feature?.properties;
-                                    const section = p?.SECTION || "";
-                                    const ilot = p?.ILOT || p?.group || "";
+                                    const sectionStr = p?.SECTION || "";
+                                    const ilotStr = p?.ILOT || p?.group || "";
 
-                                    const matchedContract = rawContracts?.find(
-                                        (c: any) => c.section === section && (c.property_group === ilot || c.ilot === ilot)
-                                    );
+                                    const section = Number(sectionStr);
+                                    const ilot = Number(ilotStr);
+
+                                    const matchedContract = rawContracts?.find((c: any) => {
+                                        const cSection = Number(c.section);
+                                        const cIlot = Number(c.property_group || c.ilot);
+                                        return !isNaN(section) && !isNaN(cSection) && !isNaN(ilot) && !isNaN(cIlot) &&
+                                            section === cSection && ilot === cIlot;
+                                    });
 
                                     // Add a hover tooltip if there's a contract
                                     if (matchedContract) {
+                                        console.log(`✅ تم إيجاد تطابق! القسم: ${sectionStr} - القطعة: ${ilotStr} -> الملف: ${matchedContract.file_number}`);
                                         const contractType = (matchedContract as any).permit_type || (matchedContract as any).contract_type;
                                         const color = getColorByContractType(contractType);
                                         const popupContent = `
@@ -355,16 +347,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                                         </div>
                                     )}
 
-                                    {canEdit && (
-                                        <Button
-                                            size="sm"
-                                            className="w-full mt-2 h-8 text-xs font-semibold"
-                                            onClick={() => setIsAddModalOpen(true)}
-                                        >
-                                            <Plus className="w-3 h-3 ml-1" />
-                                            إضافة عقد جديد هنا
-                                        </Button>
-                                    )}
                                 </div>
                             </Popup>
                         )}
@@ -401,42 +383,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
 
             </CardContent>
 
-            {/* Add Modal */}
-            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>إضافة موقع العقد</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-2">
-                        <div className="text-xs bg-slate-100 p-2 rounded font-mono text-left opacity-70" dir="ltr">
-                            Lat: {tempCoords?.lat.toFixed(6)}, Lng: {tempCoords?.lng.toFixed(6)}
-                        </div>
-                        <div className="space-y-2">
-                            <Label>الاسم الكامل</Label>
-                            <Input
-                                value={contractForm.full_name}
-                                onChange={(e) => setContractForm(p => ({ ...p, full_name: e.target.value }))}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>رقم الملف</Label>
-                            <Input
-                                value={contractForm.file_number}
-                                onChange={(e) => setContractForm(p => ({ ...p, file_number: e.target.value }))}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>إلغاء</Button>
-                        <Button
-                            onClick={() => tempCoords && createMutation.mutate(tempCoords)}
-                            disabled={createMutation.isPending}
-                        >
-                            {createMutation.isPending ? "جاري الحفظ..." : "حفظ الموقع"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </Card>
     );
 }
