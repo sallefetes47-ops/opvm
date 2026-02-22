@@ -1,86 +1,42 @@
-import React, { useMemo } from 'react';
-import { GoogleMap, useJsApiLoader, HeatmapLayer } from '@react-google-maps/api';
+// أضف هذا الـ Interface في الأعلى لتسهيل ربط البيانات
+interface MzabValleyMapProps {
+    onParcelSelect?: (data: { section: string; ilot: string }) => void;
+}
 
-const containerStyle = {
-    width: '100%',
-    height: '100vh', // Full screen for "high detail"
-};
-
-// Centered roughly between the 5 Ksour
-const center = {
-    lat: 32.4800,
-    lng: 3.6850,
-};
-
-// Coordinates for the 5 Ksour to generate mock density data around
-const KSOUR_LOCATIONS = [
-    { name: 'Ghardaïa', lat: 32.4909, lng: 3.6738 },
-    { name: 'Melika', lat: 32.4833, lng: 3.6780 },
-    { name: 'Beni Isguen', lat: 32.4727, lng: 3.6852 },
-    { name: 'Bounoura', lat: 32.4800, lng: 3.6800 },
-    { name: 'El Atteuf', lat: 32.4700, lng: 3.7000 },
-];
-
-// Generate mock heatmap points to simulate "building density"
-const generateHeatmapData = () => {
-    const points: google.maps.LatLngLiteral[] = [];
-    KSOUR_LOCATIONS.forEach((ksar) => {
-        // Create a dense cluster around each Ksar
-        for (let i = 0; i < 200; i++) {
-            points.push({
-                lat: ksar.lat + (Math.random() - 0.5) * 0.008,
-                lng: ksar.lng + (Math.random() - 0.5) * 0.008,
-            });
-        }
-    });
-    return points;
-};
-
-const mapOptions: google.maps.MapOptions = {
-    mapTypeId: 'satellite', // "Highly realistic satellite imagery style"
-    tilt: 0, // Top-down view
-    disableDefaultUI: false,
-    zoomControl: true,
-    scaleControl: true, // "Scale bar included"
-    streetViewControl: false,
-    rotateControl: false,
-    fullscreenControl: true,
-};
-
-// "Semi-transparent red and orange" gradient
-const heatmapGradient = [
-    'rgba(0, 255, 255, 0)',
-    'rgba(0, 255, 255, 1)',
-    'rgba(0, 191, 255, 1)',
-    'rgba(0, 127, 255, 1)',
-    'rgba(0, 63, 255, 1)',
-    'rgba(0, 0, 255, 1)',
-    'rgba(0, 0, 223, 1)',
-    'rgba(0, 0, 191, 1)',
-    'rgba(0, 0, 159, 1)',
-    'rgba(0, 0, 127, 1)',
-    'rgba(63, 0, 91, 1)',
-    'rgba(127, 0, 63, 1)',
-    'rgba(191, 0, 31, 1)',
-    'rgba(255, 0, 0, 1)' // Red for high density
-];
-
-export const MzabValleyMap = () => {
+export const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
+        // تأكد من ضبط المفتاح في ملف .env
         googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '',
-        libraries: ['visualization'], // Required for HeatmapLayer
+        libraries: ['visualization', 'geometry'], 
     });
 
-    const heatmapData = useMemo(() => generateHeatmapData(), []);
-
     const onLoad = React.useCallback(function callback(map: google.maps.Map) {
-        // Optional: Add custom overlay logic here if needed
-    }, []);
+        // 1. تحميل ملف الـ 2327 قطعة أرضية من مجلد public
+        // استخدم المسار المطلق '/' لتجنب خطأ 404
+        map.data.loadGeoJson('/mzab_cadastre_map.geojson');
 
-    const onUnmount = React.useCallback(function callback(map: google.maps.Map) {
-        // Cleanup
-    }, []);
+        // 2. تنسيق حدود القطع العقارية (أحمر شفاف)
+        map.data.setStyle({
+            strokeColor: '#FF0000',
+            strokeWeight: 1.5,
+            fillColor: '#FF0000',
+            fillOpacity: 0.1,
+        });
+
+        // 3. إضافة مستشعر الضغط لاستخراج بيانات القسم والمجموعة
+        map.data.addListener('click', (event: google.maps.Data.MouseEvent) => {
+            const section = event.feature.getProperty('SECTION');
+            const ilot = event.feature.getProperty('ILOT');
+
+            console.log(`🎯 تم اختيار القسم: ${section}, المجموعة: ${ilot}`);
+
+            // إرسال البيانات للاستمارة إذا كانت الوظيفة ممررة
+            if (onParcelSelect) {
+                onParcelSelect({ section, ilot });
+            }
+        });
+    }, [onParcelSelect]);
 
     if (!isLoaded) return <div>Loading Map...</div>;
 
@@ -88,19 +44,11 @@ export const MzabValleyMap = () => {
         <GoogleMap
             mapContainerStyle={containerStyle}
             center={center}
-            zoom={14} // Detailed view of the valley
+            zoom={14}
             onLoad={onLoad}
-            onUnmount={onUnmount}
             options={mapOptions}
         >
-            <HeatmapLayer
-                data={heatmapData.map(point => new google.maps.LatLng(point.lat, point.lng))}
-                options={{
-                    radius: 20,
-                    opacity: 0.6,
-                    gradient: heatmapGradient
-                }}
-            />
+            {/* 💡 قمنا بإزالة HeatmapLayer لأننا الآن نستخدم بيانات عقارية حقيقية */}
         </GoogleMap>
     );
 };
