@@ -18,10 +18,10 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
     }, []);
 
     return (
-        <div style={{ height: '600px', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
-            <MapContainer 
-                center={[32.4845, 3.6792]} 
-                zoom={15} 
+        <div style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
+            <MapContainer
+                center={[32.4845, 3.6792]}
+                zoom={15}
                 style={{ height: '100%', width: '100%' }}
             >
                 {/* طبقة الأقمار الصناعية من Esri - مجانية واحترافية */}
@@ -31,8 +31,8 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                 />
 
                 {geoJsonData && (
-                    <GeoJSON 
-                        data={geoJsonData} 
+                    <GeoJSON
+                        data={geoJsonData}
                         style={{ color: '#FFD700', weight: 1.5, fillOpacity: 0.2 }}
                         eventHandlers={{
                             click: (e) => {

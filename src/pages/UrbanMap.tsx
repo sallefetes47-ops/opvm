@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MzabValleyMap } from '../components/MzabValleyMap';
+import MzabValleyMap from '../components/MzabValleyMap';
 import { MapErrorBoundary } from '../components/MapErrorBoundary';
 import { jsPDF } from 'jspdf';
 
