@@ -1,10 +1,10 @@
 // تجاوز حظر شهادات الأمان (SSL)
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 const fs = require('fs');
 const { VectorTile } = require('@mapbox/vector-tile');
 const PbfModule = require('pbf');
-const Protobuf = PbfModule.default || PbfModule; 
+const Protobuf = PbfModule.default || PbfModule;
 
 // معلومات المربع الجغرافي لوادي ميزاب الذي اصطدناه
 const mvtUrl = 'https://fadaeldjazair.mf.gov.dz/pm/ghardaia_ilot/14/8362/6628.mvt';
@@ -25,7 +25,7 @@ function tileToLonLat(px, py, extent) {
 
 async function exportMzabGeoJSON() {
     console.log("🚀 جاري سحب البيانات وتحويلها إلى خريطة GeoJSON...");
-    
+
     try {
         const response = await fetch(mvtUrl, {
             headers: {
@@ -34,13 +34,13 @@ async function exportMzabGeoJSON() {
                 'Accept': '*/*'
             }
         });
-        
+
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        
+
         const arrayBuffer = await response.arrayBuffer();
         const tile = new VectorTile(new Protobuf(new Uint8Array(arrayBuffer)));
         const layer = tile.layers['ghardaia_ilot']; // استهداف طبقة مجموعات الملكية
-        
+
         // 🗺️ هيكل ملف الخريطة القياسي GeoJSON
         const geojson = {
             type: "FeatureCollection",
@@ -53,9 +53,9 @@ async function exportMzabGeoJSON() {
         for (let i = 0; i < layer.length; i++) {
             const feature = layer.feature(i);
             const geometry = feature.loadGeometry();
-            
+
             // تحويل كل نقطة في حدود القطعة إلى GPS
-            const polygonCoordinates = geometry.map(ring => 
+            const polygonCoordinates = geometry.map(ring =>
                 ring.map(point => tileToLonLat(point.x, point.y, feature.extent))
             );
 
@@ -75,15 +75,15 @@ async function exportMzabGeoJSON() {
                 }
             });
         }
-        
+
         // 💾 حفظ الخريطة في ملف
         const fileName = 'mzab_cadastre_map.geojson';
         fs.writeFileSync(fileName, JSON.stringify(geojson, null, 2));
-        
+
         console.log(`\n🎉 اكتملت المهمة بنجاح يا قبطان!`);
         console.log(`💾 تم حفظ الخريطة الجغرافية بالكامل في ملف: [${fileName}]`);
         console.log(`✅ الملف الآن جاهز للدمج مباشرة في منصة عقود التعمير!`);
-        
+
     } catch (error) {
         console.error("❌ فشل:", error.message);
     }
