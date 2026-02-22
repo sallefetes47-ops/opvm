@@ -1,79 +1,42 @@
-import React, { useMemo } from 'react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import { useEffect, useState } from 'react';
 
-// إعدادات التصميم للموقع
-const containerStyle = {
-    width: '100%',
-    height: '100%' // لكي يأخذ مساحة الحاوية في UrbanMap
-};
+export const MzabValleyMap = ({ onParcelSelect }: { onParcelSelect: (data: any) => void }) => {
+    const [geoJsonData, setGeoJsonData] = useState(null);
 
-// مركز وادي ميزاب (غرداية)
-const center = {
-    lat: 32.4845,
-    lng: 3.6792,
-};
-
-// ⚠️ هذه القائمة يجب أن تكون خارج المكون لمنع إعادة التحميل اللانهائية
-const LIBRARIES: ("visualization" | "geometry")[] = ['visualization', 'geometry'];
-
-interface MzabValleyMapProps {
-    onParcelSelect: (data: { section: string; ilot: string }) => void;
-}
-
-export const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
-    // 1. تحميل المكتبة مع مراعاة بيئة Vite في IDX
-    const { isLoaded, loadError } = useJsApiLoader({
-        id: 'google-map-script',
-        // ملاحظة: في Vite نستخدم import.meta.env بدلاً من process.env
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-        libraries: LIBRARIES,
-    });
-
-    // 2. وظيفة التحميل ورسم البيانات العقارية
-    const onLoad = React.useCallback(function callback(map: google.maps.Map) {
-        // تحميل ملف الـ 2327 قطعة أرضية من مجلد public
-        map.data.loadGeoJson('/mzab_cadastre_map.geojson');
-
-        // تنسيق الحدود لتكون شفافة وحمراء
-        map.data.setStyle({
-            strokeColor: '#FF0000',
-            strokeWeight: 2,
-            fillColor: '#FF0000',
-            fillOpacity: 0.1,
-        });
-
-        // التقاط البيانات عند الضغط
-        map.data.addListener('click', (event: google.maps.Data.MouseEvent) => {
-            const section = event.feature.getProperty('SECTION') as string;
-            const ilot = event.feature.getProperty('ILOT') as string;
-
-            if (section && ilot) {
-                onParcelSelect({ section, ilot });
-            }
-        });
-    }, [onParcelSelect]);
-
-    // 3. معالجة حالات الخطأ والتحميل (لمنع الصفحة البيضاء)
-    if (loadError) {
-        return <div style={{ padding: '20px', color: 'red' }}>⚠️ خطأ في تحميل خرائط جوجل. تأكد من مفتاح API.</div>;
-    }
-
-    if (!isLoaded) {
-        return <div style={{ padding: '20px' }}>⏳ جاري تجهيز المخطط العقاري لوادي ميزاب...</div>;
-    }
+    // حل مشكلة الـ 404: التأكد من المسار الصحيح للملف في مجلد public
+    useEffect(() => {
+        fetch('/mzab_cadastre_map.geojson') // تأكد أن الملف بهذا الاسم تماماً داخل مجلد public
+            .then(res => {
+                if (!res.ok) throw new Error('الملف غير موجود (404)');
+                return res.json();
+            })
+            .then(data => setGeoJsonData(data))
+            .catch(err => console.error("Error fetching cadastre:", err));
+    }, []);
 
     return (
-        <GoogleMap
-            mapContainerStyle={containerStyle}
-            center={center}
-            zoom={15}
-            onLoad={onLoad}
-            options={{
-                mapTypeId: 'satellite',
-                tilt: 0,
-            }}
+        <MapContainer 
+            center={[32.4845, 3.6792]} 
+            zoom={14} 
+            style={{ height: '500px', width: '100%' }}
         >
-            {/* تم تحميل البيانات عبر onLoad.data */}
-        </GoogleMap>
+            {/* استخدام طبقة خريطة الشارع المفتوحة المجانية */}
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+            {geoJsonData && (
+                <GeoJSON 
+                    data={geoJsonData} 
+                    style={{ color: 'red', weight: 2, fillOpacity: 0.1 }}
+                    eventHandlers={{
+                        click: (e) => {
+                            const props = e.propagatedFrom.feature.properties;
+                            onParcelSelect({ section: props.SECTION, ilot: props.ILOT });
+                        }
+                    }}
+                />
+            )}
+        </MapContainer>
     );
 };
