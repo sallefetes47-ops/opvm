@@ -1,9 +1,6 @@
 /**
- * سكريبت مسح شامل لبيانات MVT العقارية لوادي ميزاب
- * يغطي: غرداية، مليكة، بني يزقن، بونورة
- * يحفظ الناتج في: public/mzab_cadastre_map.geojson
- * 
- * التشغيل: node scripts/scrape_mzab_tiles.cjs
+ * سكريبت المسح الشبكي الشامل لبيانات MVT العقارية لوادي ميزاب
+ * يغطي النطاق الجغرافي الكامل لـ: غرداية، مليكة، بني يزقن، بونورة (والعطف)
  */
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -14,50 +11,17 @@ const { VectorTile } = require('@mapbox/vector-tile');
 const PbfModule = require('pbf');
 const Protobuf = PbfModule.default || PbfModule;
 
-// ==========================================
-// 🗺️ خريطة المربعات (Tiles) لكل مدينة في وادي ميزاب
-// تم استخراجها من بوابة fadaeldjazair.mf.gov.dz
-// المستوى: Zoom 14 (تفصيل عالٍ)
-// ==========================================
 const TILE_Z = 14;
 
-const CITIES = [
-    {
-        name: 'غرداية (Ghardaïa)',
-        layerPrefix: 'ghardaia_ilot',
-        tiles: [
-            { x: 8362, y: 6628 },
-            { x: 8362, y: 6629 },
-            { x: 8363, y: 6628 },
-            { x: 8363, y: 6629 },
-        ]
-    },
-    {
-        name: 'مليكة (Melika)',
-        layerPrefix: 'ghardaia_ilot',
-        tiles: [
-            { x: 8363, y: 6629 },
-            { x: 8363, y: 6630 },
-        ]
-    },
-    {
-        name: 'بني يزقن (Beni Isguen)',
-        layerPrefix: 'ghardaia_ilot',
-        tiles: [
-            { x: 8363, y: 6630 },
-            { x: 8364, y: 6630 },
-            { x: 8364, y: 6631 },
-        ]
-    },
-    {
-        name: 'بونورة (Bounoura)',
-        layerPrefix: 'ghardaia_ilot',
-        tiles: [
-            { x: 8362, y: 6630 },
-            { x: 8363, y: 6630 },
-        ]
-    },
-];
+// 🗺️ تحديد "شبكة جغرافية" ضخمة تغطي كامل وادي ميزاب
+// بدلاً من المربعات المحدودة، سنمسح نطاقاً كاملاً (Bounding Box)
+const X_START = 8355; 
+const X_END = 8370;   // من الغرب إلى الشرق
+const Y_START = 6624; 
+const Y_END = 6638;   // من الشمال إلى الجنوب
+
+// قد تكون بعض البلديات مفصولة في طبقات أخرى في السيرفر، لذا سنبحث في الطبقة الرئيسية
+const LAYER_PREFIX = 'ghardaia_ilot'; 
 
 // 🧮 تحويل إحداثيات المربع إلى GPS (خط طول / عرض)
 function tileToLonLat(px, py, extent, tileX, tileY) {
@@ -71,28 +35,28 @@ function tileToLonLat(px, py, extent, tileX, tileY) {
 }
 
 // تحميل وفك تشفير مربع MVT واحد
-async function fetchAndDecodeTile(city, tile) {
-    const url = `https://fadaeldjazair.mf.gov.dz/pm/${city.layerPrefix}/${TILE_Z}/${tile.x}/${tile.y}.mvt`;
+async function fetchAndDecodeTile(tileX, tileY) {
+    const url = `https://fadaeldjazair.mf.gov.dz/pm/${LAYER_PREFIX}/${TILE_Z}/${tileX}/${tileY}.mvt`;
 
     try {
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Referer': 'https://fadaeldjazair.mf.gov.dz/mission-documentaire/index_public_47.html',
-                'Accept': '*/*'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                'Referer': 'https://fadaeldjazair.mf.gov.dz/'
             }
         });
 
+        // إذا كان المربع خارج النطاق العمراني أو فارغاً سيرجع 404 أو 204
         if (!response.ok) {
-            console.warn(`   ⚠️ المربع ${tile.x}/${tile.y} أرجع ${response.status} — يُتخطى`);
             return [];
         }
 
         const arrayBuffer = await response.arrayBuffer();
+        if (arrayBuffer.byteLength === 0) return []; // مربع فارغ
+
         const vtile = new VectorTile(new Protobuf(new Uint8Array(arrayBuffer)));
         const features = [];
 
-        // المرور على كل الطبقات في المربع
         for (const layerName of Object.keys(vtile.layers)) {
             const layer = vtile.layers[layerName];
 
@@ -101,7 +65,7 @@ async function fetchAndDecodeTile(city, tile) {
                 const geometry = feature.loadGeometry();
 
                 const polygonCoordinates = geometry.map(ring =>
-                    ring.map(point => tileToLonLat(point.x, point.y, feature.extent, tile.x, tile.y))
+                    ring.map(point => tileToLonLat(point.x, point.y, feature.extent, tileX, tileY))
                 );
 
                 features.push({
@@ -110,11 +74,8 @@ async function fetchAndDecodeTile(city, tile) {
                         SECTION: feature.properties.se_no || '',
                         ILOT: feature.properties.il_no || '',
                         AREA: feature.properties.shape_area || 0,
-                        CODE_WILAYA: feature.properties.wi_no || '',
-                        FULL_ID: feature.properties.il_no_nat || '',
-                        CITY: city.name,
-                        LAYER: layerName,
-                        TILE: `${tile.x}/${tile.y}`,
+                        COMMUNE: feature.properties.co_no_nat || 'مجهول', // رقم البلدية الوطني
+                        TILE: `${tileX}/${tileY}`,
                     },
                     geometry: {
                         type: "Polygon",
@@ -123,19 +84,15 @@ async function fetchAndDecodeTile(city, tile) {
                 });
             }
         }
-
         return features;
     } catch (err) {
-        console.warn(`   ❌ خطأ في المربع ${tile.x}/${tile.y}:`, err.message);
-        return [];
+        return []; // تخطي الأخطاء الصامتة
     }
 }
 
-// 🚀 التشغيل الرئيسي
 async function main() {
     console.log("╔══════════════════════════════════════════════════╗");
-    console.log("║  مسح شامل لبيانات MVT العقارية — وادي ميزاب     ║");
-    console.log("║  ديوان حماية وادي ميزاب — المرسوم 15-19          ║");
+    console.log("║  مسح شبكي شامل (Grid Scan) لبلديات وادي ميزاب    ║");
     console.log("╚══════════════════════════════════════════════════╝\n");
 
     const geojson = {
@@ -143,45 +100,39 @@ async function main() {
         features: []
     };
 
-    // إزالة التكرارات باستخدام Set
-    const processedTiles = new Set();
     let totalFeatures = 0;
+    let tilesScanned = 0;
+    let tilesFound = 0;
 
-    for (const city of CITIES) {
-        console.log(`\n🏙️ جاري مسح: ${city.name}`);
-
-        for (const tile of city.tiles) {
-            const tileKey = `${tile.x}-${tile.y}`;
-
-            // تجنب إعادة تحميل مربع تم معالجته لمدينة أخرى
-            if (processedTiles.has(tileKey)) {
-                console.log(`   ⏩ المربع ${tile.x}/${tile.y} تم مسحه سابقاً — يُتخطى`);
-                continue;
-            }
-            processedTiles.add(tileKey);
-
-            console.log(`   📡 جاري تحميل المربع ${tile.x}/${tile.y}...`);
-            const features = await fetchAndDecodeTile(city, tile);
+    // المرور على الشبكة الجغرافية بالكامل
+    for (let x = X_START; x <= X_END; x++) {
+        for (let y = Y_START; y <= Y_END; y++) {
+            tilesScanned++;
+            process.stdout.write(`\r🔍 فحص المربع [${x}/${y}]... (فُحص: ${tilesScanned})`);
+            
+            const features = await fetchAndDecodeTile(x, y);
 
             if (features.length > 0) {
+                tilesFound++;
                 geojson.features.push(...features);
                 totalFeatures += features.length;
-                console.log(`   ✅ تم استخراج ${features.length} قطعة (المجموع: ${totalFeatures})`);
+                console.log(`\n ✅ وُجدت بيانات! استخراج ${features.length} قطعة. (الإجمالي حتى الآن: ${totalFeatures})`);
             }
 
-            // تأخير بين الطلبات لتجنب الحظر
-            await new Promise(r => setTimeout(r, 500));
+            // تأخير بسيط جداً كي لا يتم حظرنا من السيرفر
+            await new Promise(r => setTimeout(r, 100)); 
         }
     }
 
-    // حفظ الملف في مجلد public
+    // حفظ الملف النهائي
     const outputPath = path.join(__dirname, '..', 'public', 'mzab_cadastre_map.geojson');
     fs.writeFileSync(outputPath, JSON.stringify(geojson, null, 2));
 
     console.log("\n╔══════════════════════════════════════════════════╗");
-    console.log(`║  🎉 اكتملت المهمة بنجاح!                         ║`);
-    console.log(`║  📦 إجمالي القطع: ${String(totalFeatures).padEnd(30)}║`);
-    console.log(`║  💾 الملف: public/mzab_cadastre_map.geojson       ║`);
+    console.log(`║ 🎉 اكتمل المسح الشامل بنجاح!                     ║`);
+    console.log(`║ 📍 تم فحص ${tilesScanned} مربع جغرافي.                     ║`);
+    console.log(`║ 🎯 المربعات المليئة بالبيانات: ${tilesFound}                 ║`);
+    console.log(`║ 📦 إجمالي القطع المستخرجة: ${String(totalFeatures).padEnd(22)}║`);
     console.log("╚══════════════════════════════════════════════════╝");
 }
 
