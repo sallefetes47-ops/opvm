@@ -202,7 +202,7 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                     <div style={{
                         position: 'relative',
                         width: '100%',
-                        height: '250px',
+                        height: '450px',
                         overflow: 'hidden',
                         borderRadius: '0.75rem',
                         border: '2px solid #cbd5e1',

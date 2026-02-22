@@ -359,7 +359,7 @@ export default function ArchivePage() {
 
       {/* ── EDIT DIALOG ── */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>تعديل بيانات الملف</DialogTitle>
             <DialogDescription>
@@ -385,90 +385,80 @@ export default function ArchivePage() {
           ) : (
             <div className="space-y-6">
               {/* METADATA FORM */}
-              {/* STRICT GRID LAYOUT */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border">
+                <div className="space-y-2">
+                  <Label className="text-right block">رقم الملف / السنة</Label>
+                  <Input
+                    value={editFormData.file_number && editFormData.year ? `${editFormData.file_number.padStart(3, '0')} / ${editFormData.year}` : editFormData.file_number || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const parts = val.split('/').map(s => s.trim());
+                      setEditFormData({
+                        ...editFormData,
+                        file_number: parts[0] || '',
+                        year: parts[1] ? parseInt(parts[1]) : editFormData.year
+                      });
+                    }}
+                    className="text-right font-mono font-bold text-lg"
+                    dir="ltr"
+                    placeholder="رقم / سنة"
+                  />
+                </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* RIGHT COLUMN: FORM INPUTS */}
-                  <div className="space-y-4 order-2 lg:order-1">
-                    <div className="space-y-2">
-                      <Label className="text-right block">رقم الملف / السنة</Label>
-                      <Input
-                        value={editFormData.file_number && editFormData.year ? `${editFormData.file_number.padStart(3, '0')} / ${editFormData.year}` : editFormData.file_number || ''}
-                        onChange={e => {
-                          // Simple parser to allow editing
-                          const val = e.target.value;
-                          const parts = val.split('/').map(s => s.trim());
-                          setEditFormData({
-                            ...editFormData,
-                            file_number: parts[0] || '',
-                            year: parts[1] ? parseInt(parts[1]) : editFormData.year
-                          });
-                        }}
-                        className="text-right font-mono font-bold text-lg"
-                        dir="ltr"
-                        placeholder="رقم / سنة"
-                      />
-                    </div>
+                <div className="space-y-2">
+                  <Label className="text-right block">الاسم الكامل</Label>
+                  <Input
+                    value={editFormData.full_name || ''}
+                    onChange={e => setEditFormData({ ...editFormData, full_name: e.target.value })}
+                    className="text-right"
+                    dir="rtl"
+                  />
+                </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-right block">الاسم الكامل</Label>
-                      <Input
-                        value={editFormData.full_name || ''}
-                        onChange={e => setEditFormData({ ...editFormData, full_name: e.target.value })}
-                        className="text-right"
-                        dir="rtl"
-                      />
-                    </div>
+                <div className="space-y-2">
+                  <Label className="text-right block">العنوان</Label>
+                  <Input
+                    value={editFormData.address || ''}
+                    onChange={e => setEditFormData({ ...editFormData, address: e.target.value })}
+                    className="text-right"
+                    dir="rtl"
+                  />
+                </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-right block">العنوان</Label>
-                      <Input
-                        value={editFormData.address || ''}
-                        onChange={e => setEditFormData({ ...editFormData, address: e.target.value })}
-                        className="text-right"
-                        dir="rtl"
-                      />
-                    </div>
+                <div className="space-y-2">
+                  <Label className="text-right block">البلدية</Label>
+                  <Select
+                    value={editFormData.municipality || 'غرداية'}
+                    onValueChange={v => setEditFormData({ ...editFormData, municipality: v as "غرداية" | "العطف" | "بونورة" })}
+                    dir="rtl"
+                  >
+                    <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent dir="rtl">
+                      <SelectItem value="غرداية" className="text-right justify-end">غرداية</SelectItem>
+                      <SelectItem value="العطف" className="text-right justify-end">العطف</SelectItem>
+                      <SelectItem value="بونورة" className="text-right justify-end">بونورة</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-right block">البلدية</Label>
-                      <Select
-                        value={editFormData.municipality || 'غرداية'}
-                        onValueChange={v => setEditFormData({ ...editFormData, municipality: v as "غرداية" | "العطف" | "بونورة" })}
-                        dir="rtl"
-                      >
-                        <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent dir="rtl">
-                          <SelectItem value="غرداية" className="text-right justify-end">غرداية</SelectItem>
-                          <SelectItem value="العطف" className="text-right justify-end">العطف</SelectItem>
-                          <SelectItem value="بونورة" className="text-right justify-end">بونورة</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* LEFT COLUMN: MAP */}
-                  <div className="space-y-2 order-1 lg:order-2">
-                    <Label className="text-right block">تحديد الموقع الجغرافي</Label>
-                    {/* Map cage: isolate z-index stacking so Leaflet can't escape the modal */}
-                    <div className="relative w-full overflow-hidden rounded-xl border z-0 mb-4 shadow-inner" style={{ isolation: 'isolate' }}>
-                      <PermitLocationPicker
-                        value={
-                          editFormData.section && editFormData.property_group
-                            ? { section: editFormData.section, ilot: editFormData.property_group }
-                            : null
-                        }
-                        onChange={(data) => setEditFormData({
-                          ...editFormData,
-                          section: data?.section || "",
-                          property_group: data?.ilot || ""
-                        })}
-                      />
-                    </div>
-                  </div>
+              {/* MAP FULL WIDTH BELOW */}
+              <div className="space-y-2 mt-4">
+                <div className="relative w-full overflow-hidden rounded-xl z-0" style={{ isolation: 'isolate' }}>
+                  <PermitLocationPicker
+                    value={
+                      editFormData.section && editFormData.property_group
+                        ? { section: editFormData.section, ilot: editFormData.property_group }
+                        : null
+                    }
+                    onChange={(data) => setEditFormData({
+                      ...editFormData,
+                      section: data?.section || "",
+                      property_group: data?.ilot || ""
+                    })}
+                  />
                 </div>
               </div>
 
