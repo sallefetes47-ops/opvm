@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,6 +89,59 @@ export default function NewFile() {
     location_lat: null,
     location_lng: null,
   });
+
+  // Fetch and Auto-fill Area based on GeoJSON
+  useEffect(() => {
+    const fetchAreaFromCadastre = async () => {
+      const sectionStr = formData.section.trim();
+      const ilotStr = formData.property_group.trim();
+      const municipalityVal = formData.municipality;
+
+      if (!sectionStr || !ilotStr) return;
+
+      const targetSection = Number(sectionStr);
+      const targetIlot = Number(ilotStr);
+
+      if (isNaN(targetSection) || isNaN(targetIlot)) return;
+
+      try {
+        const res = await fetch("/mzab_cadastre_map.geojson");
+        if (!res.ok) throw new Error("Could not fetch Mzab Map GeoJSON");
+        const data = await res.json();
+
+        // Map municipality to COMMUNE code if applicable
+        // 4701 = Ghardaia, 4703 = Bounoura, 4704 = El Attef (adjust as needed based on your real COMMUNE IDs, these are placeholders for common Algerian codes, but the GeoJSON might have its own logic)
+        // If we want to be safe, we mainly rely on Section and Ilot matching if COMMUNE codes are not fully known, but let's try strict matching first
+
+        const matchedFeature = data.features?.find((f: any) => {
+          const p = f.properties;
+          const fSection = Number(p.SECTION);
+          const fIlot = Number(p.ILOT || p.group);
+
+          if (isNaN(fSection) || isNaN(fIlot)) return false;
+
+          return fSection === targetSection && fIlot === targetIlot;
+        });
+
+        if (matchedFeature && matchedFeature.properties.AREA) {
+          const areaVal = matchedFeature.properties.AREA;
+          const formattedArea = Number(areaVal).toFixed(2); // Keep 2 decimal places
+
+          console.log(`✅ تم العثور على القطعة في (القسم ${targetSection} - المجموعة ${targetIlot})، المساحة: ${formattedArea} متر مربع`);
+
+          setFormData(prev => ({
+            ...prev,
+            plot_area: formattedArea
+          }));
+        }
+
+      } catch (err) {
+        console.warn("فشل في جلب المساحة تلقائياً:", err);
+      }
+    };
+
+    fetchAreaFromCadastre();
+  }, [formData.section, formData.property_group, formData.municipality]);
 
   // Determine available ownership types based on permit type
   // "شهادة إستفادة" is only available for "رخصة بناء"
