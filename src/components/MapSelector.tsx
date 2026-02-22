@@ -250,12 +250,72 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                         {/* طبقة القطع العقارية من ملف GeoJSON */}
                         {cadastreGeoJson && (
                             <GeoJSON
+                                key={rawContracts ? `geojson-${rawContracts.length}` : 'geojson-init'}
                                 data={cadastreGeoJson}
-                                style={{
-                                    color: '#FF0000',
-                                    weight: 1.5,
-                                    fillColor: '#FF0000',
-                                    fillOpacity: 0.05,
+                                style={(feature: any) => {
+                                    const p = feature?.properties;
+                                    const section = p?.SECTION || "";
+                                    const ilot = p?.ILOT || p?.group || "";
+
+                                    // Check if this feature has an associated contract
+                                    const matchedContract = rawContracts?.find(
+                                        (c: any) => c.section === section && (c.property_group === ilot || c.ilot === ilot)
+                                    );
+
+                                    if (matchedContract) {
+                                        const contractType = (matchedContract as any).permit_type || (matchedContract as any).contract_type;
+                                        const color = getColorByContractType(contractType);
+                                        return {
+                                            color: color,
+                                            weight: 2,
+                                            fillColor: color,
+                                            fillOpacity: 0.6,
+                                        };
+                                    }
+
+                                    // Default red style for empty parcels
+                                    return {
+                                        color: '#FF0000',
+                                        weight: 1.5,
+                                        fillColor: '#FF0000',
+                                        fillOpacity: 0.05,
+                                    };
+                                }}
+                                onEachFeature={(feature: any, layer: any) => {
+                                    const p = feature?.properties;
+                                    const section = p?.SECTION || "";
+                                    const ilot = p?.ILOT || p?.group || "";
+
+                                    const matchedContract = rawContracts?.find(
+                                        (c: any) => c.section === section && (c.property_group === ilot || c.ilot === ilot)
+                                    );
+
+                                    // Add a hover tooltip if there's a contract
+                                    if (matchedContract) {
+                                        const contractType = (matchedContract as any).permit_type || (matchedContract as any).contract_type;
+                                        const color = getColorByContractType(contractType);
+                                        const popupContent = `
+                                            <div dir="rtl" style="text-align: right; font-family: sans-serif; min-width: 150px;">
+                                                <div style="border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                                    <strong style="color: #334155;">${matchedContract.full_name || 'بدون اسم'}</strong>
+                                                    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${color}; margin-right: 8px;"></span>
+                                                </div>
+                                                <div style="font-size: 11px; color: #475569; margin-bottom: 4px;"> رقم الملف: <strong style="color: #0f172a;">${matchedContract.file_number}</strong></div>
+                                                <div style="font-size: 11px; color: #475569;"> نوع العقد: <strong>${contractType || '---'}</strong></div>
+                                            </div>
+                                        `;
+                                        layer.bindTooltip(popupContent, { sticky: true, opacity: 0.95 });
+                                    }
+
+                                    // Allow clicking empty parcels to log/show standard popup or add logic if needed
+                                    layer.on({
+                                        click: (e: any) => {
+                                            if (matchedContract) {
+                                                L.DomEvent.stopPropagation(e);
+                                                if (onContractSelect) onContractSelect(matchedContract.id);
+                                            }
+                                        }
+                                    });
                                 }}
                             />
                         )}
@@ -309,35 +369,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                             </Popup>
                         )}
 
-                        {/* Real Contracts Layer: Markers Only (Phase 1) */}
-                        {rawContracts?.map((c: any) => {
-                            const coords = getCoords(c);
-                            const contractType = c.permit_type || c.contract_type;
-                            const color = getColorByContractType(contractType);
-
-                            // Render Marker if has coordinates
-                            if (coords) {
-                                return (
-                                    <Marker
-                                        key={`marker-${c.id}`}
-                                        position={coords}
-                                        icon={createCustomMarkerIcon(contractType)}
-                                        eventHandlers={{
-                                            click: (e) => {
-                                                L.DomEvent.stopPropagation(e);
-                                                if (onContractSelect) onContractSelect(c.id);
-                                            }
-                                        }}
-                                    >
-                                        <Popup>
-                                            <ContractPopupContent contract={c} color={color} />
-                                        </Popup>
-                                    </Marker>
-                                );
-                            }
-                            return null;
-                        })}
-
+                        {/* Real Contracts Layer: Now handled entirely by GeoJSON overlay above. Old markers are hidden. */}
                     </MapContainer>
                 </div>
 
