@@ -93,6 +93,8 @@ export default function NewFile() {
   // Fetch and Auto-fill Area based on GeoJSON
   useEffect(() => {
     const fetchAreaFromCadastre = async () => {
+      if (formData.ownership_type !== "دفتر عقاري") return;
+
       const sectionStr = formData.section.trim();
       const ilotStr = formData.property_group.trim();
       const municipalityVal = formData.municipality;
@@ -141,7 +143,7 @@ export default function NewFile() {
     };
 
     fetchAreaFromCadastre();
-  }, [formData.section, formData.property_group, formData.municipality]);
+  }, [formData.section, formData.property_group, formData.municipality, formData.ownership_type]);
 
   // Determine available ownership types based on permit type
   // "شهادة إستفادة" is only available for "رخصة بناء"
@@ -377,7 +379,8 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
-                  className="text-right"
+                  readOnly={formData.ownership_type === "دفتر عقاري"}
+                  className={cn("text-right", formData.ownership_type === "دفتر عقاري" ? "bg-gray-100" : "bg-white")}
                 />
               </div>
               <div className="space-y-2">
@@ -422,7 +425,8 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
-                  className="text-right"
+                  readOnly={formData.ownership_type === "دفتر عقاري"}
+                  className={cn("text-right", formData.ownership_type === "دفتر عقاري" ? "bg-gray-100" : "bg-white")}
                 />
               </div>
               <div className="space-y-2">
@@ -457,7 +461,8 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
-                  className="text-right"
+                  readOnly={formData.ownership_type === "دفتر عقاري"}
+                  className={cn("text-right", formData.ownership_type === "دفتر عقاري" ? "bg-gray-100" : "bg-white")}
                 />
               </div>
               <div className="space-y-2">
