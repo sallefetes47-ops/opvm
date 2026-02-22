@@ -109,10 +109,10 @@ export default function NewFile() {
       // Map municipality to COMMUNE code
       const COMMUNE_CODES: Record<string, string> = {
         'غرداية': '4701',
-        'مليكة': '4702', // Assuming based on standard mappings, adjust if needed
-        'بونورة': '4703',
-        'العطف': '4704',
-        'بني يزقن': '4705' // Assuming based on standard mappings
+        'مليكة': '4701',
+        'بونورة': '4710',
+        'بني يزقن': '4710',
+        'العطف': '4707'
       };
 
       const targetCommune = COMMUNE_CODES[municipalityVal];
