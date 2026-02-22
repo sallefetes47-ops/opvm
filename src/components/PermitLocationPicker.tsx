@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-    MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents,
+    MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -59,10 +59,9 @@ const createCustomMarkerIcon = (type: string | null) => {
     });
 };
 
-/* ─── Constants ─── */
-
 const DEFAULT_CENTER: [number, number] = [32.4810, 3.6900];
 const MAX_BOUNDS: L.LatLngBoundsExpression = [[32.42, 3.58], [32.55, 3.80]];
+const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 /* ─── Map child: force invalidateSize on mount ─── */
 
@@ -75,26 +74,7 @@ function MapResizer() {
     return null;
 }
 
-/* ─── Map child: click to select location ─── */
-
-function ClickCapture({ onCapture }: { onCapture: (lat: number, lng: number) => void }) {
-    useMapEvents({
-        click(e) {
-            onCapture(e.latlng.lat, e.latlng.lng);
-        },
-    });
-    return null;
-}
-
-/* ─── Map child: flyTo on value change ─── */
-
-function FlyToValue({ lat, lng }: { lat: number; lng: number }) {
-    const map = useMap();
-    useEffect(() => {
-        map.flyTo([lat, lng], 17, { duration: 0.8 });
-    }, [map, lat, lng]);
-    return null;
-}
+// Removed old ClickCapture and FlyToValue as selection is handled via GeoJSON Click
 
 /* ─── Contract type for the list ─── */
 
@@ -113,12 +93,21 @@ interface ContractMarker {
    ═══════════════════════════════════════════ */
 
 export interface PermitLocationPickerProps {
-    value: { lat: number; lng: number } | null;
-    onChange: (location: { lat: number; lng: number } | null) => void;
+    value?: { section: string; ilot: string } | null;
+    onChange: (data: { section: string; ilot: string } | null) => void;
 }
 
 export default function PermitLocationPicker({ value, onChange }: PermitLocationPickerProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [geoJsonData, setGeoJsonData] = useState<any>(null);
+
+    // Fetch GeoJSON Data
+    useEffect(() => {
+        fetch('/mzab_cadastre_map.geojson')
+            .then(res => res.json())
+            .then(data => setGeoJsonData(data))
+            .catch(err => console.error("Failed to load geojson:", err));
+    }, []);
 
     /* ── Fetch existing contracts with locations ── */
     const { data: contracts } = useQuery({
@@ -134,24 +123,24 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
             if (error) throw error;
             return (data || []) as ContractMarker[];
         },
-        enabled: isOpen, // only fetch when map is open
+        enabled: isOpen,
     });
 
     /* ── Handlers ── */
 
-    const handleMapClick = (lat: number, lng: number) => {
-        onChange({ lat, lng });
+    const handleFeatureClick = (feature: any) => {
+        const props = feature.properties;
+        const section = props?.SECTION || "";
+        const ilot = props?.ILOT || props?.group || "";
+        onChange({ section, ilot });
     };
 
     const handleRemoveLocation = () => {
         onChange(null);
     };
 
-    const mapCenter: [number, number] = value
-        ? [value.lat, value.lng]
-        : DEFAULT_CENTER;
-
-    const mapZoom = value ? 16 : 13;
+    const mapCenter: [number, number] = DEFAULT_CENTER;
+    const mapZoom = 15;
 
     return (
         <div className="space-y-3">
@@ -180,9 +169,9 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
             {value && (
                 <div className="flex items-center gap-3 p-2 bg-primary/5 rounded-lg border border-primary/20 text-sm">
                     <MapPin className="w-4 h-4 text-primary shrink-0" />
-                    <div className="flex gap-4 font-mono text-xs">
-                        <span>Lat: <strong>{value.lat.toFixed(6)}</strong></span>
-                        <span>Lng: <strong>{value.lng.toFixed(6)}</strong></span>
+                    <div className="flex gap-4 font-mono text-xs text-right">
+                        <span>القسم (Section): <strong>{value.section}</strong></span>
+                        <span>مجموعة الملكية (Ilot): <strong>{value.ilot}</strong></span>
                     </div>
                 </div>
             )}
@@ -230,32 +219,35 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                             maxBoundsViscosity={1.0}
                             minZoom={12}
                         >
-                            {/* Google Satellite Base Layer */}
                             <TileLayer
-                                attribution="Google Satellite"
-                                url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
-                                maxZoom={20}
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                url={OSM_URL}
+                                maxZoom={19}
                             />
 
                             {/* Recalculate size after accordion opens */}
                             <MapResizer />
 
-                            {/* Click to capture coordinates */}
-                            <ClickCapture onCapture={handleMapClick} />
-
-                            {/* FlyTo on value change */}
-                            {value && <FlyToValue lat={value.lat} lng={value.lng} />}
-
-                            {/* Active selected position marker (red) */}
-                            {value && (
-                                <Marker position={[value.lat, value.lng]} icon={activeIcon}>
-                                    <Popup>
-                                        <div className="text-right text-xs" dir="rtl">
-                                            <p className="font-bold">📍 الموقع المحدد</p>
-                                            <p className="font-mono mt-1">{value.lat.toFixed(6)}°N, {value.lng.toFixed(6)}°E</p>
-                                        </div>
-                                    </Popup>
-                                </Marker>
+                            {geoJsonData && (
+                                <GeoJSON
+                                    key={value ? `${value.section}-${value.ilot}` : 'unselected'}
+                                    data={geoJsonData}
+                                    style={(feature: any) => {
+                                        const p = feature?.properties;
+                                        const isSelected = value && p?.SECTION === value.section && (p?.ILOT === value.ilot || p?.group === value.ilot);
+                                        return {
+                                            color: isSelected ? '#3b82f6' : '#FF0000',
+                                            weight: 2,
+                                            fillColor: isSelected ? '#3b82f6' : '#FF0000',
+                                            fillOpacity: isSelected ? 0.4 : 0.05
+                                        };
+                                    }}
+                                    onEachFeature={(feature, layer) => {
+                                        layer.on('click', () => {
+                                            handleFeatureClick(feature);
+                                        });
+                                    }}
+                                />
                             )}
 
                             {/* Existing contracts from DB (colored pins) */}

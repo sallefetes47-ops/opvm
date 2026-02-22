@@ -651,15 +651,15 @@ export default function NewFile() {
               <div className="space-y-2 md:col-span-2 pt-2 border-t border-border">
                 <PermitLocationPicker
                   value={
-                    formData.location_lat !== null && formData.location_lng !== null
-                      ? { lat: formData.location_lat, lng: formData.location_lng }
+                    formData.section && formData.property_group
+                      ? { section: formData.section, ilot: formData.property_group }
                       : null
                   }
-                  onChange={(location) =>
+                  onChange={(data) =>
                     setFormData({
                       ...formData,
-                      location_lat: location?.lat ?? null,
-                      location_lng: location?.lng ?? null,
+                      section: data?.section || "",
+                      property_group: data?.ilot || "",
                     })
                   }
                 />

@@ -457,15 +457,14 @@ export default function ArchivePage() {
                     <div className="relative w-full overflow-hidden rounded-xl border z-0 mb-4 shadow-inner" style={{ isolation: 'isolate' }}>
                       <PermitLocationPicker
                         value={
-                          editFormData.location_lat !== undefined && editFormData.location_lng !== undefined &&
-                            editFormData.location_lat !== null && editFormData.location_lng !== null
-                            ? { lat: editFormData.location_lat, lng: editFormData.location_lng }
+                          editFormData.section && editFormData.property_group
+                            ? { section: editFormData.section, ilot: editFormData.property_group }
                             : null
                         }
-                        onChange={(loc) => setEditFormData({
+                        onChange={(data) => setEditFormData({
                           ...editFormData,
-                          location_lat: loc?.lat ?? null,
-                          location_lng: loc?.lng ?? null
+                          section: data?.section || "",
+                          property_group: data?.ilot || ""
                         })}
                       />
                     </div>
