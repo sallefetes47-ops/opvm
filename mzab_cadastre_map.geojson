@@ -152250,3 +152250,80 @@
     }
   ]
 }
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>منصة عقود التعمير - الخريطة العقارية</title>
+    <style>
+        body, html { height: 100%; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        /* جعل الخريطة تملأ الشاشة بالكامل */
+        #map { height: 100vh; width: 100%; }
+        
+        /* تنسيق نافذة المعلومات التي تظهر عند الضغط */
+        .info-box { padding: 10px; direction: rtl; min-width: 200px; }
+        .info-box h3 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #e74c3c; padding-bottom: 5px; }
+        .info-box p { margin: 8px 0; font-weight: bold; font-size: 14px; }
+        .highlight { color: #e74c3c; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <script>
+        function initMap() {
+            // 1. إنشاء الخريطة وتوجيهها نحو وادي ميزاب (غرداية)
+            const mzabCenter = { lat: 32.49, lng: 3.67 };
+            const map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 15,
+                center: mzabCenter,
+                mapTypeId: 'satellite', // تفعيل وضع القمر الصناعي لرؤية المباني
+                tilt: 0
+            });
+
+            // 2. استدعاء الكنز (ملف GeoJSON الذي استخرجناه)
+            map.data.loadGeoJson('mzab_cadastre_map.geojson');
+
+            // 3. تلوين الحدود العقارية (إطار أحمر مع تعبئة شفافة)
+            map.data.setStyle({
+                fillColor: 'red',
+                fillOpacity: 0.1,
+                strokeColor: 'red',
+                strokeWeight: 1.5
+            });
+
+            // 4. تفعيل الرادار التفاعلي (عند الضغط على قطعة أرض)
+            const infoWindow = new google.maps.InfoWindow();
+            
+            map.data.addListener('click', function(event) {
+                // استخراج البيانات من الملف
+                const section = event.feature.getProperty('SECTION');
+                const ilot = event.feature.getProperty('ILOT');
+                const area = event.feature.getProperty('AREA');
+                
+                // تجهيز مساحة تقريبية (إذا كانت متوفرة)
+                const areaDisplay = area ? Math.round(area) + ' م²' : 'غير محدد';
+
+                // تصميم النافذة المنبثقة
+                const content = `
+                    <div class="info-box">
+                        <h3>بيانات القطعة العقارية</h3>
+                        <p>القسم العقاري: <span class="highlight">${section}</span></p>
+                        <p>مجموعة الملكية (Ilot): <span class="highlight">${ilot}</span></p>
+                        <p>المساحة التقريبية: <span class="highlight">${areaDisplay}</span></p>
+                    </div>
+                `;
+                
+                // عرض النافذة في مكان الضغطة
+                infoWindow.setContent(content);
+                infoWindow.setPosition(event.latLng);
+                infoWindow.open(map);
+            });
+        }
+    </script>
+
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"></script>
+
+</body>
+</html>
