@@ -117,10 +117,16 @@ export default function NewFile() {
 
       const targetCommune = COMMUNE_CODES[municipalityVal];
 
+      console.log(`[Area AutoFill] Searching for - Section: ${targetSection}, Ilot: ${targetIlot}, Commune Target: ${targetCommune}`);
+
       try {
         const res = await fetch("/mzab_cadastre_map.geojson");
         if (!res.ok) throw new Error("Could not fetch Mzab Map GeoJSON");
         const data = await res.json();
+
+        if (data.features && data.features.length > 0) {
+          console.log(`[Area AutoFill] DB Sample:`, data.features.slice(0, 3).map((f: any) => f.properties));
+        }
 
         const matchedFeature = data.features?.find((f: any) => {
           const p = f.properties;
@@ -133,6 +139,10 @@ export default function NewFile() {
           // Match section, ilot, and ensure the commune ends with our target code
           const matchesSectionAndIlot = fSection === targetSection && fIlot === targetIlot;
           const matchesCommune = targetCommune ? fCommune.endsWith(targetCommune) : true;
+
+          if (matchesSectionAndIlot && matchesCommune) {
+            console.log(`[Area AutoFill] Match found! ->`, p);
+          }
 
           return matchesSectionAndIlot && matchesCommune;
         });
@@ -147,6 +157,8 @@ export default function NewFile() {
             ...prev,
             plot_area: formattedArea
           }));
+        } else {
+          console.warn(`[Area AutoFill] No matching cadastre parcel or missing AREA property for Section: ${targetSection}, Ilot: ${targetIlot}, Commune: ${targetCommune}`);
         }
 
       } catch (err) {
