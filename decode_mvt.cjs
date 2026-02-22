@@ -1,16 +1,17 @@
-// السطر السحري لتجاوز حظر شهادات الأمان (SSL) للمواقع الحكومية
+// تجاوز حظر شهادات الأمان (SSL) بنجاح
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; 
 
 const { VectorTile } = require('@mapbox/vector-tile');
-const Protobuf = require('pbf');
+const PbfModule = require('pbf');
+// هذا هو السطر السحري الذي يحل مشكلة الـ Constructor
+const Protobuf = PbfModule.default || PbfModule; 
 
 const mvtUrl = 'https://fadaeldjazair.mf.gov.dz/pm/ghardaia_ilot/14/8362/6628.mvt';
 
 async function decodeMzabData() {
-    console.log("🚀 جاري سحب الكتلة الجغرافية لوادي ميزاب متخفياً كمتصفح حقيقي...");
+    console.log("🚀 جاري سحب الكتلة الجغرافية لوادي ميزاب متخفياً...");
     
     try {
-        // إرسال الطلب مع ترويسات (Headers) متصفح Chrome لتجاوز الجدار الناري
         const response = await fetch(mvtUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -23,7 +24,7 @@ async function decodeMzabData() {
         
         const arrayBuffer = await response.arrayBuffer();
         
-        // فك التشفير
+        // فك التشفير باستخدام النسخة المصححة من Protobuf
         const tile = new VectorTile(new Protobuf(new Uint8Array(arrayBuffer)));
         
         console.log("✅ تم الاختراق وفك التشفير بنجاح!\n");
@@ -33,7 +34,7 @@ async function decodeMzabData() {
             console.log(`🗺️ اسم الطبقة المستخرجة: [${layerName}]`);
             console.log(`📦 عدد القطع (Ilots) داخل هذا المربع: ${layer.length}`);
             
-            // طباعة بيانات أول قطعتين
+            // طباعة بيانات أول قطعتين كمثال
             const maxItems = Math.min(2, layer.length);
             for (let i = 0; i < maxItems; i++) {
                 const feature = layer.feature(i);
