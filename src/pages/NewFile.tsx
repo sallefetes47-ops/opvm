@@ -99,37 +99,49 @@ export default function NewFile() {
       const ilotStr = formData.property_group.trim();
       const municipalityVal = formData.municipality;
 
-      if (!sectionStr || !ilotStr) return;
+      if (!sectionStr || !ilotStr || !municipalityVal) return;
 
       const targetSection = Number(sectionStr);
       const targetIlot = Number(ilotStr);
 
       if (isNaN(targetSection) || isNaN(targetIlot)) return;
 
+      // Map municipality to COMMUNE code
+      const COMMUNE_CODES: Record<string, string> = {
+        'غرداية': '4701',
+        'مليكة': '4702', // Assuming based on standard mappings, adjust if needed
+        'بونورة': '4703',
+        'العطف': '4704',
+        'بني يزقن': '4705' // Assuming based on standard mappings
+      };
+
+      const targetCommune = COMMUNE_CODES[municipalityVal];
+
       try {
         const res = await fetch("/mzab_cadastre_map.geojson");
         if (!res.ok) throw new Error("Could not fetch Mzab Map GeoJSON");
         const data = await res.json();
 
-        // Map municipality to COMMUNE code if applicable
-        // 4701 = Ghardaia, 4703 = Bounoura, 4704 = El Attef (adjust as needed based on your real COMMUNE IDs, these are placeholders for common Algerian codes, but the GeoJSON might have its own logic)
-        // If we want to be safe, we mainly rely on Section and Ilot matching if COMMUNE codes are not fully known, but let's try strict matching first
-
         const matchedFeature = data.features?.find((f: any) => {
           const p = f.properties;
           const fSection = Number(p.SECTION);
           const fIlot = Number(p.ILOT || p.group);
+          const fCommune = String(p.COMMUNE || "");
 
           if (isNaN(fSection) || isNaN(fIlot)) return false;
 
-          return fSection === targetSection && fIlot === targetIlot;
+          // Match section, ilot, and ensure the commune ends with our target code
+          const matchesSectionAndIlot = fSection === targetSection && fIlot === targetIlot;
+          const matchesCommune = targetCommune ? fCommune.endsWith(targetCommune) : true;
+
+          return matchesSectionAndIlot && matchesCommune;
         });
 
         if (matchedFeature && matchedFeature.properties.AREA) {
           const areaVal = matchedFeature.properties.AREA;
           const formattedArea = Number(areaVal).toFixed(2); // Keep 2 decimal places
 
-          console.log(`✅ تم العثور على القطعة في (القسم ${targetSection} - المجموعة ${targetIlot})، المساحة: ${formattedArea} متر مربع`);
+          console.log(`✅ تم العثور على القطعة في (بلدية ${municipalityVal} - قسم ${targetSection} - مجموعة ${targetIlot})، المساحة: ${formattedArea} م²`);
 
           setFormData(prev => ({
             ...prev,
