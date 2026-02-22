@@ -15,13 +15,13 @@ const TILE_Z = 14;
 
 // 🗺️ تحديد "شبكة جغرافية" ضخمة تغطي كامل وادي ميزاب
 // بدلاً من المربعات المحدودة، سنمسح نطاقاً كاملاً (Bounding Box)
-const X_START = 8355; 
+const X_START = 8355;
 const X_END = 8370;   // من الغرب إلى الشرق
-const Y_START = 6624; 
+const Y_START = 6624;
 const Y_END = 6638;   // من الشمال إلى الجنوب
 
 // قد تكون بعض البلديات مفصولة في طبقات أخرى في السيرفر، لذا سنبحث في الطبقة الرئيسية
-const LAYER_PREFIX = 'ghardaia_ilot'; 
+const LAYER_PREFIX = 'ghardaia_ilot';
 
 // 🧮 تحويل إحداثيات المربع إلى GPS (خط طول / عرض)
 function tileToLonLat(px, py, extent, tileX, tileY) {
@@ -109,7 +109,7 @@ async function main() {
         for (let y = Y_START; y <= Y_END; y++) {
             tilesScanned++;
             process.stdout.write(`\r🔍 فحص المربع [${x}/${y}]... (فُحص: ${tilesScanned})`);
-            
+
             const features = await fetchAndDecodeTile(x, y);
 
             if (features.length > 0) {
@@ -120,7 +120,7 @@ async function main() {
             }
 
             // تأخير بسيط جداً كي لا يتم حظرنا من السيرفر
-            await new Promise(r => setTimeout(r, 100)); 
+            await new Promise(r => setTimeout(r, 100));
         }
     }
 
