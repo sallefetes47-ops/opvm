@@ -120,7 +120,7 @@ export default function NewFile() {
       console.log(`[Area AutoFill] Searching for - Section: ${targetSection}, Ilot: ${targetIlot}, Commune Target: ${targetCommune}`);
 
       try {
-        const res = await fetch("/mzab_cadastre_map.geojson");
+        const res = await fetch(window.location.origin + "/mzab_cadastre_map.geojson");
         if (!res.ok) throw new Error("Could not fetch Mzab Map GeoJSON");
         const data = await res.json();
 
