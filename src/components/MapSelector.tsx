@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polygon } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polygon, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -22,7 +22,7 @@ L.Icon.Default.mergeOptions({
 });
 
 // --- Constants ---
-const GOOGLE_SATELLITE_URL = "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}";
+const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const CENTER_POS: [number, number] = [32.4810, 3.6900];
 
 // --- Helper Functions ---
@@ -92,6 +92,15 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
     const canEdit = !isViewer && role !== 'viewer';
     const { toast } = useToast();
     const queryClient = useQueryClient();
+
+    // --- GeoJSON Cadastre Data ---
+    const [cadastreGeoJson, setCadastreGeoJson] = useState<any>(null);
+    useEffect(() => {
+        fetch('/mzab_cadastre_map.geojson')
+            .then(res => { if (!res.ok) throw new Error('GeoJSON not found'); return res.json(); })
+            .then(data => setCadastreGeoJson(data))
+            .catch(err => console.warn('لم يتم تحميل بيانات المسح العقاري:', err.message));
+    }, []);
 
     // --- STATE ---
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -233,10 +242,23 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                         scrollWheelZoom={true}
                     >
                         <TileLayer
-                            attribution="Google Satellite"
-                            url={GOOGLE_SATELLITE_URL}
-                            maxZoom={20}
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                            url={OSM_URL}
+                            maxZoom={19}
                         />
+
+                        {/* طبقة القطع العقارية من ملف GeoJSON */}
+                        {cadastreGeoJson && (
+                            <GeoJSON
+                                data={cadastreGeoJson}
+                                style={{
+                                    color: '#FF0000',
+                                    weight: 1.5,
+                                    fillColor: '#FF0000',
+                                    fillOpacity: 0.05,
+                                }}
+                            />
+                        )}
 
                         <MapEvents onMapClick={handleMapClick} />
                         <MapController flyToLocation={flyToLocation} />
