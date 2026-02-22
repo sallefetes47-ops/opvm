@@ -391,8 +391,7 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
-                  readOnly={formData.ownership_type === "دفتر عقاري"}
-                  className={cn("text-right", formData.ownership_type === "دفتر عقاري" ? "bg-gray-100" : "bg-white")}
+                  className="text-right"
                 />
               </div>
               <div className="space-y-2">
@@ -437,8 +436,7 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
-                  readOnly={formData.ownership_type === "دفتر عقاري"}
-                  className={cn("text-right", formData.ownership_type === "دفتر عقاري" ? "bg-gray-100" : "bg-white")}
+                  className="text-right"
                 />
               </div>
               <div className="space-y-2">
@@ -473,8 +471,7 @@ export default function NewFile() {
                   onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
                   placeholder="0.00"
                   step="0.01"
-                  readOnly={formData.ownership_type === "دفتر عقاري"}
-                  className={cn("text-right", formData.ownership_type === "دفتر عقاري" ? "bg-gray-100" : "bg-white")}
+                  className="text-right"
                 />
               </div>
               <div className="space-y-2">
