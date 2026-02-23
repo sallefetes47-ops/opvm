@@ -385,121 +385,6 @@ export default function NewFile() {
           </CardContent>
         </Card>
 
-        {/* Dynamic Fields based on permit_type - رخصة بناء */}
-        {formData.permit_type === "رخصة بناء" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>بيانات رخصة البناء</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="plot_area">مساحة الأرضية (م²)</Label>
-                <Input
-                  id="plot_area"
-                  type="number"
-                  value={formData.plot_area}
-                  onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
-                  placeholder="0.00"
-                  step="0.01"
-                  className="text-right"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="built_area">المساحة المبنية (م²)</Label>
-                <Input
-                  id="built_area"
-                  type="number"
-                  value={formData.built_area}
-                  onChange={(e) => setFormData({ ...formData, built_area: e.target.value })}
-                  placeholder="0.00"
-                  step="0.01"
-                  className="text-right"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="engineer_name">مكتب الدراسات</Label>
-                <Input
-                  id="engineer_name"
-                  value={formData.engineer_name}
-                  onChange={(e) => setFormData({ ...formData, engineer_name: e.target.value })}
-                  placeholder="أدخل اسم مكتب الدراسات"
-                  className="text-right"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Dynamic Fields based on permit_type - رخصة تجزئة */}
-        {formData.permit_type === "رخصة تجزئة" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>بيانات رخصة التجزئة</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="plot_area">مساحة الأرضية (م²)</Label>
-                <Input
-                  id="plot_area"
-                  type="number"
-                  value={formData.plot_area}
-                  onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
-                  placeholder="0.00"
-                  step="0.01"
-                  className="text-right"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="plots_count">عدد القطع</Label>
-                <Input
-                  id="plots_count"
-                  type="number"
-                  value={formData.plots_count}
-                  onChange={(e) => setFormData({ ...formData, plots_count: e.target.value })}
-                  placeholder="0"
-                  min="1"
-                  className="text-right"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Dynamic Fields based on permit_type - شهادة تقسيم */}
-        {formData.permit_type === "شهادة تقسيم" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>بيانات شهادة التقسيم</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="plot_area">مساحة القطعة (م²)</Label>
-                <Input
-                  id="plot_area"
-                  type="number"
-                  value={formData.plot_area}
-                  onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
-                  placeholder="0.00"
-                  step="0.01"
-                  className="text-right"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="shares_count">عدد الحصص</Label>
-                <Input
-                  id="shares_count"
-                  type="number"
-                  value={formData.shares_count}
-                  onChange={(e) => setFormData({ ...formData, shares_count: e.target.value })}
-                  placeholder="0"
-                  min="1"
-                  className="text-right"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Ownership Documents */}
         <Card>
           <CardHeader>
@@ -625,6 +510,120 @@ export default function NewFile() {
             )}
           </CardContent>
         </Card>
+        {/* Dynamic Fields based on permit_type - رخصة بناء */}
+        {formData.permit_type === "رخصة بناء" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>بيانات رخصة البناء</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="plot_area">مساحة الأرضية (م²)</Label>
+                <Input
+                  id="plot_area"
+                  type="number"
+                  value={formData.plot_area}
+                  onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                  className="text-right"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="built_area">المساحة المبنية (م²)</Label>
+                <Input
+                  id="built_area"
+                  type="number"
+                  value={formData.built_area}
+                  onChange={(e) => setFormData({ ...formData, built_area: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                  className="text-right"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="engineer_name">مكتب الدراسات</Label>
+                <Input
+                  id="engineer_name"
+                  value={formData.engineer_name}
+                  onChange={(e) => setFormData({ ...formData, engineer_name: e.target.value })}
+                  placeholder="أدخل اسم مكتب الدراسات"
+                  className="text-right"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Dynamic Fields based on permit_type - رخصة تجزئة */}
+        {formData.permit_type === "رخصة تجزئة" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>بيانات رخصة التجزئة</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="plot_area">مساحة الأرضية (م²)</Label>
+                <Input
+                  id="plot_area"
+                  type="number"
+                  value={formData.plot_area}
+                  onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                  className="text-right"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="plots_count">عدد القطع</Label>
+                <Input
+                  id="plots_count"
+                  type="number"
+                  value={formData.plots_count}
+                  onChange={(e) => setFormData({ ...formData, plots_count: e.target.value })}
+                  placeholder="0"
+                  min="1"
+                  className="text-right"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Dynamic Fields based on permit_type - شهادة تقسيم */}
+        {formData.permit_type === "شهادة تقسيم" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>بيانات شهادة التقسيم</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="plot_area">مساحة القطعة (م²)</Label>
+                <Input
+                  id="plot_area"
+                  type="number"
+                  value={formData.plot_area}
+                  onChange={(e) => setFormData({ ...formData, plot_area: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                  className="text-right"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shares_count">عدد الحصص</Label>
+                <Input
+                  id="shares_count"
+                  type="number"
+                  value={formData.shares_count}
+                  onChange={(e) => setFormData({ ...formData, shares_count: e.target.value })}
+                  placeholder="0"
+                  min="1"
+                  className="text-right"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Administrative Status */}
         <Card>
