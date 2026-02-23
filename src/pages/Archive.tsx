@@ -146,7 +146,12 @@ export default function ArchivePage() {
     mutationFn: async (fileId: string) => {
       const { error } = await supabase
         .from("files")
-        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+        // PostgREST returns updated rows by default; when soft-deleting, the row may no longer
+        // match the SELECT policy (is_deleted=false). Avoid requiring SELECT on the updated row.
+        .update(
+          { is_deleted: true, deleted_at: new Date().toISOString() },
+          { returning: "minimal" }
+        )
         .eq("id", fileId);
       if (error) throw error;
     },
@@ -161,7 +166,11 @@ export default function ArchivePage() {
 
   const updateFileMutation = useMutation({
     mutationFn: async (data: Partial<FileRecord> & { id: string }) => {
-      const { error } = await supabase.from("files").update(data).eq("id", data.id);
+      // No need for returned row payload; keep responses small.
+      const { error } = await supabase
+        .from("files")
+        .update(data, { returning: "minimal" })
+        .eq("id", data.id);
       if (error) throw error;
     },
     onSuccess: () => {

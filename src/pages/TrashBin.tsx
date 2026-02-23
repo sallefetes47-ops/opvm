@@ -66,7 +66,7 @@ export default function TrashBin() {
     mutationFn: async (fileId: string) => {
       const { error } = await supabase
         .from("files")
-        .update({ is_deleted: false, deleted_at: null })
+        .update({ is_deleted: false, deleted_at: null }, { returning: "minimal" })
         .eq("id", fileId);
       if (error) throw error;
     },
@@ -92,7 +92,11 @@ export default function TrashBin() {
 
   const permanentDeleteMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      const { error } = await supabase.from("files").delete().eq("id", fileId);
+      // Avoid requiring SELECT on the deleted row in the response.
+      const { error } = await supabase
+        .from("files")
+        .delete({ returning: "minimal" })
+        .eq("id", fileId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -120,7 +124,7 @@ export default function TrashBin() {
 
   const confirmAction = () => {
     if (!selectedFile || !actionType) return;
-    
+
     if (actionType === "restore") {
       restoreMutation.mutate(selectedFile.id);
     } else {
