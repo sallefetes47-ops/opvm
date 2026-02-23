@@ -80,6 +80,7 @@ export default function Restudy() {
       let query = supabase
         .from("files")
         .select("*")
+        .eq("is_deleted", false)
         .eq("municipality", searchParams.municipality)
         .eq("file_number", searchParams.file_number)
         .eq("year", parseInt(searchParams.year));

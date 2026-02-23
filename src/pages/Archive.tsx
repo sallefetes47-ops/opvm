@@ -84,6 +84,7 @@ export default function ArchivePage() {
       const { data, error } = await supabase
         .from("files")
         .select("*")
+        .eq("is_deleted", false)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -325,9 +326,14 @@ export default function ArchivePage() {
                               <Eye className="w-3 h-3 text-muted-foreground" />
                             </Button>
                             {canEdit && (
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleEdit(file); }}>
-                                <Edit className="w-3 h-3 text-blue-500" />
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleEdit(file); }}>
+                                  <Edit className="w-3 h-3 text-blue-500" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setSelectedFile(file); setDeleteDialogOpen(true); }}>
+                                  <Trash2 className="w-3 h-3 text-red-500" />
+                                </Button>
+                              </div>
                             )}
                           </div>
                         </div>
