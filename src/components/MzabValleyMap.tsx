@@ -1,4 +1,4 @@
-import React, { useEffect, useImperativeHandle, useMemo, useState } from 'react';
+﻿import React, { useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import L from 'leaflet';
 import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import type { GeoJsonObject } from 'geojson';
@@ -39,11 +39,11 @@ type GeoJsonFeatureCollectionLike = {
 const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '').trim();
 
 const MUNICIPALITY_CODE_TO_NAME: Record<string, string> = {
-    '4701': 'غرداية',
-    '4707': 'العطف',
-    '4710': 'بنورة',
-    '4705': 'متليلي',
-    '4703': 'بلدية الضاية',
+    '4701': 'ط؛ط±ط¯ط§ظٹط©',
+    '4707': 'ط§ظ„ط¹ط·ظپ',
+    '4710': 'ط¨ظ†ظˆط±ط©',
+    '4705': 'ظ…طھظ„ظٹظ„ظٹ',
+    '4703': 'ط§ظ„ط¶ط§ظٹط©',
 };
 
 const normalizeMunicipalityCode = (rawValue: unknown): string => {
@@ -158,12 +158,12 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
     useEffect(() => {
         fetch('/mzab_cadastre_map.geojson')
             .then((res) => {
-                if (!res.ok) throw new Error('البيانات العقارية غير متوفرة');
+                if (!res.ok) throw new Error('ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ‚ط§ط±ظٹط© ط؛ظٹط± ظ…طھظˆظپط±ط©');
                 return res.json();
             })
             .then((data) => setGeojsonData(normalizeGeoJson(data)))
             .catch((err) => {
-                console.error('خطأ في تحميل بيانات القطع:', err);
+                console.error('ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ‚ط·ط¹:', err);
                 setGeojsonData({ type: 'FeatureCollection', features: [] });
             });
     }, []);
@@ -181,14 +181,14 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
     const searchParcel = (payload: ParcelSearchPayload) => {
         if (!geojsonData || !geojsonData.features) {
-            return { ok: false, message: 'البيانات غير جاهزة بعد، يرجى الانتظار.' };
+            return { ok: false, message: 'ط§ظ„ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ط¬ط§ظ‡ط²ط© ط¨ط¹ط¯طŒ ظٹط±ط¬ظ‰ ط§ظ„ط§ظ†طھط¸ط§ط±.' };
         }
 
         const municipalityCode = payload.municipalityCode.trim();
         const section = payload.section.trim();
         const group = payload.group.trim();
         if (!municipalityCode || !section || !group) {
-            return { ok: false, message: 'يرجى اختيار البلدية وإدخال رقم القسم ومجموعة الملكية.' };
+            return { ok: false, message: 'ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± ط§ظ„ط¨ظ„ط¯ظٹط© ظˆط¥ط¯ط®ط§ظ„ ط±ظ‚ظ… ط§ظ„ظ‚ط³ظ… ظˆظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒظٹط©.' };
         }
 
         const match = geojsonData.features.find((feature) => {
@@ -203,7 +203,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
         if (!match) {
             setFoundParcelKey('');
             setSearchedFeature(null);
-            return { ok: false, message: 'لم يتم العثور على قطعة بهذه المعايير.' };
+            return { ok: false, message: 'ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ‚ط·ط¹ط© ط¨ظ‡ط°ظ‡ ط§ظ„ظ…ط¹ط§ظٹظٹط±.' };
         }
 
         const props = (match.properties || {}) as Record<string, unknown>;
@@ -212,7 +212,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
         setSelectedParcelKey(key);
         setSearchedFeature(match);
         emitSelection(props);
-        return { ok: true, message: 'تم العثور على القطعة بنجاح.' };
+        return { ok: true, message: 'طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ظ„ظ‚ط·ط¹ط© ط¨ظ†ط¬ط§ط­.' };
     };
 
     const clearSearch = () => {
@@ -276,7 +276,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
         <div className='relative' style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
             <MapContainer center={[32.4845, 3.6792]} zoom={15} maxZoom={22} style={{ height: '100%', width: '100%' }}>
                 <LayersControl position='topright'>
-                    <LayersControl.BaseLayer checked name='خريطة الشارع (OSM)'>
+                    <LayersControl.BaseLayer checked name='ط®ط±ظٹط·ط© ط§ظ„ط´ط§ط±ط¹ (OSM)'>
                         <TileLayer
                             attribution='&copy; OpenStreetMap contributors'
                             url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -284,7 +284,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                             maxZoom={22}
                         />
                     </LayersControl.BaseLayer>
-                    <LayersControl.BaseLayer name='قمر صناعي Esri'>
+                    <LayersControl.BaseLayer name='ظ‚ظ…ط± طµظ†ط§ط¹ظٹ Esri'>
                         <TileLayer
                             attribution='Tiles &copy; Esri'
                             url='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -293,7 +293,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                         />
                     </LayersControl.BaseLayer>
                     {GOOGLE_MAPS_API_KEY && (
-                        <LayersControl.BaseLayer name='جوجل مابس - هجين'>
+                        <LayersControl.BaseLayer name='ط¬ظˆط¬ظ„ ظ…ط§ط¨ط³ - ظ‡ط¬ظٹظ†'>
                             <TileLayer
                                 attribution='&copy; Google'
                                 url={`https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}`}
@@ -311,31 +311,31 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
             {!GOOGLE_MAPS_API_KEY && (
                 <div className='absolute left-4 top-4 z-[650] rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 shadow'>
-                    مفتاح Google غير مضبوط، طبقة Google Hybrid غير متاحة.
+                    ظ…ظپطھط§ط­ Google ط؛ظٹط± ظ…ط¶ط¨ظˆط·طŒ ط·ط¨ظ‚ط© Google Hybrid ط؛ظٹط± ظ…طھط§ط­ط©.
                 </div>
             )}
 
             <div className='pointer-events-none absolute right-4 top-[17.5rem] z-[500] w-52 rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
-                <p className='mb-2 text-xs font-semibold text-slate-700'>دليل الألوان</p>
+                <p className='mb-2 text-xs font-semibold text-slate-700'>ط¯ظ„ظٹظ„ ط§ظ„ط£ظ„ظˆط§ظ†</p>
                 <div className='space-y-1.5 text-xs text-slate-700'>
                     <div className='flex items-center justify-between gap-2'>
-                        <span>غرداية</span>
+                        <span>ط؛ط±ط¯ط§ظٹط©</span>
                         <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#4f46e5' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
-                        <span>العطف</span>
+                        <span>ط§ظ„ط¹ط·ظپ</span>
                         <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#d97706' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
-                        <span>بنورة</span>
+                        <span>ط¨ظ†ظˆط±ط©</span>
                         <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#d946ef' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
-                        <span>متليلي</span>
+                        <span>ظ…طھظ„ظٹظ„ظٹ</span>
                         <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#a85507' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
-                        <span>بلدية الضاية</span>
+                        <span>ط§ظ„ط¶ط§ظٹط©</span>
                         <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#10b981' }} />
                     </div>
                 </div>
@@ -347,3 +347,5 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 MzabValleyMap.displayName = 'MzabValleyMap';
 
 export default MzabValleyMap;
+
+
