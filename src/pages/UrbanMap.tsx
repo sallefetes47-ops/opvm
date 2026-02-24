@@ -1,4 +1,4 @@
-﻿import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import MzabValleyMap, { type MzabValleyMapHandle, type ParcelSearchPayload, type ParcelSelectionData } from '../components/MzabValleyMap';
 import { MapErrorBoundary } from '../components/MapErrorBoundary';
 import { jsPDF } from 'jspdf';
@@ -50,19 +50,19 @@ const UrbanMap = () => {
     };
 
     const formatActualArea = (area: number | null) =>
-        area === null ? '' : `${area.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mآ²`;
-    const formatCadastralArea = (area: number | null) => (area === null ? '' : `${area.toLocaleString('en-US')} mآ²`);
-    const auditStatus = parcelData.section ? 'طھظ… ط§ظ„طھط­ط¯ظٹط¯' : 'ط¨ط§ظ†طھط¸ط§ط± ط§ظ„ط§ط®طھظٹط§ط±';
+        area === null ? '' : `${area.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} م²`;
+    const formatCadastralArea = (area: number | null) => (area === null ? '' : `${area.toLocaleString('en-US')} م²`);
+    const auditStatus = parcelData.section ? 'تم التحديد' : 'بانتظار الاختيار';
 
     const exportToPDF = () => {
         const doc = new jsPDF();
-        doc.text('ط¯ظٹظˆط§ظ† ط­ظ…ط§ظٹط© ظˆط§ط¯ظٹ ظ…ظٹط²ط§ط¨', 105, 20, { align: 'center' });
-        doc.text('ط§ط³طھظ…ط§ط±ط© ط·ظ„ط¨ طھط³ظˆظٹط© (ط§ظ„ظ…ط±ط³ظˆظ… 15-19)', 105, 30, { align: 'center' });
-        doc.text(`ط§ظ„ط¨ظ„ط¯ظٹط©: ${parcelData.municipality}`, 20, 50);
-        doc.text(`ط§ظ„ظ‚ط³ظ… ط§ظ„ط¹ظ‚ط§ط±ظٹ: ${parcelData.section}`, 20, 60);
-        doc.text(`ط±ظ‚ظ… ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒظٹط©: ${parcelData.propertyGroup}`, 20, 70);
-        doc.text(`ط§ظ„ظ…ط³ط§ط­ط© ط§ظ„ط­ظ‚ظٹظ‚ظٹط©: ${formatActualArea(parcelData.actualArea)}`, 20, 80);
-        doc.text(`ظ…ط³ط§ط­ط© ط§ظ„ظ…ط³ط­: ${formatCadastralArea(parcelData.cadastralArea)}`, 20, 90);
+        doc.text('ديوان حماية وادي ميزاب', 105, 20, { align: 'center' });
+        doc.text('استمارة طلب تسوية (المرسوم 15-19)', 105, 30, { align: 'center' });
+        doc.text(`البلدية: ${parcelData.municipality}`, 20, 50);
+        doc.text(`القسم العقاري: ${parcelData.section}`, 20, 60);
+        doc.text(`رقم مجموعة الملكية: ${parcelData.propertyGroup}`, 20, 70);
+        doc.text(`المساحة الحقيقية: ${formatActualArea(parcelData.actualArea)}`, 20, 80);
+        doc.text(`مساحة المسح: ${formatCadastralArea(parcelData.cadastralArea)}`, 20, 90);
         doc.save(`urban_contract_${parcelData.section}.pdf`);
     };
 
@@ -73,7 +73,7 @@ const UrbanMap = () => {
             group: searchGroup,
         };
         const result = mapRef.current?.searchParcel(payload);
-        setSearchMessage(result?.message ?? 'ط§ظ„ط®ط±ظٹط·ط© ط؛ظٹط± ط¬ط§ظ‡ط²ط© ط¨ط¹ط¯.');
+        setSearchMessage(result?.message ?? 'الخريطة غير جاهزة بعد.');
     };
 
     const handleClearSearch = () => {
@@ -97,47 +97,47 @@ const UrbanMap = () => {
                     <CardContent className='p-5 text-right'>
                         <div className='mb-5 rounded-xl border border-rose-100 bg-white/80 p-3 shadow-sm'>
                             <div className='mb-3 h-1 w-16 rounded-full bg-[#7b1e1e]' />
-                            <h2 className='text-xl font-bold text-[#7b1e1e]'>ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظ…ط³ط­ ط§ظ„ط¹ظ‚ط§ط±ظٹ</h2>
+                            <h2 className='text-xl font-bold text-[#7b1e1e]'>معلومات المسح العقاري</h2>
                         </div>
 
                         <div className='grid grid-cols-2 gap-3'>
                             <InfoCard
-                                label='ط§ظ„ط¨ظ„ط¯ظٹط©'
+                                label='البلدية'
                                 value={parcelData.municipality}
                                 icon={MapPin}
                                 className='border-indigo-100 bg-indigo-50/80'
                                 iconClassName='bg-indigo-100 text-indigo-700'
                             />
                             <InfoCard
-                                label='ط±ظ‚ظ… ط§ظ„ظ‚ط³ظ…'
+                                label='رقم القسم'
                                 value={parcelData.section}
                                 icon={Grid}
                                 className='border-rose-100 bg-rose-50/80'
                                 iconClassName='bg-rose-100/90 text-rose-700'
                             />
                             <InfoCard
-                                label='ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒظٹط©'
+                                label='مجموعة الملكية'
                                 value={parcelData.propertyGroup}
                                 icon={Layers}
                                 className='border-amber-100 bg-amber-50/80'
                                 iconClassName='bg-amber-100/90 text-amber-700'
                             />
                             <InfoCard
-                                label='ط§ظ„ط­ط§ظ„ط©'
+                                label='الحالة'
                                 value={auditStatus}
                                 icon={Layers}
                                 className='border-slate-200 bg-slate-100/80'
                                 iconClassName='bg-slate-200 text-slate-700'
                             />
                             <InfoCard
-                                label='ط§ظ„ظ…ط³ط§ط­ط© ط§ظ„ط­ظ‚ظٹظ‚ظٹط© (ظ…آ²)'
+                                label='المساحة الحقيقية (م²)'
                                 value={formatActualArea(parcelData.actualArea)}
                                 icon={Ruler}
                                 className='border-emerald-200 bg-emerald-50'
                                 iconClassName='bg-emerald-100 text-emerald-700'
                             />
                             <InfoCard
-                                label='ظ…ط³ط§ط­ط© ط§ظ„ظ…ط³ط­ (ظ…آ²)'
+                                label='مساحة المسح (م²)'
                                 value={formatCadastralArea(parcelData.cadastralArea)}
                                 icon={Ruler}
                                 className='border-teal-300 bg-teal-50/90 ring-1 ring-teal-200'
@@ -151,7 +151,7 @@ const UrbanMap = () => {
                                 disabled={!parcelData.section}
                                 className='w-full rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60'
                             >
-                                ط·ط¨ط§ط¹ط© ط¹ظ‚ط¯ ط§ظ„طھط¹ظ…ظٹط± (PDF)
+                                طباعة عقد التعمير (PDF)
                             </button>
                         </div>
                     </CardContent>
@@ -160,7 +160,7 @@ const UrbanMap = () => {
                 <Card className='rounded-2xl border-slate-200 bg-white/95'>
                     <CardContent className='p-5 text-right'>
                         <div className='mb-3 flex items-center justify-between'>
-                            <h3 className='text-base font-bold text-slate-800'>ظ†ط§ظپط°ط© ط§ظ„ط¨ط­ط« ط§ظ„ط°ظƒظٹ</h3>
+                            <h3 className='text-base font-bold text-slate-800'>نافذة البحث الذكي</h3>
                             <Search className='h-4 w-4 text-slate-500' />
                         </div>
                         <div className='grid grid-cols-1 gap-2'>
@@ -169,23 +169,23 @@ const UrbanMap = () => {
                                 onChange={(e) => setSearchMunicipalityCode(e.target.value)}
                                 className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm text-slate-700 outline-none focus:border-emerald-400'
                             >
-                                <option value=''>ط§ط®طھط± ط§ظ„ط¨ظ„ط¯ظٹط©</option>
-                                <option value='4701'>ط؛ط±ط¯ط§ظٹط©</option>
-                                <option value='4707'>ط§ظ„ط¹ط·ظپ</option>
-                                <option value='4710'>ط¨ظ†ظˆط±ط©</option>
-                                <option value='4703'>ط§ظ„ط¶ط§ظٹط©</option>
-                                <option value='4705'>ظ…طھظ„ظٹظ„ظٹ</option>
+                                <option value=''>اختر البلدية</option>
+                                <option value='4701'>غرداية</option>
+                                <option value='4707'>العطف</option>
+                                <option value='4710'>بنورة</option>
+                                <option value='4703'>الضاية</option>
+                                <option value='4705'>متليلي</option>
                             </select>
                             <input
                                 value={searchSection}
                                 onChange={(e) => setSearchSection(e.target.value)}
-                                placeholder='ط±ظ‚ظ… ط§ظ„ظ‚ط³ظ…'
+                                placeholder='رقم القسم'
                                 className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm text-slate-700 outline-none focus:border-emerald-400'
                             />
                             <input
                                 value={searchGroup}
                                 onChange={(e) => setSearchGroup(e.target.value)}
-                                placeholder='ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒظٹط©'
+                                placeholder='مجموعة الملكية'
                                 className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm text-slate-700 outline-none focus:border-emerald-400'
                             />
                             <div className='mt-1 grid grid-cols-2 gap-2'>
@@ -194,14 +194,14 @@ const UrbanMap = () => {
                                     onClick={handleSmartSearch}
                                     className='rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700'
                                 >
-                                    ط¨ط­ط«
+                                    بحث
                                 </button>
                                 <button
                                     type='button'
                                     onClick={handleClearSearch}
                                     className='rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50'
                                 >
-                                    ظ…ط³ط­
+                                    مسح
                                 </button>
                             </div>
                         </div>
@@ -214,6 +214,3 @@ const UrbanMap = () => {
 };
 
 export default UrbanMap;
-
-
-
