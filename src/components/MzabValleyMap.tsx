@@ -36,7 +36,7 @@ type LayerDefinition = {
 const MUNICIPALITY_CODE_TO_NAME: Record<string, string> = {
     '4701': 'غرداية',
     '4707': 'العطف',
-    '4706': 'بنورة',
+    '4710': 'بلدية بنورة',
     '4703': 'بلدية الضاية',
 };
 
@@ -54,18 +54,18 @@ const normalizeMunicipalityCode = (rawValue: unknown): string => {
 
 const getMunicipalityColor = (code: unknown): string => {
     const normalizedCode = normalizeMunicipalityCode(code);
-    if (normalizedCode === '4701') return '#3b82f6';
-    if (normalizedCode === '4707') return '#f97316';
-    if (normalizedCode === '4706') return '#8b5cf6';
+    if (normalizedCode === '4701') return '#4f46e5';
+    if (normalizedCode === '4707') return '#d97706';
+    if (normalizedCode === '4710') return '#7c3aed';
     if (normalizedCode === '4703') return '#10b981';
     return '#94a3b8';
 };
 
 const getMunicipalityBorderColor = (code: unknown): string => {
     const normalizedCode = normalizeMunicipalityCode(code);
-    if (normalizedCode === '4701') return '#1d4ed8';
-    if (normalizedCode === '4707') return '#c2410c';
-    if (normalizedCode === '4706') return '#6d28d9';
+    if (normalizedCode === '4701') return '#3730a3';
+    if (normalizedCode === '4707') return '#92400e';
+    if (normalizedCode === '4710') return '#5b21b6';
     if (normalizedCode === '4703') return '#047857';
     return '#64748b';
 };
@@ -209,12 +209,20 @@ const BingLayer = ({ url, attribution, maxNativeZoom }: { url: string; attributi
 };
 
 const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
-    const [geoJsonData, setGeoJsonData] = useState(null);
+    const [geoJsonData, setGeoJsonData] = useState<unknown>(null);
     const [hoveredParcelKey, setHoveredParcelKey] = useState('');
     const [selectedParcelKey, setSelectedParcelKey] = useState('');
     const [activeLayerKey, setActiveLayerKey] = useState<LayerProviderKey>('esri_world_imagery');
 
     const activeLayer = useMemo(() => LAYERS.find((layer) => layer.key === activeLayerKey) ?? LAYERS[0], [activeLayerKey]);
+    const hasRenderableGeoJson = useMemo(() => {
+        if (!geoJsonData || typeof geoJsonData !== 'object') return false;
+        const source = geoJsonData as { type?: unknown; features?: unknown };
+        if (source.type === 'FeatureCollection') {
+            return Array.isArray(source.features) && source.features.length > 0;
+        }
+        return source.type === 'Feature' || source.type === 'GeometryCollection';
+    }, [geoJsonData]);
 
     useEffect(() => {
         fetch('/mzab_cadastre_map.geojson')
@@ -257,9 +265,9 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                     />
                 )}
 
-                {geoJsonData && (
+                {hasRenderableGeoJson && (
                     <GeoJSON
-                        data={geoJsonData}
+                        data={geoJsonData as any}
                         style={(feature) => {
                             const props = (feature?.properties || {}) as Record<string, unknown>;
                             const municipalityCode = props.Municipality ?? props.MUNICIPALITY ?? props.COMMUNE ?? '';
@@ -340,15 +348,15 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                 <div className='space-y-1.5 text-xs text-slate-700'>
                     <div className='flex items-center justify-between gap-2'>
                         <span>غرداية</span>
-                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#3b82f6' }} />
+                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#4f46e5' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>العطف</span>
-                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#f97316' }} />
+                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#d97706' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
-                        <span>بنورة</span>
-                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#8b5cf6' }} />
+                        <span>بلدية بنورة</span>
+                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#7c3aed' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>بلدية الضاية</span>
