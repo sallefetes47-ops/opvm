@@ -27,6 +27,7 @@ const MUNICIPALITY_CODE_TO_NAME: Record<string, string> = {
     '4701': 'غرداية',
     '4707': 'العطف',
     '4710': 'بنورة',
+    '4705': 'متليلي',
     '4703': 'بلدية الضاية',
 };
 
@@ -43,7 +44,8 @@ const getMunicipalityColor = (code: unknown): string => {
     const normalizedCode = normalizeMunicipalityCode(code);
     if (normalizedCode === '4701') return '#4f46e5';
     if (normalizedCode === '4707') return '#d97706';
-    if (normalizedCode === '4710') return '#7c3aed';
+    if (normalizedCode === '4710') return '#d946ef';
+    if (normalizedCode === '4705') return '#a85507';
     if (normalizedCode === '4703') return '#10b981';
     return '#94a3b8';
 };
@@ -52,7 +54,8 @@ const getMunicipalityBorderColor = (code: unknown): string => {
     const normalizedCode = normalizeMunicipalityCode(code);
     if (normalizedCode === '4701') return '#3730a3';
     if (normalizedCode === '4707') return '#92400e';
-    if (normalizedCode === '4710') return '#5b21b6';
+    if (normalizedCode === '4710') return '#a21caf';
+    if (normalizedCode === '4705') return '#78350f';
     if (normalizedCode === '4703') return '#047857';
     return '#64748b';
 };
@@ -213,7 +216,11 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>بنورة</span>
-                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#7c3aed' }} />
+                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#d946ef' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>متليلي</span>
+                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#a85507' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>بلدية الضاية</span>
