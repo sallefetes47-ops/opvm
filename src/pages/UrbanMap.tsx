@@ -2,6 +2,8 @@
 import MzabValleyMap from '../components/MzabValleyMap';
 import { MapErrorBoundary } from '../components/MapErrorBoundary';
 import { jsPDF } from 'jspdf';
+import { Card, CardContent } from '@/components/ui/card';
+import { Grid, Layers, MapPin, Ruler } from 'lucide-react';
 
 type ParcelFormState = {
     municipality: string;
@@ -9,6 +11,30 @@ type ParcelFormState = {
     propertyGroup: string;
     area: number | null;
 };
+
+type InfoCardProps = {
+    label: string;
+    value: string;
+    icon: React.ComponentType<{ className?: string }>;
+    className?: string;
+    iconClassName?: string;
+};
+
+const InfoCard = ({ label, value, icon: Icon, className = '', iconClassName = '' }: InfoCardProps) => (
+    <Card className={`border shadow-sm ${className}`}>
+        <CardContent className='p-4'>
+            <div className='flex items-start justify-between gap-3'>
+                <div className='text-right'>
+                    <p className='mb-1 text-xs font-medium text-muted-foreground'>{label}</p>
+                    <p className='text-lg font-bold leading-tight text-slate-900'>{value || '---'}</p>
+                </div>
+                <div className={`rounded-md p-2 ${iconClassName}`}>
+                    <Icon className='h-5 w-5' />
+                </div>
+            </div>
+        </CardContent>
+    </Card>
+);
 
 const UrbanMap = () => {
     const [parcelData, setParcelData] = useState<ParcelFormState>({
@@ -19,7 +45,6 @@ const UrbanMap = () => {
     });
 
     const handleSelect = (data: ParcelFormState) => {
-        // Single state update to keep all four fields in sync on map click
         setParcelData(data);
     };
 
@@ -37,44 +62,71 @@ const UrbanMap = () => {
     };
 
     return (
-        <div style={{ display: 'flex', gap: '20px', padding: '20px', height: '90vh' }}>
-            <div style={{ flex: 2, borderRadius: '15px', overflow: 'hidden', border: '1px solid #ddd' }}>
+        <div className='grid h-[90vh] grid-cols-1 gap-5 p-5 lg:grid-cols-3'>
+            <div className='overflow-hidden rounded-2xl border border-slate-200 lg:col-span-2'>
                 <MapErrorBoundary>
                     <MzabValleyMap onParcelSelect={handleSelect} />
                 </MapErrorBoundary>
             </div>
 
-            <div style={{ flex: 1, padding: '20px', background: '#f9f9f9', borderRadius: '15px' }}>
-                <h2 style={{ color: '#d32f2f' }}>معلومات المسح العقاري</h2>
-                <hr />
-                <div style={{ marginTop: '20px' }}>
-                    <label>البلدية:</label>
-                    <input
-                        type='text'
-                        value={parcelData.municipality}
-                        onChange={(e) => setParcelData(prev => ({ ...prev, municipality: e.target.value }))}
-                        style={inputStyle}
-                    />
+            <Card className='flex h-full flex-col rounded-2xl border-slate-200 bg-slate-50/80'>
+                <CardContent className='flex h-full flex-col p-5 text-right'>
+                    <div className='mb-5'>
+                        <div className='mb-3 h-1 w-16 rounded-full bg-[#7b1e1e]' />
+                        <h2 className='text-xl font-bold text-[#7b1e1e]'>معلومات المسح العقاري</h2>
+                    </div>
 
-                    <label>رقم القسم (آلي من الخريطة):</label>
-                    <input type='text' value={parcelData.section} readOnly style={inputStyle} />
+                    <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+                        <InfoCard
+                            label='البلدية'
+                            value={parcelData.municipality}
+                            icon={MapPin}
+                            className='border-slate-200 bg-slate-100/90'
+                            iconClassName='bg-slate-200/80 text-slate-700'
+                        />
+                        <InfoCard
+                            label='مساحة القطعة'
+                            value={formatArea(parcelData.area)}
+                            icon={Ruler}
+                            className='border-emerald-200 bg-emerald-50'
+                            iconClassName='bg-emerald-100 text-emerald-700'
+                        />
+                        <InfoCard
+                            label='رقم القسم'
+                            value={parcelData.section}
+                            icon={Grid}
+                            className='border-rose-100 bg-rose-50/70'
+                            iconClassName='bg-rose-100/90 text-rose-700'
+                        />
+                        <InfoCard
+                            label='مجموعة الملكية'
+                            value={parcelData.propertyGroup}
+                            icon={Layers}
+                            className='border-amber-100 bg-amber-50/70'
+                            iconClassName='bg-amber-100/90 text-amber-700'
+                        />
+                    </div>
 
-                    <label>رقم مجموعة الملكية (آلي من الخريطة):</label>
-                    <input type='text' value={parcelData.propertyGroup} readOnly style={inputStyle} />
+                    <div className='mt-5'>
+                        <button
+                            onClick={exportToPDF}
+                            disabled={!parcelData.section}
+                            className='w-full rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60'
+                        >
+                            طباعة عقد التعمير (PDF)
+                        </button>
+                    </div>
 
-                    <label>مساحة القطعة:</label>
-                    <input type='text' value={formatArea(parcelData.area)} readOnly style={inputStyle} />
-
-                    <button onClick={exportToPDF} disabled={!parcelData.section} style={btnStyle}>
-                        طباعة عقد التعمير (PDF)
-                    </button>
-                </div>
-            </div>
+                    <div className='mt-auto pt-6'>
+                        <div className='mb-3 h-px w-full bg-slate-200' />
+                        <p className='text-center text-[11px] font-light tracking-wide text-slate-500'>
+                            جميع الحقوق محفوظة © 2026 - تم التطوير بواسطة [اسمك] لصالح ديوان حماية وادي ميزاب
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 };
-
-const inputStyle = { width: '100%', padding: '10px', margin: '10px 0', borderRadius: '5px', border: '1px solid #ccc' };
-const btnStyle = { width: '100%', padding: '15px', background: '#27ae60', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' };
 
 export default UrbanMap;
