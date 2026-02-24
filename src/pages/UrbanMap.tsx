@@ -170,11 +170,11 @@ const UrbanMap = () => {
                                 className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm text-slate-700 outline-none focus:border-emerald-400'
                             >
                                 <option value=''>ط§ط®طھط± ط§ظ„ط¨ظ„ط¯ظٹط©</option>
-                                <option value='4701'>ط؛ط±ط¯ط§ظٹط© (4701)</option>
-                                <option value='4707'>ط§ظ„ط¹ط·ظپ (4707)</option>
-                                <option value='4710'>ط¨ظ†ظˆط±ط© (4710)</option>
-                                <option value='4703'>ط§ظ„ط¶ط§ظٹط© (4703)</option>
-                                <option value='4705'>ظ…طھظ„ظٹظ„ظٹ (4705)</option>
+                                <option value='4701'>ط؛ط±ط¯ط§ظٹط©</option>
+                                <option value='4707'>ط§ظ„ط¹ط·ظپ</option>
+                                <option value='4710'>ط¨ظ†ظˆط±ط©</option>
+                                <option value='4703'>ط§ظ„ط¶ط§ظٹط©</option>
+                                <option value='4705'>ظ…طھظ„ظٹظ„ظٹ</option>
                             </select>
                             <input
                                 value={searchSection}
@@ -214,5 +214,6 @@ const UrbanMap = () => {
 };
 
 export default UrbanMap;
+
 
 

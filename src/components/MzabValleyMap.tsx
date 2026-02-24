@@ -57,7 +57,7 @@ const normalizeMunicipalityCode = (rawValue: unknown): string => {
 
 const getMunicipalityColor = (code: unknown): string => {
     const normalizedCode = normalizeMunicipalityCode(code);
-    if (normalizedCode === '4701') return '#4f46e5';
+    if (normalizedCode === '4701') return '#1e40af';
     if (normalizedCode === '4707') return '#d97706';
     if (normalizedCode === '4710') return '#d946ef';
     if (normalizedCode === '4705') return '#a85507';
@@ -67,7 +67,7 @@ const getMunicipalityColor = (code: unknown): string => {
 
 const getMunicipalityBorderColor = (code: unknown): string => {
     const normalizedCode = normalizeMunicipalityCode(code);
-    if (normalizedCode === '4701') return '#3730a3';
+    if (normalizedCode === '4701') return '#1e3a8a';
     if (normalizedCode === '4707') return '#92400e';
     if (normalizedCode === '4710') return '#a21caf';
     if (normalizedCode === '4705') return '#78350f';
@@ -320,7 +320,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 <div className='space-y-1.5 text-xs text-slate-700'>
                     <div className='flex items-center justify-between gap-2'>
                         <span>ط؛ط±ط¯ط§ظٹط©</span>
-                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#4f46e5' }} />
+                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#1e40af' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>ط§ظ„ط¹ط·ظپ</span>
