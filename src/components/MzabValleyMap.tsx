@@ -305,11 +305,10 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                             key={layer.key}
                             type='button'
                             onClick={() => setActiveLayerKey(layer.key)}
-                            className={`w-full rounded-md border px-2 py-1.5 text-right text-xs transition ${
-                                activeLayerKey === layer.key
+                            className={`w-full rounded-md border px-2 py-1.5 text-right text-xs transition ${activeLayerKey === layer.key
                                     ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                            }`}
+                                }`}
                         >
                             {layer.label}
                         </button>
