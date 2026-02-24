@@ -16,10 +16,9 @@ type LayerMode = 'map' | 'satellite';
 type ProviderId = 'osm' | 'google' | 'esri' | 'bing';
 type LayerProviderKey =
     | 'osm_street'
-    | 'google_street'
+    | 'google_satellite'
     | 'google_hybrid'
     | 'esri_world_imagery'
-    | 'esri_world_street'
     | 'bing_aerial';
 
 type LayerDefinition = {
@@ -93,18 +92,18 @@ const LAYERS: LayerDefinition[] = [
     {
         key: 'osm_street',
         provider: 'osm',
-        label: 'OpenStreetMap - خريطة',
+        label: 'خريطة الشارع (OSM)',
         mode: 'map',
         url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         attribution: '&copy; OpenStreetMap contributors',
         maxNativeZoom: 19,
     },
     {
-        key: 'google_street',
+        key: 'google_satellite',
         provider: 'google',
-        label: 'Google - خريطة',
-        mode: 'map',
-        url: `https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}${GOOGLE_MAPS_API_KEY ? `&key=${GOOGLE_MAPS_API_KEY}` : ''}`,
+        label: 'جوجل مابس - قمر صناعي',
+        mode: 'satellite',
+        url: `https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}${GOOGLE_MAPS_API_KEY ? `&key=${GOOGLE_MAPS_API_KEY}` : ''}`,
         attribution: '&copy; Google',
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         maxNativeZoom: 20,
@@ -112,7 +111,7 @@ const LAYERS: LayerDefinition[] = [
     {
         key: 'google_hybrid',
         provider: 'google',
-        label: 'Google - هجين (قمر صناعي)',
+        label: 'جوجل مابس - هجين',
         mode: 'satellite',
         url: `https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}${GOOGLE_MAPS_API_KEY ? `&key=${GOOGLE_MAPS_API_KEY}` : ''}`,
         attribution: '&copy; Google',
@@ -122,25 +121,16 @@ const LAYERS: LayerDefinition[] = [
     {
         key: 'esri_world_imagery',
         provider: 'esri',
-        label: 'Esri - قمر صناعي',
+        label: 'قمر صناعي Esri',
         mode: 'satellite',
         url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         attribution: 'Tiles &copy; Esri',
         maxNativeZoom: 19,
     },
     {
-        key: 'esri_world_street',
-        provider: 'esri',
-        label: 'Esri - خريطة',
-        mode: 'map',
-        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-        attribution: 'Tiles &copy; Esri',
-        maxNativeZoom: 19,
-    },
-    {
         key: 'bing_aerial',
         provider: 'bing',
-        label: 'Bing - جوي',
+        label: 'Bing - عرض جوي',
         mode: 'satellite',
         url: `https://ecn.t3.tiles.virtualearth.net/tiles/a{q}.jpeg?g=1&mkt=ar-DZ${BING_MAPS_API_KEY ? `&key=${BING_MAPS_API_KEY}` : ''}`,
         attribution: '&copy; Microsoft Bing',
@@ -195,19 +185,15 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
     const [geoJsonData, setGeoJsonData] = useState<unknown>(null);
     const [hoveredParcelKey, setHoveredParcelKey] = useState('');
     const [selectedParcelKey, setSelectedParcelKey] = useState('');
-    const [activeLayerKey, setActiveLayerKey] = useState<LayerProviderKey>('esri_world_imagery');
+    const [activeLayerKey, setActiveLayerKey] = useState<LayerProviderKey>('osm_street');
     const [layerLoadError, setLayerLoadError] = useState('');
 
     const activeLayer = useMemo(() => LAYERS.find((layer) => layer.key === activeLayerKey) ?? LAYERS[0], [activeLayerKey]);
 
-    const hasRenderableGeoJson = useMemo(() => {
-        if (!geoJsonData || typeof geoJsonData !== 'object') return false;
-        const source = geoJsonData as { type?: unknown; features?: unknown };
-        if (source.type === 'FeatureCollection') {
-            return Array.isArray(source.features) && source.features.length > 0;
-        }
-        return source.type === 'Feature' || source.type === 'GeometryCollection';
-    }, [geoJsonData]);
+    const hasRenderableGeoJson = useMemo(
+        () => Array.isArray((geoJsonData as any)?.features) && (geoJsonData as any)?.features?.length > 0,
+        [geoJsonData]
+    );
 
     useEffect(() => {
         fetch('/mzab_cadastre_map.geojson')
@@ -221,8 +207,8 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
 
     useEffect(() => {
         if (activeLayer.provider === 'google' && !GOOGLE_MAPS_API_KEY) {
-            setActiveLayerKey('esri_world_street');
-            setLayerLoadError('مفتاح Google Maps API غير موجود، تم التحويل تلقائياً إلى طبقة Esri.');
+            setActiveLayerKey('osm_street');
+            setLayerLoadError('مفتاح Google Maps API غير موجود، تم التحويل تلقائياً إلى طبقة OSM.');
         }
     }, [activeLayer.provider]);
 
@@ -238,7 +224,7 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
     const handleBaseLayerError = () => {
         if (activeLayer.provider === 'google') {
             setLayerLoadError('تعذر تحميل طبقة Google. تحقق من قيود المفتاح (HTTP referrer/API) ثم أعد المحاولة.');
-            setActiveLayerKey('esri_world_street');
+            setActiveLayerKey('osm_street');
             return;
         }
         setLayerLoadError('تعذر تحميل طبقة الخريطة الحالية.');
