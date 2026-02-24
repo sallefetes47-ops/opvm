@@ -1,5 +1,6 @@
-﻿import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
+import React, { useEffect, useMemo, useState } from 'react';
+import L, { type Coords, type TileLayerOptions } from 'leaflet';
+import { GeoJSON, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface MzabValleyMapProps {
@@ -10,6 +11,27 @@ interface MzabValleyMapProps {
         area: number | null;
     }) => void;
 }
+
+type LayerMode = 'map' | 'satellite';
+type ProviderId = 'osm' | 'google' | 'esri' | 'bing';
+type LayerProviderKey =
+    | 'osm_street'
+    | 'google_street'
+    | 'google_hybrid'
+    | 'esri_world_imagery'
+    | 'esri_world_street'
+    | 'bing_aerial';
+
+type LayerDefinition = {
+    key: LayerProviderKey;
+    provider: ProviderId;
+    label: string;
+    mode: LayerMode;
+    url: string;
+    attribution: string;
+    subdomains?: string[];
+    maxNativeZoom?: number;
+};
 
 const MUNICIPALITY_CODE_TO_NAME: Record<string, string> = {
     '4701': 'غرداية',
@@ -78,10 +100,121 @@ const getParcelKey = (props: Record<string, unknown>): string => {
     return `${municipalityCode}|${section}|${propertyGroup}`;
 };
 
+const BING_MAPS_API_KEY = import.meta.env.VITE_BING_MAPS_API_KEY;
+
+const LAYERS: LayerDefinition[] = [
+    {
+        key: 'osm_street',
+        provider: 'osm',
+        label: 'OpenStreetMap - خريطة',
+        mode: 'map',
+        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '&copy; OpenStreetMap contributors',
+        maxNativeZoom: 19,
+    },
+    {
+        key: 'google_street',
+        provider: 'google',
+        label: 'Google - خريطة',
+        mode: 'map',
+        url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+        attribution: '&copy; Google',
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxNativeZoom: 20,
+    },
+    {
+        key: 'google_hybrid',
+        provider: 'google',
+        label: 'Google - هجين (قمر صناعي)',
+        mode: 'satellite',
+        url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        attribution: '&copy; Google',
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxNativeZoom: 20,
+    },
+    {
+        key: 'esri_world_imagery',
+        provider: 'esri',
+        label: 'Esri - قمر صناعي',
+        mode: 'satellite',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attribution: 'Tiles &copy; Esri',
+        maxNativeZoom: 19,
+    },
+    {
+        key: 'esri_world_street',
+        provider: 'esri',
+        label: 'Esri - خريطة',
+        mode: 'map',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+        attribution: 'Tiles &copy; Esri',
+        maxNativeZoom: 19,
+    },
+    {
+        key: 'bing_aerial',
+        provider: 'bing',
+        label: 'Bing - جوي',
+        mode: 'satellite',
+        url: `https://ecn.t3.tiles.virtualearth.net/tiles/a{q}.jpeg?g=1&mkt=ar-DZ${BING_MAPS_API_KEY ? `&key=${BING_MAPS_API_KEY}` : ''}`,
+        attribution: '&copy; Microsoft Bing',
+        maxNativeZoom: 19,
+    },
+];
+
+const toQuadKey = (x: number, y: number, z: number): string => {
+    let quadKey = '';
+    for (let i = z; i > 0; i -= 1) {
+        let digit = 0;
+        const mask = 1 << (i - 1);
+        if ((x & mask) !== 0) digit += 1;
+        if ((y & mask) !== 0) digit += 2;
+        quadKey += digit.toString();
+    }
+    return quadKey;
+};
+
+class BingQuadKeyTileLayer extends L.TileLayer {
+    getTileUrl(coords: Coords): string {
+        const quadKey = toQuadKey(coords.x, coords.y, coords.z);
+        const data = {
+            r: L.Browser.retina ? '@2x' : '',
+            s: this._getSubdomain(coords),
+            x: coords.x,
+            y: coords.y,
+            z: this._getZoomForUrl(),
+            q: quadKey,
+        };
+        return L.Util.template(this._url, data);
+    }
+}
+
+const BingLayer = ({ url, attribution, maxNativeZoom }: { url: string; attribution: string; maxNativeZoom?: number }) => {
+    const map = useMap();
+
+    useEffect(() => {
+        const options: TileLayerOptions = {
+            attribution,
+            maxZoom: 22,
+            maxNativeZoom: maxNativeZoom ?? 19,
+            detectRetina: true,
+        };
+        const layer = new BingQuadKeyTileLayer(url, options);
+        layer.addTo(map);
+        return () => {
+            map.removeLayer(layer);
+        };
+    }, [map, url, attribution, maxNativeZoom]);
+
+    return null;
+};
+
 const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
     const [geoJsonData, setGeoJsonData] = useState(null);
     const [hoveredParcelKey, setHoveredParcelKey] = useState('');
     const [selectedParcelKey, setSelectedParcelKey] = useState('');
+    const [activeLayerKey, setActiveLayerKey] = useState<LayerProviderKey>('esri_world_imagery');
+
+    const activeLayer = useMemo(() => LAYERS.find((layer) => layer.key === activeLayerKey) ?? LAYERS[0], [activeLayerKey]);
 
     useEffect(() => {
         fetch('/mzab_cadastre_map.geojson')
@@ -93,15 +226,36 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
             .catch((err) => console.error('خطأ في تحميل بيانات القطع:', err));
     }, []);
 
+    const handleQuickToggle = () => {
+        const targetMode: LayerMode = activeLayer.mode === 'satellite' ? 'map' : 'satellite';
+        const sameProviderLayer = LAYERS.find((layer) => layer.provider === activeLayer.provider && layer.mode === targetMode);
+        const preferredGoogle = LAYERS.find((layer) => layer.provider === 'google' && layer.mode === targetMode);
+        const fallback = LAYERS.find((layer) => layer.mode === targetMode);
+        const nextLayer = sameProviderLayer ?? preferredGoogle ?? fallback;
+        if (nextLayer) setActiveLayerKey(nextLayer.key);
+    };
+
     return (
-        <div style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
+        <div className='relative' style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
             <MapContainer center={[32.4845, 3.6792]} zoom={15} maxZoom={22} style={{ height: '100%', width: '100%' }}>
-                <TileLayer
-                    url='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-                    attribution='Tiles &copy; Esri'
-                    maxZoom={22}
-                    maxNativeZoom={18}
-                />
+                {activeLayer.key === 'bing_aerial' ? (
+                    <BingLayer
+                        key={activeLayer.key}
+                        url={activeLayer.url}
+                        attribution={activeLayer.attribution}
+                        maxNativeZoom={activeLayer.maxNativeZoom}
+                    />
+                ) : (
+                    <TileLayer
+                        key={activeLayer.key}
+                        url={activeLayer.url}
+                        attribution={activeLayer.attribution}
+                        maxZoom={22}
+                        maxNativeZoom={activeLayer.maxNativeZoom ?? 19}
+                        subdomains={activeLayer.subdomains}
+                        detectRetina
+                    />
+                )}
 
                 {geoJsonData && (
                     <GeoJSON
@@ -151,6 +305,57 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                     />
                 )}
             </MapContainer>
+
+            <div className='absolute right-4 top-4 z-[600] w-64 rounded-lg border border-white/70 bg-white/95 p-3 text-right shadow-lg backdrop-blur-sm'>
+                <p className='mb-2 text-xs font-semibold text-slate-700'>تغيير المصدر</p>
+                <div className='max-h-52 space-y-1 overflow-y-auto'>
+                    {LAYERS.map((layer) => (
+                        <button
+                            key={layer.key}
+                            type='button'
+                            onClick={() => setActiveLayerKey(layer.key)}
+                            className={`w-full rounded-md border px-2 py-1.5 text-right text-xs transition ${
+                                activeLayerKey === layer.key
+                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                            }`}
+                        >
+                            {layer.label}
+                        </button>
+                    ))}
+                </div>
+                {!BING_MAPS_API_KEY && <p className='mt-2 text-[11px] text-amber-700'>مفتاح Bing غير مضبوط في البيئة.</p>}
+            </div>
+
+            <button
+                type='button'
+                onClick={handleQuickToggle}
+                className='absolute bottom-4 right-4 z-[600] rounded-full border border-slate-200 bg-white/95 px-4 py-2 text-xs font-semibold text-slate-800 shadow-lg transition hover:bg-slate-50'
+            >
+                {activeLayer.mode === 'satellite' ? 'خريطة' : 'قمر صناعي'}
+            </button>
+
+            <div className='pointer-events-none absolute right-4 top-[17.5rem] z-[500] w-52 rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
+                <p className='mb-2 text-xs font-semibold text-slate-700'>دليل الألوان</p>
+                <div className='space-y-1.5 text-xs text-slate-700'>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>غرداية</span>
+                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#3b82f6' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>العطف</span>
+                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#f97316' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>بنورة</span>
+                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#8b5cf6' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>بلدية الضاية</span>
+                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#10b981' }} />
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

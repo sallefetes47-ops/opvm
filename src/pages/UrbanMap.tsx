@@ -119,8 +119,8 @@ const UrbanMap = () => {
 
                     <div className='mt-auto pt-6'>
                         <div className='mb-3 h-px w-full bg-slate-200' />
-                        <p className='text-center text-[11px] font-light tracking-wide text-slate-500'>
-                            جميع الحقوق محفوظة © 2026 - تم التطوير بواسطة [اسمك] لصالح ديوان حماية وادي ميزاب
+                        <p className='text-center text-[11px] font-light tracking-[0.02em] text-slate-500'>
+                            جميع الحقوق محفوظة © 2026 - تم التطوير بواسطة User لصالح ديوان حماية وادي ميزاب
                         </p>
                     </div>
                 </CardContent>
