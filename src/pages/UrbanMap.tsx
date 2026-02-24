@@ -52,6 +52,7 @@ const UrbanMap = () => {
 
     const formatActualArea = (area: number | null) => (area === null ? '' : `${area.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`);
     const formatCadastralArea = (area: number | null) => (area === null ? '' : `${area.toLocaleString('en-US')} m²`);
+    const auditStatus = parcelData.section ? 'تم التحديد' : 'بانتظار الاختيار';
 
     const exportToPDF = () => {
         const doc = new jsPDF();
@@ -89,20 +90,6 @@ const UrbanMap = () => {
                             iconClassName='bg-indigo-100 text-indigo-700'
                         />
                         <InfoCard
-                            label='المساحة الحقيقية (m²)'
-                            value={formatActualArea(parcelData.actualArea)}
-                            icon={Ruler}
-                            className='border-emerald-200 bg-emerald-50'
-                            iconClassName='bg-emerald-100 text-emerald-700'
-                        />
-                        <InfoCard
-                            label='مساحة المسح (m²)'
-                            value={formatCadastralArea(parcelData.cadastralArea)}
-                            icon={Ruler}
-                            className='border-cyan-100 bg-cyan-50/80'
-                            iconClassName='bg-cyan-100 text-cyan-700'
-                        />
-                        <InfoCard
                             label='رقم القسم'
                             value={parcelData.section}
                             icon={Grid}
@@ -113,8 +100,29 @@ const UrbanMap = () => {
                             label='مجموعة الملكية'
                             value={parcelData.propertyGroup}
                             icon={Layers}
-                            className='col-span-2 border-amber-100 bg-amber-50/80'
+                            className='border-amber-100 bg-amber-50/80'
                             iconClassName='bg-amber-100/90 text-amber-700'
+                        />
+                        <InfoCard
+                            label='الحالة'
+                            value={auditStatus}
+                            icon={Layers}
+                            className='border-slate-200 bg-slate-100/80'
+                            iconClassName='bg-slate-200 text-slate-700'
+                        />
+                        <InfoCard
+                            label='المساحة الحقيقية (م²)'
+                            value={formatActualArea(parcelData.actualArea)}
+                            icon={Ruler}
+                            className='border-emerald-200 bg-emerald-50'
+                            iconClassName='bg-emerald-100 text-emerald-700'
+                        />
+                        <InfoCard
+                            label='مساحة المسح (م²)'
+                            value={formatCadastralArea(parcelData.cadastralArea)}
+                            icon={Ruler}
+                            className='border-teal-300 bg-teal-50/90 ring-1 ring-teal-200'
+                            iconClassName='bg-teal-100 text-teal-700'
                         />
                     </div>
 
