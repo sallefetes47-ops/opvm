@@ -124,11 +124,11 @@ export default function NewFile() {
         if (!res.ok) throw new Error("Could not fetch Mzab Map GeoJSON");
         const data = await res.json();
 
-        if (data.features && data.features.length > 0) {
+        if (data?.features?.length > 0) {
           console.log(`[Area AutoFill] DB Sample:`, data.features.slice(0, 3).map((f: any) => f.properties));
         }
 
-        const matchedFeature = data.features?.find((f: any) => {
+        const matchedFeature = data?.features?.find((f: any) => {
           const p = f.properties;
           const fSection = Number(p.SECTION);
           const fIlot = Number(p.ILOT || p.group);

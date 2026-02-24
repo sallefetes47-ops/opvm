@@ -101,6 +101,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
             .then(data => setCadastreGeoJson(data))
             .catch(err => console.warn('لم يتم تحميل بيانات المسح العقاري:', err.message));
     }, []);
+    const hasCadastreGeoJson = Array.isArray(cadastreGeoJson?.features) && cadastreGeoJson.features.length > 0;
 
     // --- STATE ---
 
@@ -220,7 +221,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                         />
 
                         {/* طبقة القطع العقارية من ملف GeoJSON */}
-                        {cadastreGeoJson && (
+                        {hasCadastreGeoJson && (
                             <GeoJSON
                                 key={rawContracts ? `geojson-${rawContracts.length}` : 'geojson-init'}
                                 data={cadastreGeoJson}

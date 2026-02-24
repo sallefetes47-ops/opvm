@@ -101,6 +101,7 @@ const getParcelKey = (props: Record<string, unknown>): string => {
 };
 
 const BING_MAPS_API_KEY = import.meta.env.VITE_BING_MAPS_API_KEY;
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const LAYERS: LayerDefinition[] = [
     {
@@ -117,7 +118,7 @@ const LAYERS: LayerDefinition[] = [
         provider: 'google',
         label: 'Google - خريطة',
         mode: 'map',
-        url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+        url: `https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}${GOOGLE_MAPS_API_KEY ? `&key=${GOOGLE_MAPS_API_KEY}` : ''}`,
         attribution: '&copy; Google',
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         maxNativeZoom: 20,
@@ -127,7 +128,7 @@ const LAYERS: LayerDefinition[] = [
         provider: 'google',
         label: 'Google - هجين (قمر صناعي)',
         mode: 'satellite',
-        url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        url: `https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}${GOOGLE_MAPS_API_KEY ? `&key=${GOOGLE_MAPS_API_KEY}` : ''}`,
         attribution: '&copy; Google',
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         maxNativeZoom: 20,
@@ -242,6 +243,21 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
         const nextLayer = sameProviderLayer ?? preferredGoogle ?? fallback;
         if (nextLayer) setActiveLayerKey(nextLayer.key);
     };
+
+    if (!GOOGLE_MAPS_API_KEY) {
+        return (
+            <div className='flex h-full w-full items-center justify-center rounded-xl border border-red-200 bg-red-50 p-6 text-right'>
+                <div>
+                    <p className='text-sm font-bold text-red-700'>تعذر تحميل الخريطة</p>
+                    <p className='mt-2 text-xs text-red-600'>
+                        مفتاح Google Maps API غير موجود. أضف
+                        <code className='mx-1 rounded bg-red-100 px-1 py-0.5'>VITE_GOOGLE_MAPS_API_KEY</code>
+                        في ملف <code>.env</code>.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className='relative' style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>

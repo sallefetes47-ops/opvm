@@ -116,13 +116,6 @@ const UrbanMap = () => {
                             طباعة عقد التعمير (PDF)
                         </button>
                     </div>
-
-                    <div className='mt-auto pt-6'>
-                        <div className='mb-3 h-px w-full bg-slate-200' />
-                        <p className='text-center text-[11px] font-light tracking-[0.02em] text-slate-500'>
-                            جميع الحقوق محفوظة © 2026 - تم التطوير بواسطة [ضع اسمك] لصالح ديوان حماية وادي ميزاب وترقيته
-                        </p>
-                    </div>
                 </CardContent>
             </Card>
         </div>
