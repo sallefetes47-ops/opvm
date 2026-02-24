@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { GeoJSON, LayersControl, MapContainer, TileLayer } from 'react-leaflet';
+import L from 'leaflet';
+import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import type { GeoJsonObject } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 
@@ -93,10 +94,52 @@ const normalizeGeoJson = (raw: any): GeoJsonFeatureCollectionLike => {
     return { type: 'FeatureCollection', features: safeFeatures };
 };
 
+const getCommuneCodeFromProps = (props: Record<string, unknown>): string =>
+    normalizeMunicipalityCode(props.commune_code ?? props.COMMUNE_CODE ?? props.COMMUNE ?? props.Municipality ?? props.MUNICIPALITY ?? '');
+
+const getSectionFromProps = (props: Record<string, unknown>): string =>
+    String(props.section ?? props.Section ?? props.SECTION ?? '').trim();
+
+const getGroupFromProps = (props: Record<string, unknown>): string =>
+    String(props.group ?? props.Group ?? props.ILOT ?? props.PropertyGroup ?? props.PROPERTYGROUP ?? '').trim();
+
+const MapSearchController = ({
+    targetFeature,
+    resetSignal,
+}: {
+    targetFeature: GeoJsonFeatureCollectionLike['features'][number] | null;
+    resetSignal: number;
+}) => {
+    const map = useMap();
+
+    useEffect(() => {
+        if (!targetFeature) return;
+        const layer = L.geoJSON(targetFeature as any);
+        const bounds = layer.getBounds();
+        if (bounds.isValid()) {
+            map.flyToBounds(bounds, { padding: [24, 24], maxZoom: 21, duration: 1.1 });
+        }
+    }, [map, targetFeature]);
+
+    useEffect(() => {
+        if (resetSignal === 0) return;
+        map.flyTo([32.4845, 3.6792], 15, { duration: 1 });
+    }, [map, resetSignal]);
+
+    return null;
+};
+
 const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
     const [geojsonData, setGeojsonData] = useState<GeoJsonFeatureCollectionLike | null>(null);
     const [hoveredParcelKey, setHoveredParcelKey] = useState('');
     const [selectedParcelKey, setSelectedParcelKey] = useState('');
+    const [foundParcelKey, setFoundParcelKey] = useState('');
+    const [searchMunicipalityCode, setSearchMunicipalityCode] = useState('');
+    const [searchSection, setSearchSection] = useState('');
+    const [searchGroup, setSearchGroup] = useState('');
+    const [searchMessage, setSearchMessage] = useState('');
+    const [searchedFeature, setSearchedFeature] = useState<GeoJsonFeatureCollectionLike['features'][number] | null>(null);
+    const [resetSignal, setResetSignal] = useState(0);
 
     useEffect(() => {
         fetch('/mzab_cadastre_map.geojson')
@@ -127,12 +170,13 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                     const parcelKey = getParcelKey(props);
                     const isHovered = hoveredParcelKey === parcelKey;
                     const isSelected = selectedParcelKey === parcelKey;
+                    const isFound = foundParcelKey === parcelKey;
 
                     return {
                         fillColor,
                         fillOpacity: 0.5,
-                        color: isHovered || isSelected ? borderColor : '#ffffff',
-                        weight: isSelected ? 3 : isHovered ? 2.5 : 1.1,
+                        color: isFound ? '#eaff00' : isHovered || isSelected ? borderColor : '#ffffff',
+                        weight: isFound ? 4 : isSelected ? 3 : isHovered ? 2.5 : 1.1,
                     };
                 }}
                 eventHandlers={{
@@ -143,7 +187,10 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                     mouseout: () => setHoveredParcelKey(''),
                     click: (e) => {
                         const props = e?.propagatedFrom?.feature?.properties || {};
-                        setSelectedParcelKey(getParcelKey(props));
+                        const clickedKey = getParcelKey(props);
+                        setSelectedParcelKey(clickedKey);
+                        setFoundParcelKey(clickedKey);
+                        setSearchMessage('');
                         if (!onParcelSelect) return;
 
                         const municipality = resolveMunicipalityName(props.Municipality ?? props.MUNICIPALITY ?? props.COMMUNE ?? '');
@@ -157,10 +204,114 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                 }}
             />
         );
-    }, [geojsonData, hoveredParcelKey, selectedParcelKey, onParcelSelect]);
+    }, [geojsonData, hoveredParcelKey, selectedParcelKey, foundParcelKey, onParcelSelect]);
+
+    const handleSearch = () => {
+        if (!geojsonData || !geojsonData.features) {
+            setSearchMessage('البيانات غير جاهزة بعد، يرجى الانتظار.');
+            return;
+        }
+
+        if (!searchMunicipalityCode || !searchSection.trim() || !searchGroup.trim()) {
+            setSearchMessage('يرجى اختيار البلدية وإدخال رقم القسم ومجموعة الملكية.');
+            return;
+        }
+
+        const targetSection = searchSection.trim();
+        const targetGroup = searchGroup.trim();
+
+        const match = geojsonData.features.find((feature) => {
+            const props = (feature?.properties || {}) as Record<string, unknown>;
+            const communeCode = getCommuneCodeFromProps(props);
+            const section = getSectionFromProps(props);
+            const group = getGroupFromProps(props);
+            return communeCode === searchMunicipalityCode && section === targetSection && group === targetGroup;
+        });
+
+        if (!match) {
+            setSearchMessage('لم يتم العثور على قطعة بهذه المعايير.');
+            setSearchedFeature(null);
+            setFoundParcelKey('');
+            return;
+        }
+
+        const props = (match.properties || {}) as Record<string, unknown>;
+        const key = getParcelKey(props);
+        setFoundParcelKey(key);
+        setSelectedParcelKey(key);
+        setSearchedFeature(match);
+        setSearchMessage('تم العثور على القطعة بنجاح.');
+
+        if (onParcelSelect) {
+            const municipality = resolveMunicipalityName(props.Municipality ?? props.MUNICIPALITY ?? props.COMMUNE ?? props.commune_code ?? '');
+            const section = String(props.Section ?? props.SECTION ?? props.section ?? '');
+            const propertyGroup = String(props.PropertyGroup ?? props.PROPERTYGROUP ?? props.ILOT ?? props.group ?? '');
+            const rawArea = Number(props.Area ?? props.AREA);
+            const area = Number.isFinite(rawArea) ? rawArea : null;
+            onParcelSelect({ municipality, section, propertyGroup, area });
+        }
+    };
+
+    const handleClearSearch = () => {
+        setSearchMunicipalityCode('');
+        setSearchSection('');
+        setSearchGroup('');
+        setSearchMessage('');
+        setFoundParcelKey('');
+        setSelectedParcelKey('');
+        setSearchedFeature(null);
+        setResetSignal((prev) => prev + 1);
+    };
 
     return (
         <div className='relative' style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
+            <div className='absolute left-4 top-4 z-[700] w-[28rem] rounded-xl border border-white/70 bg-white/95 p-3 shadow-lg backdrop-blur-sm'>
+                <p className='mb-2 text-right text-xs font-semibold text-slate-700'>البحث الذكي عن القطعة</p>
+                <div className='grid grid-cols-1 gap-2 sm:grid-cols-4'>
+                    <select
+                        value={searchMunicipalityCode}
+                        onChange={(e) => setSearchMunicipalityCode(e.target.value)}
+                        className='rounded-md border border-slate-200 px-2 py-2 text-right text-xs text-slate-700 outline-none focus:border-emerald-400'
+                    >
+                        <option value=''>اختر البلدية</option>
+                        <option value='4701'>غرداية (4701)</option>
+                        <option value='4707'>العطف (4707)</option>
+                        <option value='4710'>بنورة (4710)</option>
+                        <option value='4703'>بلدية الضاية (4703)</option>
+                        <option value='4705'>متليلي (4705)</option>
+                    </select>
+                    <input
+                        value={searchSection}
+                        onChange={(e) => setSearchSection(e.target.value)}
+                        placeholder='رقم القسم'
+                        className='rounded-md border border-slate-200 px-2 py-2 text-right text-xs text-slate-700 outline-none focus:border-emerald-400'
+                    />
+                    <input
+                        value={searchGroup}
+                        onChange={(e) => setSearchGroup(e.target.value)}
+                        placeholder='مجموعة الملكية'
+                        className='rounded-md border border-slate-200 px-2 py-2 text-right text-xs text-slate-700 outline-none focus:border-emerald-400'
+                    />
+                    <div className='flex gap-2'>
+                        <button
+                            type='button'
+                            onClick={handleSearch}
+                            className='w-full rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700'
+                        >
+                            بحث
+                        </button>
+                        <button
+                            type='button'
+                            onClick={handleClearSearch}
+                            className='w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50'
+                        >
+                            مسح
+                        </button>
+                    </div>
+                </div>
+                {searchMessage && <p className='mt-2 text-right text-[11px] text-slate-600'>{searchMessage}</p>}
+            </div>
+
             <MapContainer center={[32.4845, 3.6792]} zoom={15} maxZoom={22} style={{ height: '100%', width: '100%' }}>
                 <LayersControl position='topright'>
                     <LayersControl.BaseLayer checked name='خريطة الشارع (OSM)'>
@@ -195,6 +346,7 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                 </LayersControl>
 
                 {geoJsonLayer}
+                <MapSearchController targetFeature={searchedFeature} resetSignal={resetSignal} />
             </MapContainer>
 
             {!GOOGLE_MAPS_API_KEY && (
