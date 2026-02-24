@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import MzabValleyMap from '../components/MzabValleyMap';
 import { MapErrorBoundary } from '../components/MapErrorBoundary';
 import { jsPDF } from 'jspdf';
 
 const UrbanMap = () => {
-    const [parcelData, setParcelData] = useState({ section: '', ilot: '', owner: '' });
+    const [parcelData, setParcelData] = useState({ municipality: '', section: '', ilot: '', plotArea: '' });
 
     // دالة لاستقبال البيانات من الخريطة
     const handleSelect = (data: { section: string, ilot: string }) => {
@@ -14,11 +14,12 @@ const UrbanMap = () => {
     // دالة توليد ملف PDF للمرسوم 15-19
     const exportToPDF = () => {
         const doc = new jsPDF();
-        doc.text("ديوان حماية وادي ميزاب", 105, 20, { align: "center" });
-        doc.text("استمارة طلب تسوية (المرسوم 15-19)", 105, 30, { align: "center" });
-        doc.text(`صاحب الطلب: ${parcelData.owner}`, 20, 50);
+        doc.text('ديوان حماية وادي ميزاب', 105, 20, { align: 'center' });
+        doc.text('استمارة طلب تسوية (المرسوم 15-19)', 105, 30, { align: 'center' });
+        doc.text(`البلدية: ${parcelData.municipality}`, 20, 50);
         doc.text(`القسم العقاري: ${parcelData.section}`, 20, 60);
         doc.text(`رقم مجموعة الملكية: ${parcelData.ilot}`, 20, 70);
+        doc.text(`مساحة القطعة: ${parcelData.plotArea}`, 20, 80);
         doc.save(`urban_contract_${parcelData.section}.pdf`);
     };
 
@@ -33,20 +34,28 @@ const UrbanMap = () => {
 
             {/* قسم الاستمارة */}
             <div style={{ flex: 1, padding: '20px', background: '#f9f9f9', borderRadius: '15px' }}>
-                <h2 style={{ color: '#d32f2f' }}>بيانات التسوية العمرانية</h2>
+                <h2 style={{ color: '#d32f2f' }}>معلومات المسح العقاري</h2>
                 <hr />
                 <div style={{ marginTop: '20px' }}>
-                    <label>القسم (آلي من الخريطة):</label>
-                    <input type="text" value={parcelData.section} readOnly style={inputStyle} />
-
-                    <label>المجموعة (آلي من الخريطة):</label>
-                    <input type="text" value={parcelData.ilot} readOnly style={inputStyle} />
-
-                    <label>اسم صاحب الطلب:</label>
+                    <label>البلدية:</label>
                     <input
-                        type="text"
-                        placeholder="أدخل الاسم هنا"
-                        onChange={(e) => setParcelData({ ...parcelData, owner: e.target.value })}
+                        type='text'
+                        value={parcelData.municipality}
+                        onChange={(e) => setParcelData({ ...parcelData, municipality: e.target.value })}
+                        style={inputStyle}
+                    />
+
+                    <label>رقم القسم (آلي من الخريطة):</label>
+                    <input type='text' value={parcelData.section} readOnly style={inputStyle} />
+
+                    <label>رقم مجموعة الملكية (آلي من الخريطة):</label>
+                    <input type='text' value={parcelData.ilot} readOnly style={inputStyle} />
+
+                    <label>مساحة القطعة:</label>
+                    <input
+                        type='text'
+                        value={parcelData.plotArea}
+                        onChange={(e) => setParcelData({ ...parcelData, plotArea: e.target.value })}
                         style={inputStyle}
                     />
 
