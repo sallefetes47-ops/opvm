@@ -110,7 +110,7 @@ export default function NewFile() {
       const COMMUNE_CODES: Record<string, string> = {
         'غرداية': '4701',
         'مليكة': '4701',
-        'بونورة': '4710',
+        'بنورة': '4710',
         'بني يزقن': '4710',
         'العطف': '4707'
       };
@@ -337,7 +337,7 @@ export default function NewFile() {
                 <SelectContent>
                   <SelectItem value="غرداية">غرداية</SelectItem>
                   <SelectItem value="العطف">العطف</SelectItem>
-                  <SelectItem value="بونورة">بونورة</SelectItem>
+                  <SelectItem value="بونورة">بنورة</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -636,7 +636,7 @@ export default function NewFile() {
               <DateInput
                 value={formData.submission_date}
                 onChange={(date) => setFormData({ ...formData, submission_date: date })}
-                placeholder="DD/MM/YYYY"
+                placeholder="YYYY/MM/DD"
               />
             </div>
             <div className="space-y-2">
@@ -644,7 +644,7 @@ export default function NewFile() {
               <DateInput
                 value={formData.session_date}
                 onChange={(date) => setFormData({ ...formData, session_date: date })}
-                placeholder="DD/MM/YYYY"
+                placeholder="YYYY/MM/DD"
               />
             </div>
             <div className="space-y-2 md:col-span-2">

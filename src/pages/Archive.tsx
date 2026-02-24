@@ -270,7 +270,7 @@ export default function ArchivePage() {
                 <SelectItem value="all">الكل</SelectItem>
                 <SelectItem value="غرداية">غرداية</SelectItem>
                 <SelectItem value="العطف">العطف</SelectItem>
-                <SelectItem value="بونورة">بونورة</SelectItem>
+                <SelectItem value="بونورة">بنورة</SelectItem>
               </SelectContent>
             </Select>
             <Select value={opinionFilter} onValueChange={setOpinionFilter}>
@@ -453,7 +453,7 @@ export default function ArchivePage() {
                     <SelectContent dir="rtl">
                       <SelectItem value="غرداية" className="text-right justify-end">غرداية</SelectItem>
                       <SelectItem value="العطف" className="text-right justify-end">العطف</SelectItem>
-                      <SelectItem value="بونورة" className="text-right justify-end">بونورة</SelectItem>
+                      <SelectItem value="بونورة" className="text-right justify-end">بنورة</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

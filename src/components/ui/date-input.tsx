@@ -19,19 +19,19 @@ interface DateInputProps {
 export function DateInput({
   value,
   onChange,
-  placeholder = "DD/MM/YYYY",
+  placeholder = "YYYY/MM/DD",
   className,
   disabled = false
 }: DateInputProps) {
   const [inputValue, setInputValue] = React.useState(
-    value ? format(value, "dd/MM/yyyy") : ""
+    value ? format(value, "yyyy/MM/dd") : ""
   );
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
 
   // Sync input value when prop changes
   React.useEffect(() => {
     if (value) {
-      setInputValue(format(value, "dd/MM/yyyy"));
+      setInputValue(format(value, "yyyy/MM/dd"));
     } else {
       setInputValue("");
     }
@@ -40,10 +40,10 @@ export function DateInput({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
 
-    // Auto-format: add slashes after day and month
-    if (val.length === 2 && inputValue.length === 1) {
+    // Auto-format: add slashes after year (pos 4) and month (pos 7)
+    if (val.length === 4 && inputValue.length === 3) {
       val += "/";
-    } else if (val.length === 5 && inputValue.length === 4) {
+    } else if (val.length === 7 && inputValue.length === 6) {
       val += "/";
     }
 
@@ -54,7 +54,7 @@ export function DateInput({
 
     // Try to parse the date
     if (val.length === 10) {
-      const parsed = parse(val, "dd/MM/yyyy", new Date());
+      const parsed = parse(val, "yyyy/MM/dd", new Date());
       if (isValid(parsed)) {
         onChange(parsed);
       }
@@ -66,7 +66,7 @@ export function DateInput({
   const handleCalendarSelect = (date: Date | undefined) => {
     onChange(date);
     if (date) {
-      setInputValue(format(date, "dd/MM/yyyy"));
+      setInputValue(format(date, "yyyy/MM/dd"));
     }
     setIsCalendarOpen(false);
   };
@@ -77,7 +77,7 @@ export function DateInput({
         type="text"
         value={inputValue}
         onChange={handleInputChange}
-        placeholder="يوم/شهر/سنة"
+        placeholder="سنة/شهر/يوم"
         className={cn("flex-1 text-right font-mono", className)}
         disabled={disabled}
         dir="rtl"
