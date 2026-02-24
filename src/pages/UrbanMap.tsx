@@ -21,15 +21,15 @@ type InfoCardProps = {
 };
 
 const InfoCard = ({ label, value, icon: Icon, className = '', iconClassName = '' }: InfoCardProps) => (
-    <Card className={`border shadow-sm ${className}`}>
+    <Card className={`border shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${className}`}>
         <CardContent className='p-4'>
             <div className='flex items-start justify-between gap-3'>
                 <div className='text-right'>
-                    <p className='mb-1 text-xs font-medium text-muted-foreground'>{label}</p>
+                    <p className='mb-1 text-[11px] font-semibold tracking-wide text-slate-500'>{label}</p>
                     <p className='text-lg font-bold leading-tight text-slate-900'>{value || '---'}</p>
                 </div>
-                <div className={`rounded-md p-2 ${iconClassName}`}>
-                    <Icon className='h-5 w-5' />
+                <div className={`rounded-xl p-2.5 shadow-sm ${iconClassName}`}>
+                    <Icon className='h-4 w-4' />
                 </div>
             </div>
         </CardContent>
@@ -69,20 +69,20 @@ const UrbanMap = () => {
                 </MapErrorBoundary>
             </div>
 
-            <Card className='flex h-full flex-col rounded-2xl border-slate-200 bg-slate-50/80'>
+            <Card className='flex h-full flex-col rounded-2xl border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-100/80'>
                 <CardContent className='flex h-full flex-col p-5 text-right'>
-                    <div className='mb-5'>
+                    <div className='mb-5 rounded-xl border border-rose-100 bg-white/80 p-3 shadow-sm'>
                         <div className='mb-3 h-1 w-16 rounded-full bg-[#7b1e1e]' />
                         <h2 className='text-xl font-bold text-[#7b1e1e]'>معلومات المسح العقاري</h2>
                     </div>
 
-                    <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+                    <div className='grid grid-cols-2 gap-3'>
                         <InfoCard
                             label='البلدية'
                             value={parcelData.municipality}
                             icon={MapPin}
-                            className='border-slate-200 bg-slate-100/90'
-                            iconClassName='bg-slate-200/80 text-slate-700'
+                            className='border-indigo-100 bg-indigo-50/80'
+                            iconClassName='bg-indigo-100 text-indigo-700'
                         />
                         <InfoCard
                             label='مساحة القطعة'
@@ -95,14 +95,14 @@ const UrbanMap = () => {
                             label='رقم القسم'
                             value={parcelData.section}
                             icon={Grid}
-                            className='border-rose-100 bg-rose-50/70'
+                            className='border-rose-100 bg-rose-50/80'
                             iconClassName='bg-rose-100/90 text-rose-700'
                         />
                         <InfoCard
                             label='مجموعة الملكية'
                             value={parcelData.propertyGroup}
                             icon={Layers}
-                            className='border-amber-100 bg-amber-50/70'
+                            className='border-amber-100 bg-amber-50/80'
                             iconClassName='bg-amber-100/90 text-amber-700'
                         />
                     </div>
@@ -120,7 +120,7 @@ const UrbanMap = () => {
                     <div className='mt-auto pt-6'>
                         <div className='mb-3 h-px w-full bg-slate-200' />
                         <p className='text-center text-[11px] font-light tracking-[0.02em] text-slate-500'>
-                            جميع الحقوق محفوظة © 2026 - تم التطوير بواسطة User لصالح ديوان حماية وادي ميزاب
+                            جميع الحقوق محفوظة © 2026 - تم التطوير بواسطة [ضع اسمك] لصالح ديوان حماية وادي ميزاب وترقيته
                         </p>
                     </div>
                 </CardContent>
