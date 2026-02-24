@@ -42,13 +42,10 @@ const MUNICIPALITY_CODE_TO_NAME: Record<string, string> = {
 
 const normalizeMunicipalityCode = (rawValue: unknown): string => {
     if (rawValue === null || rawValue === undefined) return '';
-
     const text = String(rawValue).trim();
     if (!text) return '';
-
     const digitsOnly = text.replace(/\D/g, '');
     if (!digitsOnly) return text;
-
     return digitsOnly.length >= 4 ? digitsOnly.slice(-4) : digitsOnly;
 };
 
@@ -72,24 +69,13 @@ const getMunicipalityBorderColor = (code: unknown): string => {
 
 const resolveMunicipalityName = (rawValue: unknown): string => {
     if (rawValue === null || rawValue === undefined) return '';
-
     const text = String(rawValue).trim();
     if (!text) return '';
-
-    if (MUNICIPALITY_CODE_TO_NAME[text]) {
-        return MUNICIPALITY_CODE_TO_NAME[text];
-    }
-
+    if (MUNICIPALITY_CODE_TO_NAME[text]) return MUNICIPALITY_CODE_TO_NAME[text];
     const digitsOnly = text.replace(/\D/g, '');
-    if (MUNICIPALITY_CODE_TO_NAME[digitsOnly]) {
-        return MUNICIPALITY_CODE_TO_NAME[digitsOnly];
-    }
-
+    if (MUNICIPALITY_CODE_TO_NAME[digitsOnly]) return MUNICIPALITY_CODE_TO_NAME[digitsOnly];
     const last4 = digitsOnly.slice(-4);
-    if (MUNICIPALITY_CODE_TO_NAME[last4]) {
-        return MUNICIPALITY_CODE_TO_NAME[last4];
-    }
-
+    if (MUNICIPALITY_CODE_TO_NAME[last4]) return MUNICIPALITY_CODE_TO_NAME[last4];
     return text;
 };
 
@@ -100,8 +86,8 @@ const getParcelKey = (props: Record<string, unknown>): string => {
     return `${municipalityCode}|${section}|${propertyGroup}`;
 };
 
-const BING_MAPS_API_KEY = import.meta.env.VITE_BING_MAPS_API_KEY;
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const BING_MAPS_API_KEY = (import.meta.env.VITE_BING_MAPS_API_KEY ?? '').trim();
+const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '').trim();
 
 const LAYERS: LayerDefinition[] = [
     {
@@ -191,7 +177,6 @@ class BingQuadKeyTileLayer extends L.TileLayer {
 
 const BingLayer = ({ url, attribution, maxNativeZoom }: { url: string; attribution: string; maxNativeZoom?: number }) => {
     const map = useMap();
-
     useEffect(() => {
         const options: TileLayerOptions = {
             attribution,
@@ -201,11 +186,8 @@ const BingLayer = ({ url, attribution, maxNativeZoom }: { url: string; attributi
         };
         const layer = new BingQuadKeyTileLayer(url, options);
         layer.addTo(map);
-        return () => {
-            map.removeLayer(layer);
-        };
+        return () => map.removeLayer(layer);
     }, [map, url, attribution, maxNativeZoom]);
-
     return null;
 };
 
@@ -214,8 +196,10 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
     const [hoveredParcelKey, setHoveredParcelKey] = useState('');
     const [selectedParcelKey, setSelectedParcelKey] = useState('');
     const [activeLayerKey, setActiveLayerKey] = useState<LayerProviderKey>('esri_world_imagery');
+    const [layerLoadError, setLayerLoadError] = useState('');
 
     const activeLayer = useMemo(() => LAYERS.find((layer) => layer.key === activeLayerKey) ?? LAYERS[0], [activeLayerKey]);
+
     const hasRenderableGeoJson = useMemo(() => {
         if (!geoJsonData || typeof geoJsonData !== 'object') return false;
         const source = geoJsonData as { type?: unknown; features?: unknown };
@@ -235,6 +219,13 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
             .catch((err) => console.error('خطأ في تحميل بيانات القطع:', err));
     }, []);
 
+    useEffect(() => {
+        if (activeLayer.provider === 'google' && !GOOGLE_MAPS_API_KEY) {
+            setActiveLayerKey('esri_world_street');
+            setLayerLoadError('مفتاح Google Maps API غير موجود، تم التحويل تلقائياً إلى طبقة Esri.');
+        }
+    }, [activeLayer.provider]);
+
     const handleQuickToggle = () => {
         const targetMode: LayerMode = activeLayer.mode === 'satellite' ? 'map' : 'satellite';
         const sameProviderLayer = LAYERS.find((layer) => layer.provider === activeLayer.provider && layer.mode === targetMode);
@@ -244,20 +235,14 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
         if (nextLayer) setActiveLayerKey(nextLayer.key);
     };
 
-    if (!GOOGLE_MAPS_API_KEY) {
-        return (
-            <div className='flex h-full w-full items-center justify-center rounded-xl border border-red-200 bg-red-50 p-6 text-right'>
-                <div>
-                    <p className='text-sm font-bold text-red-700'>تعذر تحميل الخريطة</p>
-                    <p className='mt-2 text-xs text-red-600'>
-                        مفتاح Google Maps API غير موجود. أضف
-                        <code className='mx-1 rounded bg-red-100 px-1 py-0.5'>VITE_GOOGLE_MAPS_API_KEY</code>
-                        في ملف <code>.env</code>.
-                    </p>
-                </div>
-            </div>
-        );
-    }
+    const handleBaseLayerError = () => {
+        if (activeLayer.provider === 'google') {
+            setLayerLoadError('تعذر تحميل طبقة Google. تحقق من قيود المفتاح (HTTP referrer/API) ثم أعد المحاولة.');
+            setActiveLayerKey('esri_world_street');
+            return;
+        }
+        setLayerLoadError('تعذر تحميل طبقة الخريطة الحالية.');
+    };
 
     return (
         <div className='relative' style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
@@ -278,6 +263,7 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                         maxNativeZoom={activeLayer.maxNativeZoom ?? 19}
                         subdomains={activeLayer.subdomains}
                         detectRetina
+                        eventHandlers={{ tileerror: handleBaseLayerError }}
                     />
                 )}
 
@@ -292,7 +278,6 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                             const parcelKey = getParcelKey(props);
                             const isHovered = hoveredParcelKey === parcelKey;
                             const isSelected = selectedParcelKey === parcelKey;
-
                             return {
                                 fillColor,
                                 fillOpacity: 0.5,
@@ -305,14 +290,11 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                                 const props = e?.propagatedFrom?.feature?.properties || {};
                                 setHoveredParcelKey(getParcelKey(props));
                             },
-                            mouseout: () => {
-                                setHoveredParcelKey('');
-                            },
+                            mouseout: () => setHoveredParcelKey(''),
                             click: (e) => {
                                 const props = e?.propagatedFrom?.feature?.properties || {};
                                 setSelectedParcelKey(getParcelKey(props));
                                 if (!onParcelSelect) return;
-
                                 const municipality = resolveMunicipalityName(
                                     props.Municipality ?? props.MUNICIPALITY ?? props.COMMUNE ?? ''
                                 );
@@ -322,7 +304,6 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                                 );
                                 const rawArea = Number(props.Area ?? props.AREA);
                                 const area = Number.isFinite(rawArea) ? rawArea : null;
-
                                 onParcelSelect({ municipality, section, propertyGroup, area });
                             },
                         }}
@@ -348,8 +329,15 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                         </button>
                     ))}
                 </div>
+                {!GOOGLE_MAPS_API_KEY && <p className='mt-2 text-[11px] text-amber-700'>مفتاح Google غير مضبوط، طبقات Google غير متاحة.</p>}
                 {!BING_MAPS_API_KEY && <p className='mt-2 text-[11px] text-amber-700'>مفتاح Bing غير مضبوط في البيئة.</p>}
             </div>
+
+            {layerLoadError && (
+                <div className='absolute left-4 top-4 z-[650] max-w-xs rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-right text-xs text-amber-800 shadow'>
+                    {layerLoadError}
+                </div>
+            )}
 
             <button
                 type='button'
