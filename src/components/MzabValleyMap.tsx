@@ -38,6 +38,39 @@ type SafeFeatureCollection = {
     features: any[];
 };
 
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+
+const hasValidCoordinates = (geometry: any): boolean => {
+    if (!geometry || typeof geometry !== 'object') return false;
+    const { type, coordinates, geometries } = geometry;
+
+    if (type === 'GeometryCollection') {
+        return Array.isArray(geometries) && geometries.length > 0 && geometries.every(hasValidCoordinates);
+    }
+
+    if (!Array.isArray(coordinates) || coordinates.length === 0) return false;
+
+    if (type === 'Point') {
+        return coordinates.length >= 2 && isFiniteNumber(coordinates[0]) && isFiniteNumber(coordinates[1]);
+    }
+
+    return true;
+};
+
+const normalizeGeoJson = (raw: any): SafeFeatureCollection => {
+    const rawFeatures = Array.isArray(raw?.features) ? raw.features : [];
+
+    const cleaned = rawFeatures.filter((feature: any) => {
+        if (!feature || feature.type !== 'Feature') return false;
+        return hasValidCoordinates(feature.geometry);
+    });
+
+    return {
+        type: 'FeatureCollection',
+        features: cleaned,
+    };
+};
+
 const MUNICIPALITY_CODE_TO_NAME: Record<string, string> = {
     '4701': 'غرداية',
     '4707': 'العطف',
@@ -212,12 +245,13 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                 if (!res.ok) throw new Error('البيانات العقارية غير متوفرة');
                 return res.json();
             })
-            .then((data: any) =>
-                setGeoJsonData({
-                    type: 'FeatureCollection',
-                    features: Array.isArray(data?.features) ? data.features : [],
-                })
-            )
+            .then((data: any) => {
+                const normalized = normalizeGeoJson(data);
+                setGeoJsonData(normalized);
+                if ((normalized.features?.length ?? 0) === 0) {
+                    setLayerLoadError('تم تحميل الخريطة لكن بيانات GeoJSON غير صالحة للعرض.');
+                }
+            })
             .catch((err) => {
                 console.error('خطأ في تحميل بيانات القطع:', err);
                 setGeoJsonData({ type: 'FeatureCollection', features: [] });
