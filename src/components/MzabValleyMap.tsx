@@ -16,9 +16,10 @@ type LayerMode = 'map' | 'satellite';
 type ProviderId = 'osm' | 'google' | 'esri' | 'bing';
 type LayerProviderKey =
     | 'osm_street'
+    | 'esri_world_street'
+    | 'esri_world_imagery'
     | 'google_satellite'
     | 'google_hybrid'
-    | 'esri_world_imagery'
     | 'bing_aerial';
 
 type LayerDefinition = {
@@ -30,6 +31,11 @@ type LayerDefinition = {
     attribution: string;
     subdomains?: string[];
     maxNativeZoom?: number;
+};
+
+type SafeFeatureCollection = {
+    type: 'FeatureCollection';
+    features: any[];
 };
 
 const MUNICIPALITY_CODE_TO_NAME: Record<string, string> = {
@@ -99,6 +105,24 @@ const LAYERS: LayerDefinition[] = [
         maxNativeZoom: 19,
     },
     {
+        key: 'esri_world_street',
+        provider: 'esri',
+        label: 'Esri - Street',
+        mode: 'map',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+        attribution: 'Tiles &copy; Esri',
+        maxNativeZoom: 19,
+    },
+    {
+        key: 'esri_world_imagery',
+        provider: 'esri',
+        label: 'قمر صناعي Esri',
+        mode: 'satellite',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attribution: 'Tiles &copy; Esri',
+        maxNativeZoom: 19,
+    },
+    {
         key: 'google_satellite',
         provider: 'google',
         label: 'جوجل مابس - قمر صناعي',
@@ -117,15 +141,6 @@ const LAYERS: LayerDefinition[] = [
         attribution: '&copy; Google',
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         maxNativeZoom: 20,
-    },
-    {
-        key: 'esri_world_imagery',
-        provider: 'esri',
-        label: 'قمر صناعي Esri',
-        mode: 'satellite',
-        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        attribution: 'Tiles &copy; Esri',
-        maxNativeZoom: 19,
     },
     {
         key: 'bing_aerial',
@@ -182,18 +197,14 @@ const BingLayer = ({ url, attribution, maxNativeZoom }: { url: string; attributi
 };
 
 const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
-    const [geoJsonData, setGeoJsonData] = useState<unknown>(null);
+    const [geoJsonData, setGeoJsonData] = useState<SafeFeatureCollection>({ type: 'FeatureCollection', features: [] });
     const [hoveredParcelKey, setHoveredParcelKey] = useState('');
     const [selectedParcelKey, setSelectedParcelKey] = useState('');
     const [activeLayerKey, setActiveLayerKey] = useState<LayerProviderKey>('osm_street');
     const [layerLoadError, setLayerLoadError] = useState('');
 
     const activeLayer = useMemo(() => LAYERS.find((layer) => layer.key === activeLayerKey) ?? LAYERS[0], [activeLayerKey]);
-
-    const hasRenderableGeoJson = useMemo(
-        () => Array.isArray((geoJsonData as any)?.features) && (geoJsonData as any)?.features?.length > 0,
-        [geoJsonData]
-    );
+    const hasRenderableGeoJson = useMemo(() => (geoJsonData?.features?.length ?? 0) > 0, [geoJsonData]);
 
     useEffect(() => {
         fetch('/mzab_cadastre_map.geojson')
@@ -201,14 +212,23 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                 if (!res.ok) throw new Error('البيانات العقارية غير متوفرة');
                 return res.json();
             })
-            .then((data) => setGeoJsonData(data))
-            .catch((err) => console.error('خطأ في تحميل بيانات القطع:', err));
+            .then((data: any) =>
+                setGeoJsonData({
+                    type: 'FeatureCollection',
+                    features: Array.isArray(data?.features) ? data.features : [],
+                })
+            )
+            .catch((err) => {
+                console.error('خطأ في تحميل بيانات القطع:', err);
+                setGeoJsonData({ type: 'FeatureCollection', features: [] });
+                setLayerLoadError('تعذر تحميل GeoJSON. تم عرض الخريطة الأساسية فقط.');
+            });
     }, []);
 
     useEffect(() => {
         if (activeLayer.provider === 'google' && !GOOGLE_MAPS_API_KEY) {
             setActiveLayerKey('osm_street');
-            setLayerLoadError('مفتاح Google Maps API غير موجود، تم التحويل تلقائياً إلى طبقة OSM.');
+            setLayerLoadError('مفتاح Google Maps API غير موجود، تم التحويل تلقائياً إلى OSM.');
         }
     }, [activeLayer.provider]);
 
@@ -223,7 +243,7 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
 
     const handleBaseLayerError = () => {
         if (activeLayer.provider === 'google') {
-            setLayerLoadError('تعذر تحميل طبقة Google. تحقق من قيود المفتاح (HTTP referrer/API) ثم أعد المحاولة.');
+            setLayerLoadError('تعذر تحميل طبقة Google. تحقق من قيود المفتاح (HTTP referrer/API).');
             setActiveLayerKey('osm_street');
             return;
         }
@@ -255,7 +275,7 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
 
                 {hasRenderableGeoJson && (
                     <GeoJSON
-                        data={geoJsonData as any}
+                        data={geoJsonData}
                         style={(feature) => {
                             const props = (feature?.properties || {}) as Record<string, unknown>;
                             const municipalityCode = props.Municipality ?? props.MUNICIPALITY ?? props.COMMUNE ?? '';
@@ -305,10 +325,11 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                             key={layer.key}
                             type='button'
                             onClick={() => setActiveLayerKey(layer.key)}
-                            className={`w-full rounded-md border px-2 py-1.5 text-right text-xs transition ${activeLayerKey === layer.key
+                            className={`w-full rounded-md border px-2 py-1.5 text-right text-xs transition ${
+                                activeLayerKey === layer.key
                                     ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                                }`}
+                            }`}
                         >
                             {layer.label}
                         </button>
