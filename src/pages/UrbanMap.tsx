@@ -9,7 +9,8 @@ type ParcelFormState = {
     municipality: string;
     section: string;
     propertyGroup: string;
-    area: number | null;
+    actualArea: number | null;
+    cadastralArea: number | null;
 };
 
 type InfoCardProps = {
@@ -41,14 +42,16 @@ const UrbanMap = () => {
         municipality: '',
         section: '',
         propertyGroup: '',
-        area: null,
+        actualArea: null,
+        cadastralArea: null,
     });
 
     const handleSelect = (data: ParcelFormState) => {
         setParcelData(data);
     };
 
-    const formatArea = (area: number | null) => (area === null ? '' : `${area.toLocaleString('en-US', { maximumFractionDigits: 2 })} m²`);
+    const formatActualArea = (area: number | null) => (area === null ? '' : `${area.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²`);
+    const formatCadastralArea = (area: number | null) => (area === null ? '' : `${area.toLocaleString('en-US')} m²`);
 
     const exportToPDF = () => {
         const doc = new jsPDF();
@@ -57,7 +60,8 @@ const UrbanMap = () => {
         doc.text(`البلدية: ${parcelData.municipality}`, 20, 50);
         doc.text(`القسم العقاري: ${parcelData.section}`, 20, 60);
         doc.text(`رقم مجموعة الملكية: ${parcelData.propertyGroup}`, 20, 70);
-        doc.text(`مساحة القطعة: ${formatArea(parcelData.area)}`, 20, 80);
+        doc.text(`المساحة الحقيقية: ${formatActualArea(parcelData.actualArea)}`, 20, 80);
+        doc.text(`مساحة المسح: ${formatCadastralArea(parcelData.cadastralArea)}`, 20, 90);
         doc.save(`urban_contract_${parcelData.section}.pdf`);
     };
 
@@ -85,11 +89,18 @@ const UrbanMap = () => {
                             iconClassName='bg-indigo-100 text-indigo-700'
                         />
                         <InfoCard
-                            label='مساحة القطعة'
-                            value={formatArea(parcelData.area)}
+                            label='المساحة الحقيقية (m²)'
+                            value={formatActualArea(parcelData.actualArea)}
                             icon={Ruler}
                             className='border-emerald-200 bg-emerald-50'
                             iconClassName='bg-emerald-100 text-emerald-700'
+                        />
+                        <InfoCard
+                            label='مساحة المسح (m²)'
+                            value={formatCadastralArea(parcelData.cadastralArea)}
+                            icon={Ruler}
+                            className='border-cyan-100 bg-cyan-50/80'
+                            iconClassName='bg-cyan-100 text-cyan-700'
                         />
                         <InfoCard
                             label='رقم القسم'
@@ -102,7 +113,7 @@ const UrbanMap = () => {
                             label='مجموعة الملكية'
                             value={parcelData.propertyGroup}
                             icon={Layers}
-                            className='border-amber-100 bg-amber-50/80'
+                            className='col-span-2 border-amber-100 bg-amber-50/80'
                             iconClassName='bg-amber-100/90 text-amber-700'
                         />
                     </div>

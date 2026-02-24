@@ -9,7 +9,8 @@ interface MzabValleyMapProps {
         municipality: string;
         section: string;
         propertyGroup: string;
-        area: number | null;
+        actualArea: number | null;
+        cadastralArea: number | null;
     }) => void;
 }
 
@@ -92,6 +93,12 @@ const normalizeGeoJson = (raw: any): GeoJsonFeatureCollectionLike => {
     const features = Array.isArray(raw?.features) ? raw.features : [];
     const safeFeatures = features.filter((f: any) => f?.type === 'Feature' && hasGeometry(f?.geometry));
     return { type: 'FeatureCollection', features: safeFeatures };
+};
+
+const toCadastralArea = (actualArea: number): number => {
+    const integerPart = Math.floor(actualArea);
+    const fraction = actualArea - integerPart;
+    return fraction >= 0.51 ? integerPart + 1 : integerPart;
 };
 
 const getCommuneCodeFromProps = (props: Record<string, unknown>): string =>
@@ -197,9 +204,10 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
                         const section = String(props.Section ?? props.SECTION ?? '');
                         const propertyGroup = String(props.PropertyGroup ?? props.PROPERTYGROUP ?? props.ILOT ?? props.group ?? '');
                         const rawArea = Number(props.Area ?? props.AREA);
-                        const area = Number.isFinite(rawArea) ? rawArea : null;
+                        const actualArea = Number.isFinite(rawArea) ? Number(rawArea.toFixed(2)) : null;
+                        const cadastralArea = actualArea === null ? null : toCadastralArea(actualArea);
 
-                        onParcelSelect({ municipality, section, propertyGroup, area });
+                        onParcelSelect({ municipality, section, propertyGroup, actualArea, cadastralArea });
                     },
                 }}
             />
@@ -247,8 +255,9 @@ const MzabValleyMap: React.FC<MzabValleyMapProps> = ({ onParcelSelect }) => {
             const section = String(props.Section ?? props.SECTION ?? props.section ?? '');
             const propertyGroup = String(props.PropertyGroup ?? props.PROPERTYGROUP ?? props.ILOT ?? props.group ?? '');
             const rawArea = Number(props.Area ?? props.AREA);
-            const area = Number.isFinite(rawArea) ? rawArea : null;
-            onParcelSelect({ municipality, section, propertyGroup, area });
+            const actualArea = Number.isFinite(rawArea) ? Number(rawArea.toFixed(2)) : null;
+            const cadastralArea = actualArea === null ? null : toCadastralArea(actualArea);
+            onParcelSelect({ municipality, section, propertyGroup, actualArea, cadastralArea });
         }
     };
 
