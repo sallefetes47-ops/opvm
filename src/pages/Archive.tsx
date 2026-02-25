@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +29,7 @@ import {
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { formatFileNumberWithYear } from "@/lib/file-number";
+import { deleteFileScan, getFileScan, saveFileScan, type FileScanRecord } from "@/lib/file-scan-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -77,6 +78,13 @@ export default function ArchivePage() {
   // Edit Form State
   const [editFormData, setEditFormData] = useState<Partial<FileRecord>>({});
   const [isReplacingFile, setIsReplacingFile] = useState(false);
+
+  // Local scanned file preview (stored on this device via IndexedDB)
+  const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [scanTargetFile, setScanTargetFile] = useState<FileRecord | null>(null);
+  const [scanRecord, setScanRecord] = useState<FileScanRecord | null>(null);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   /* ── Fetch Files ── */
   const { data: files, isLoading } = useQuery({
@@ -212,6 +220,75 @@ export default function ArchivePage() {
     }
   };
 
+  const scanObjectUrl = useMemo(() => {
+    if (!scanRecord?.blob) return null;
+    return URL.createObjectURL(scanRecord.blob);
+  }, [scanRecord]);
+
+  useEffect(() => {
+    return () => {
+      if (scanObjectUrl) URL.revokeObjectURL(scanObjectUrl);
+    };
+  }, [scanObjectUrl]);
+
+  const openScanDialog = async (file: FileRecord) => {
+    setScanTargetFile(file);
+    setScanDialogOpen(true);
+    setScanLoading(true);
+    setScanError(null);
+    try {
+      const existing = await getFileScan(file.id);
+      setScanRecord(existing);
+    } catch (e: any) {
+      setScanRecord(null);
+      setScanError(e?.message || "تعذر تحميل الملف من الجهاز.");
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  const handleScanFileChange = async (fileId: string, file: File | null) => {
+    if (!file) return;
+    const allowed = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast({ title: "مرفوض", description: "الرجاء اختيار PDF أو صورة (PNG/JPG/WEBP).", variant: "destructive" });
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      toast({ title: "مرفوض", description: "حجم الملف كبير جداً (الحد 25MB).", variant: "destructive" });
+      return;
+    }
+
+    setScanLoading(true);
+    setScanError(null);
+    try {
+      await saveFileScan(fileId, file);
+      const updated = await getFileScan(fileId);
+      setScanRecord(updated);
+      toast({ title: "تم الحفظ", description: "تم حفظ الملف على هذا الجهاز للمعاينة." });
+    } catch (e: any) {
+      setScanError(e?.message || "تعذر حفظ الملف على الجهاز.");
+      toast({ title: "خطأ", description: "تعذر حفظ الملف على الجهاز.", variant: "destructive" });
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  const handleDeleteScan = async (fileId: string) => {
+    setScanLoading(true);
+    setScanError(null);
+    try {
+      await deleteFileScan(fileId);
+      setScanRecord(null);
+      toast({ title: "تم الحذف", description: "تم حذف الملف المحفوظ من هذا الجهاز." });
+    } catch (e: any) {
+      setScanError(e?.message || "تعذر حذف الملف.");
+      toast({ title: "خطأ", description: "تعذر حذف الملف.", variant: "destructive" });
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
   const handleAnalysisComplete = (result: AnalysisResult, file: File) => {
     // Auto-populate form with new analysis
     setEditFormData(prev => ({
@@ -336,6 +413,15 @@ export default function ArchivePage() {
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleView(file); }}>
                               <Eye className="w-3 h-3 text-muted-foreground" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              title="معاينة الملف المحمل من الكمبيوتر"
+                              onClick={(e) => { e.stopPropagation(); openScanDialog(file); }}
+                            >
+                              <FileText className="w-3 h-3 text-emerald-600" />
                             </Button>
                             {canEdit && (
                               <div className="flex gap-1">
@@ -516,6 +602,93 @@ export default function ArchivePage() {
       </Dialog>
 
       {/* ── DELETE DIALOG ── */}
+      {/* ── LOCAL SCAN PREVIEW DIALOG ── */}
+      <Dialog
+        open={scanDialogOpen}
+        onOpenChange={(open) => {
+          setScanDialogOpen(open);
+          if (!open) {
+            setScanTargetFile(null);
+            setScanRecord(null);
+            setScanError(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>معاينة الملف المحمل من الكمبيوتر</DialogTitle>
+            <DialogDescription>
+              {scanTargetFile ? `${scanTargetFile.full_name} - ${formatFileNumberWithYear(scanTargetFile.file_number, scanTargetFile.year)}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          {scanLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {scanError && (
+                <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
+                  {scanError}
+                </div>
+              )}
+
+              {scanTargetFile && (
+                <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between rounded-lg border bg-muted/20 p-3">
+                  <div className="text-sm">
+                    <p className="font-medium">الملف المخزن محلياً على هذا الجهاز</p>
+                    <p className="text-xs text-muted-foreground">
+                      {scanRecord ? `${scanRecord.name} • ${new Date(scanRecord.updatedAt).toLocaleString("en-GB")}` : "لا يوجد ملف محفوظ لهذا السجل بعد."}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Input
+                      type="file"
+                      accept=".pdf,image/png,image/jpeg,image/webp"
+                      className="max-w-[260px]"
+                      disabled={!scanTargetFile || scanLoading}
+                      onChange={(e) => handleScanFileChange(scanTargetFile.id, e.target.files?.[0] ?? null)}
+                    />
+                    {scanRecord && (
+                      <Button type="button" variant="outline" disabled={scanLoading} onClick={() => handleDeleteScan(scanTargetFile.id)}>
+                        حذف
+                      </Button>
+                    )}
+                    {scanRecord && scanObjectUrl && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={scanLoading}
+                        onClick={() => window.open(scanObjectUrl, "_blank", "noopener,noreferrer")}
+                      >
+                        فتح
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {scanRecord && scanObjectUrl ? (
+                <div className="h-[70vh] border rounded-lg overflow-hidden bg-background">
+                  {scanRecord.type === "application/pdf" || scanRecord.name.toLowerCase().endsWith(".pdf") ? (
+                    <iframe src={scanObjectUrl} title="PDF Preview" className="w-full h-full border-0" />
+                  ) : (
+                    <div className="w-full h-full overflow-auto p-4 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900">
+                      <img src={scanObjectUrl} alt={scanRecord.name} className="max-w-full max-h-full object-contain shadow-lg" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground border rounded-lg p-6 bg-muted/10">
+                  اختر ملف PDF/صورة من الكمبيوتر لعرضه هنا وربطه بهذا السجل (يُحفظ محلياً على نفس الجهاز).
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
