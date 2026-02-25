@@ -155,7 +155,7 @@ export default function Minutes() {
                           <DateInput
                             value={formData.session_date}
                             onChange={(date) => setFormData({ ...formData, session_date: date })}
-                            placeholder="DD/MM/YYYY"
+                            placeholder="YYYY/MM/DD"
                           />
                         </div>
                         <div className="space-y-2">

@@ -1,34 +1,34 @@
 import { describe, it, expect } from "vitest";
 import { format } from "date-fns";
-import { DDMMYYYY_PATTERN, formatDDMMYYYYInput, parseDDMMYYYY } from "../lib/date";
+import { formatYYYYMMDDInput, parseYYYYMMDD, YYYYMMDD_PATTERN } from "../lib/date";
 
-describe("date formatting (dd/MM/yyyy)", () => {
-  it("formats user input to dd/MM/yyyy while typing", () => {
-    expect(formatDDMMYYYYInput("")).toBe("");
-    expect(formatDDMMYYYYInput("2")).toBe("2");
-    expect(formatDDMMYYYYInput("25")).toBe("25");
-    expect(formatDDMMYYYYInput("250")).toBe("25/0");
-    expect(formatDDMMYYYYInput("2502")).toBe("25/02");
-    expect(formatDDMMYYYYInput("25022")).toBe("25/02/2");
-    expect(formatDDMMYYYYInput("25022026")).toBe("25/02/2026");
-    expect(formatDDMMYYYYInput("25-02-2026")).toBe("25/02/2026");
-    expect(formatDDMMYYYYInput("25/2/2026")).toBe("25/02/2026");
-    expect(formatDDMMYYYYInput("٢٥/٢/٢٠٢٦")).toBe("25/02/2026");
-    expect(formatDDMMYYYYInput("25022026xxxx")).toBe("25/02/2026");
+describe("date formatting (yyyy/MM/dd)", () => {
+  it("formats user input to yyyy/MM/dd while typing", () => {
+    expect(formatYYYYMMDDInput("")).toBe("");
+    expect(formatYYYYMMDDInput("2")).toBe("2");
+    expect(formatYYYYMMDDInput("2026")).toBe("2026");
+    expect(formatYYYYMMDDInput("20260")).toBe("2026/0");
+    expect(formatYYYYMMDDInput("202602")).toBe("2026/02");
+    expect(formatYYYYMMDDInput("2026022")).toBe("2026/02/2");
+    expect(formatYYYYMMDDInput("20260225")).toBe("2026/02/25");
+    expect(formatYYYYMMDDInput("2026-02-25")).toBe("2026/02/25");
+    expect(formatYYYYMMDDInput("2026/2/25")).toBe("2026/02/25");
+    expect(formatYYYYMMDDInput("٢٠٢٦/٢/٢٥")).toBe("2026/02/25");
+    expect(formatYYYYMMDDInput("20260225xxxx")).toBe("2026/02/25");
   });
 
-  it("parses only valid dd/MM/yyyy dates", () => {
+  it("parses only valid yyyy/MM/dd dates", () => {
     const reference = new Date(2026, 0, 1);
 
-    const valid = parseDDMMYYYY("25/02/2026", reference);
+    const valid = parseYYYYMMDD("2026/02/25", reference);
     expect(valid).toBeDefined();
-    expect(format(valid!, DDMMYYYY_PATTERN)).toBe("25/02/2026");
+    expect(format(valid!, YYYYMMDD_PATTERN)).toBe("2026/02/25");
 
-    expect(parseDDMMYYYY("32/01/2026", reference)).toBeUndefined();
-    expect(parseDDMMYYYY("29/02/2025", reference)).toBeUndefined();
+    expect(parseYYYYMMDD("2026/13/01", reference)).toBeUndefined();
+    expect(parseYYYYMMDD("2025/02/29", reference)).toBeUndefined();
 
-    const leap = parseDDMMYYYY("29/02/2024", reference);
+    const leap = parseYYYYMMDD("2024/02/29", reference);
     expect(leap).toBeDefined();
-    expect(format(leap!, DDMMYYYY_PATTERN)).toBe("29/02/2024");
+    expect(format(leap!, YYYYMMDD_PATTERN)).toBe("2024/02/29");
   });
 });

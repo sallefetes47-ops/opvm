@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,12 +18,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DateInput } from "@/components/ui/date-input";
-import { Loader2, FilePlus, FileUp } from "lucide-react";
+import { Loader2, FilePlus, FileUp, Scan } from "lucide-react";
 import PermitLocationPicker from "@/components/PermitLocationPicker";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { clampPropertyGroupDigits, clampSectionDigits, formatPropertyGroup, formatSection } from "@/lib/cadastre";
+import { scanFromLocalScanner } from "@/lib/scanner-bridge";
 import type { Database } from "@/integrations/supabase/types";
 
 type Municipality = Database["public"]["Enums"]["municipality"];
@@ -64,6 +65,7 @@ export default function NewFile() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const electronicPermitInputRef = useRef<HTMLInputElement | null>(null);
 
   const [formData, setFormData] = useState<FileFormData>({
     full_name: "",
@@ -90,6 +92,7 @@ export default function NewFile() {
     location_lat: null,
     location_lng: null,
   });
+  const [isScanning, setIsScanning] = useState(false);
 
   // Fetch and Auto-fill Area based on GeoJSON
   useEffect(() => {
@@ -198,6 +201,30 @@ export default function NewFile() {
     const file = e.target.files?.[0];
     if (file) {
       setFormData({ ...formData, electronic_permit_file: file });
+    }
+  };
+
+  const openElectronicPermitPicker = () => {
+    electronicPermitInputRef.current?.click();
+  };
+
+  const handleDirectScan = async () => {
+    setIsScanning(true);
+    try {
+      const scannedFile = await scanFromLocalScanner("Kyocera FS-1035MFP WIA Driver");
+      setFormData((prev) => ({ ...prev, electronic_permit_file: scannedFile }));
+      toast({
+        title: "تم المسح بنجاح",
+        description: "تم إرفاق الملف الممسوح ضوئياً مع هذا العقد.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "تعذر المسح الضوئي",
+        description: error?.message || "تحقق من تشغيل جسر الماسح المحلي واختيار جهاز Kyocera.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -712,23 +739,41 @@ export default function NewFile() {
             {formData.permit_type === "رخصة بناء" && (
               <div className="space-y-2 md:col-span-2 pt-2 border-t border-border">
                 <Label>نسخة إلكترونية من الرخصة</Label>
-                <div className="flex items-center gap-4">
+                <Input
+                  ref={electronicPermitInputRef}
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={handleElectronicPermitFile}
+                  className="hidden"
+                  id="electronic_permit"
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" variant="outline" onClick={openElectronicPermitPicker}>
+                    <FileUp className="w-4 h-4 ml-2" />
+                    رفع من الكمبيوتر
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handleDirectScan} disabled={isScanning}>
+                    {isScanning ? (
+                      <>
+                        <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                        جاري المسح...
+                      </>
+                    ) : (
+                      <>
+                        <Scan className="w-4 h-4 ml-2" />
+                        مسح ضوئي مباشر
+                      </>
+                    )}
+                  </Button>
                   <Input
-                    type="file"
-                    accept=".pdf,image/*"
-                    onChange={handleElectronicPermitFile}
+                    value={formData.electronic_permit_file?.name || ""}
+                    readOnly
+                    placeholder="لم يتم اختيار ملف بعد"
                     className="flex-1 text-right"
-                    id="electronic_permit"
                   />
-                  {formData.electronic_permit_file && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <FileUp className="w-4 h-4" />
-                      <span>{formData.electronic_permit_file.name}</span>
-                    </div>
-                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  يمكنك رفع نسخة PDF أو صورة من الرخصة
+                  يمكنك رفع نسخة PDF/صورة من الكمبيوتر أو المسح المباشر من الماسح (JPG عالي الجودة).
                 </p>
               </div>
             )}

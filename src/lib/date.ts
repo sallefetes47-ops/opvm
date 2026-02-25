@@ -1,6 +1,6 @@
 import { format, isValid, parse } from "date-fns";
 
-export const DDMMYYYY_PATTERN = "dd/MM/yyyy" as const;
+export const YYYYMMDD_PATTERN = "yyyy/MM/dd" as const;
 
 const toAsciiDigits = (value: string): string =>
   value
@@ -9,27 +9,27 @@ const toAsciiDigits = (value: string): string =>
     // Eastern Arabic-Indic digits (۰۱۲۳۴۵۶۷۸۹)
     .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
 
-export function formatDDMMYYYYInput(raw: string): string {
+export function formatYYYYMMDDInput(raw: string): string {
   const normalized = toAsciiDigits(raw).trim();
 
-  // Accept common manual entry/paste like: 25/2/2026 or 25-02-2026
-  const loose = normalized.match(/^(\d{1,2})\D(\d{1,2})\D(\d{4})$/);
+  // Accept common manual entry/paste like: 2026/2/25 or 2026-02-25
+  const loose = normalized.match(/^(\d{4})\D(\d{1,2})\D(\d{1,2})$/);
   if (loose) {
-    const [, d, m, y] = loose;
-    return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+    const [, y, m, d] = loose;
+    return `${y}/${m.padStart(2, "0")}/${d.padStart(2, "0")}`;
   }
 
-  // Fallback: digits-only typing (ddMMyyyy) with auto-inserted slashes
-  const digits = normalized.replace(/[^\d]/g, "").slice(0, 8); // ddMMyyyy
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  // Fallback: digits-only typing (yyyyMMdd) with auto-inserted slashes
+  const digits = normalized.replace(/[^\d]/g, "").slice(0, 8); // yyyyMMdd
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}/${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}/${digits.slice(4, 6)}/${digits.slice(6)}`;
 }
 
-export function parseDDMMYYYY(value: string, referenceDate: Date = new Date()): Date | undefined {
+export function parseYYYYMMDD(value: string, referenceDate: Date = new Date()): Date | undefined {
   if (value.length !== 10) return undefined;
-  const parsed = parse(value, DDMMYYYY_PATTERN, referenceDate);
+  const parsed = parse(value, YYYYMMDD_PATTERN, referenceDate);
   if (!isValid(parsed)) return undefined;
-  if (format(parsed, DDMMYYYY_PATTERN) !== value) return undefined;
+  if (format(parsed, YYYYMMDD_PATTERN) !== value) return undefined;
   return parsed;
 }

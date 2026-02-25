@@ -731,7 +731,7 @@ export default function ArchivePage() {
                       <TableBody>
                         {fileStudies.map(s => (
                           <TableRow key={s.id}>
-                            <TableCell>{format(new Date(s.study_date), "dd/MM/yyyy")}</TableCell>
+                            <TableCell>{format(new Date(s.study_date), "yyyy/MM/dd")}</TableCell>
                             <TableCell>{s.committee_opinion}</TableCell>
                           </TableRow>
                         ))}

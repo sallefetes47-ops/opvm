@@ -536,7 +536,7 @@ export default function LegalArchive() {
                       <Badge variant="secondary" className="font-normal">{doc.document_type}</Badge>
                     </TableCell>
                     <TableCell className="text-right py-4 px-6 whitespace-nowrap">
-                      {doc.document_date ? format(new Date(doc.document_date), "dd/MM/yyyy") : "-"}
+                      {doc.document_date ? format(new Date(doc.document_date), "yyyy/MM/dd") : "-"}
                     </TableCell>
                     <TableCell className="text-right py-4 px-6">
                       <div className="flex flex-wrap gap-1">
