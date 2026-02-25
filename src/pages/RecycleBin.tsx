@@ -65,7 +65,7 @@ export default function RecycleBin() {
       const { data, error } = await supabase
         .from("files")
         .select("id, municipality, section, property_group, deleted_at, file_number, full_name")
-        .or("is_deleted.eq.true,deleted_at.not.is.null")
+        .eq("is_deleted", true)
         // sort by most recently deleted if deleted_at exists, else sort by ID
         .order("deleted_at", { ascending: false, nullsFirst: false });
 
@@ -81,8 +81,7 @@ export default function RecycleBin() {
       const { error } = await supabase
         .from("files")
         .update(
-          { is_deleted: false, deleted_at: null },
-          { returning: "minimal" }
+          { is_deleted: false, deleted_at: null }
         )
         .eq("id", fileId);
       if (error) throw error;
@@ -112,7 +111,7 @@ export default function RecycleBin() {
     mutationFn: async (fileId: string) => {
       const { error } = await supabase
         .from("files")
-        .delete({ returning: "minimal" })
+        .delete()
         .eq("id", fileId);
       if (error) throw error;
     },
