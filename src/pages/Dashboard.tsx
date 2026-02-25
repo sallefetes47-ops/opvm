@@ -14,6 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { formatFileNumberWithYear } from "@/lib/file-number";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -452,7 +453,7 @@ export default function Dashboard() {
                 <TableBody>
                   {recentFiles.map((file) => (
                     <TableRow key={file.id} className="hover:bg-muted/20 transition-colors">
-                      <TableCell className="font-mono font-bold text-sm">{file.file_number}</TableCell>
+                      <TableCell className="font-mono font-bold text-sm">{formatFileNumberWithYear(file.file_number, file.year)}</TableCell>
                       <TableCell className="font-medium">{file.full_name}</TableCell>
                       <TableCell>{file.municipality}</TableCell>
                       <TableCell>

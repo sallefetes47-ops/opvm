@@ -27,10 +27,12 @@ import { Trash2, RotateCcw, AlertTriangle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatFileNumberWithYear } from "@/lib/file-number";
 
 interface DeletedFile {
   id: string;
   file_number: string;
+  year: number;
   full_name: string;
   municipality: string;
   permit_type: string | null;
@@ -52,7 +54,7 @@ export default function TrashBin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("files")
-        .select("id, file_number, full_name, municipality, permit_type, deleted_at")
+        .select("id, file_number, year, full_name, municipality, permit_type, deleted_at")
         .not("deleted_at", "is", null)
         .order("deleted_at", { ascending: false });
 
@@ -209,7 +211,7 @@ export default function TrashBin() {
                   {deletedFiles.map((file) => (
                     <TableRow key={file.id} className="hover:bg-muted/50">
                       <TableCell className="font-mono text-xs font-bold">
-                        {file.file_number}
+                        {formatFileNumberWithYear(file.file_number, file.year)}
                       </TableCell>
                       <TableCell className="py-2">
                         <div className="flex flex-col">
@@ -287,8 +289,8 @@ export default function TrashBin() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {actionType === "restore"
-                ? `هل تريد استعادة الملف رقم "${selectedFile?.file_number}" الخاص بـ "${selectedFile?.full_name}" وإعادته إلى الأرشيف الرقمي؟`
-                : `هل أنت متأكد من الحذف النهائي للملف رقم "${selectedFile?.file_number}" الخاص بـ "${selectedFile?.full_name}"؟ هذا الإجراء لا يمكن التراجع عنه.`}
+                ? `هل تريد استعادة الملف رقم "${formatFileNumberWithYear(selectedFile?.file_number, selectedFile?.year)}" الخاص بـ "${selectedFile?.full_name}" وإعادته إلى الأرشيف الرقمي؟`
+                : `هل أنت متأكد من الحذف النهائي للملف رقم "${formatFileNumberWithYear(selectedFile?.file_number, selectedFile?.year)}" الخاص بـ "${selectedFile?.full_name}"؟ هذا الإجراء لا يمكن التراجع عنه.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

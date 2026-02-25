@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
+import { formatFileNumberWithYear } from '@/lib/file-number';
 
 // --- Fix Leaflet Default Icons (Critical) ---
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -278,7 +279,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
 
                                     // Add a hover tooltip if there's a contract
                                     if (matchedContract) {
-                                        console.log(`✅ تم إيجاد تطابق! القسم: ${sectionStr} - القطعة: ${ilotStr} -> الملف: ${matchedContract.file_number}`);
+                                        console.log(`✅ تم إيجاد تطابق! القسم: ${sectionStr} - القطعة: ${ilotStr} -> الملف: ${formatFileNumberWithYear(matchedContract.file_number, matchedContract.year)}`);
                                         const contractType = (matchedContract as any).permit_type || (matchedContract as any).contract_type;
                                         const color = getColorByContractType(contractType);
                                         const popupContent = `
@@ -287,7 +288,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                                                     <strong style="color: #334155;">${matchedContract.full_name || 'بدون اسم'}</strong>
                                                     <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${color}; margin-right: 8px;"></span>
                                                 </div>
-                                                <div style="font-size: 11px; color: #475569; margin-bottom: 4px;"> رقم الملف: <strong style="color: #0f172a;">${matchedContract.file_number}</strong></div>
+                                                <div style="font-size: 11px; color: #475569; margin-bottom: 4px;"> رقم الملف: <strong style="color: #0f172a;">${formatFileNumberWithYear(matchedContract.file_number, matchedContract.year)}</strong></div>
                                                 <div style="font-size: 11px; color: #475569;"> نوع العقد: <strong>${contractType || '---'}</strong></div>
                                             </div>
                                         `;
@@ -395,7 +396,7 @@ function ContractPopupContent({ contract, color }: { contract: any; color: strin
                 <div className="flex items-center gap-2">
                     <FileText className="w-3 h-3" />
                     <span>رقم الملف: </span>
-                    <span className="font-mono font-bold text-slate-900">{contract.file_number}</span>
+                    <span className="font-mono font-bold text-slate-900">{formatFileNumberWithYear(contract.file_number, contract.year)}</span>
                 </div>
 
                 <div className="flex items-center gap-2">

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { MapPin, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
+import { formatFileNumberWithYear } from '@/lib/file-number';
 
 /* ─── Fix Leaflet default icons ─── */
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -83,6 +84,7 @@ interface ContractMarker {
     id: string;
     full_name: string;
     file_number: string;
+    year: number;
     address: string;
     permit_type: string | null;
     location_lat: number;
@@ -116,7 +118,7 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('files')
-                .select('id, full_name, file_number, address, permit_type, location_lat, location_lng')
+                .select('id, full_name, file_number, year, address, permit_type, location_lat, location_lng')
                 .not('location_lat', 'is', null)
                 .not('location_lng', 'is', null)
                 .or('is_deleted.is.null,is_deleted.eq.false')
@@ -264,7 +266,7 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                                     <Popup>
                                         <div className="text-right text-xs min-w-[160px]" dir="rtl">
                                             <p className="font-bold">{c.full_name}</p>
-                                            <p className="text-gray-500">📁 {c.file_number}</p>
+                                            <p className="text-gray-500">📁 {formatFileNumberWithYear(c.file_number, c.year)}</p>
                                             <p className="text-gray-500">📍 {c.address}</p>
                                             {c.permit_type && (
                                                 <span

@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { formatFileNumberWithYear } from "@/lib/file-number";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -319,7 +320,7 @@ export default function ArchivePage() {
                       className={`cursor-pointer transition-colors ${selectedContractId === file.id ? 'bg-primary/10 hover:bg-primary/20' : 'hover:bg-muted/50'}`}
                       onClick={() => handleRowClick(file)}
                     >
-                      <TableCell className="font-mono text-xs font-bold">{file.file_number}</TableCell>
+                      <TableCell className="font-mono text-xs font-bold">{formatFileNumberWithYear(file.file_number, file.year)}</TableCell>
                       <TableCell className="py-2">
                         <div className="flex flex-col">
                           <span className="font-medium text-sm">{file.full_name}</span>
@@ -380,7 +381,7 @@ export default function ArchivePage() {
           <DialogHeader>
             <DialogTitle>تعديل بيانات الملف</DialogTitle>
             <DialogDescription>
-              {selectedFile?.full_name} - {selectedFile?.file_number}
+              {selectedFile?.full_name} - {formatFileNumberWithYear(selectedFile?.file_number, selectedFile?.year)}
             </DialogDescription>
           </DialogHeader>
 
@@ -538,7 +539,7 @@ export default function ArchivePage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><Label className="text-muted-foreground">الاسم:</Label> <p>{selectedFile.full_name}</p></div>
-                <div><Label className="text-muted-foreground">الرقم:</Label> <p className="font-mono">{selectedFile.file_number}</p></div>
+                <div><Label className="text-muted-foreground">الرقم:</Label> <p className="font-mono">{formatFileNumberWithYear(selectedFile.file_number, selectedFile.year)}</p></div>
                 <div><Label className="text-muted-foreground">البلدية:</Label> <p>{selectedFile.municipality}</p></div>
                 <div><Label className="text-muted-foreground">العنوان:</Label> <p>{selectedFile.address}</p></div>
                 <div className="col-span-2">

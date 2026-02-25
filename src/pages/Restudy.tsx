@@ -22,6 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { formatFileNumberWithYear } from "@/lib/file-number";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -97,7 +98,7 @@ export default function Restudy() {
         setFoundFile(data);
         toast({
           title: "تم العثور على الملف",
-          description: `الملف رقم ${data.file_number} للمالك ${data.full_name}`,
+          description: `الملف رقم ${formatFileNumberWithYear(data.file_number, data.year)} للمالك ${data.full_name}`,
         });
       } else {
         toast({
@@ -324,7 +325,7 @@ export default function Restudy() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-muted-foreground text-sm">رقم الملف</Label>
-                  <p className="font-medium bg-muted/50 p-2 rounded-md">{foundFile.file_number}</p>
+                  <p className="font-medium bg-muted/50 p-2 rounded-md">{formatFileNumberWithYear(foundFile.file_number, foundFile.year)}</p>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-muted-foreground text-sm">السنة</Label>
