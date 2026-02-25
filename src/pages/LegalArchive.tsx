@@ -49,9 +49,9 @@ const parseArabicLegalText = (text: string) => {
 };
 
 const mockDocuments = [
-  { id: "1", title_ar: "ظ…ط±ط³ظˆظ… طھظ†ظپظٹط°ظٹ 23-14", document_type: "ظ…ط±ط³ظˆظ…", document_number: "23-14", document_date: "2023-01-15", status: "active", description: "ظٹط­ط¯ط¯ ظƒظٹظپظٹط§طھ طھط·ط¨ظٹظ‚ ط£ط­ظƒط§ظ… ط§ظ„ظ‚ط§ظ†ظˆظ†...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-  { id: "2", title_ar: "ظ‚ط±ط§ط± ظˆط²ط§ط±ظٹ ظ…ط´طھط±ظƒ", document_type: "ظ‚ط±ط§ط±", document_number: "22-55", document_date: "2022-11-20", status: "active", description: "ظٹطھط¶ظ…ظ† ط§ظ„ظ…طµط§ط¯ظ‚ط© ط¹ظ„ظ‰ ط§ظ„ظ…ط®ط·ط· ط§ظ„طھظˆط¬ظٹظ‡ظٹ...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-  { id: "3", title_ar: "طھط¹ظ„ظٹظ…ط© ط±ظ‚ظ… 05", document_type: "طھط¹ظ„ظٹظ…ط©", document_number: "05", document_date: "2024-02-01", status: "active", description: "طھطھط¹ظ„ظ‘ظ‚ ط¨طھط³ظ‡ظٹظ„ ط¥ط¬ط±ط§ط،ط§طھ ظ…ظ†ط­ ط±ط®طµ ط§ظ„ط¨ظ†ط§ط،...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
+  { id: "1", title_ar: "ظ…ط±ط³ظˆظ… ت�†فيط°ي 23-14", document_type: "ظ…ط±ط³ظˆظ…", document_number: "23-14", document_date: "2023-01-15", status: "active", description: "ي�­ط¯ط¯ ظƒيفيط§ت ت�·ط¨ي�‚ ط£ط­ظƒط§ظ… ط§ظ„ظ‚ط§ظ†ظˆظ†...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+  { id: "2", title_ar: "ظ‚ط±ط§ط± ظˆط²ط§ط±ي ظ…ط´ت�±ظƒ", document_type: "ظ‚ط±ط§ط±", document_number: "22-55", document_date: "2022-11-20", status: "active", description: "يتط¶ظ…ظ† ط§ظ„ظ…طµط§ط¯ظ‚ط© ط¹ظ„ظ‰ ط§ظ„ظ…ط®ط·ط· ط§ظ„ت�ˆط¬ي�‡ي...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+  { id: "3", title_ar: "ت�¹ظ„ي�…ط© ط±ظ‚ظ… 05", document_type: "ت�¹ظ„ي�…ط©", document_number: "05", document_date: "2024-02-01", status: "active", description: "تتط¹ظ„ظ‘ظ‚ ط¨ت�³ظ‡ي�„ ط¥ط¬ط±ط§ء�§ت ظ…ظ†ط­ ط±ط®طµ ط§ظ„ط¨ظ†ط§ء...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
 ];
 
 export default function LegalArchive() {
@@ -185,12 +185,12 @@ export default function LegalArchive() {
     if (isSubmitting) return;
 
     if (!formData.title_ar || !formData.document_type) {
-      toast({ title: "ط®ط·ط£", description: "ظٹط±ط¬ظ‰ ظ…ظ„ط، ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©", variant: "destructive" });
+      toast({ title: "ط®ط·ط£", description: "ي�±ط¬ظ‰ ظ…ظ„ء ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©", variant: "destructive" });
       return;
     }
 
     if (!newFile) {
-      toast({ title: "ط®ط·ط£", description: "ظٹط±ط¬ظ‰ ط¥ط±ظپط§ظ‚ ظ…ظ„ظپ ط§ظ„ظˆط«ظٹظ‚ط© (PDF/Image)", variant: "destructive" });
+      toast({ title: "ط®ط·ط£", description: "ي�±ط¬ظ‰ ط¥ط±ف�§ظ‚ ظ…ظ„ف ط§ظ„ظˆط«ي�‚ط© (PDF/Image)", variant: "destructive" });
       return;
     }
 
@@ -268,17 +268,17 @@ export default function LegalArchive() {
     if (!newFile) return;
     setIsAnalyzing(true);
     setAnalysisProgress(10);
-    setAnalysisStatus("ط¬ط§ط±ظٹ ظ‚ط±ط§ط،ط© ط§ظ„ظ…ظ„ظپ...");
+    setAnalysisStatus("ط¬ط§ط±ي ظ‚ط±ط§ء�© ط§ظ„ظ…ظ„ف...");
 
     try {
       // Simulate analysis
       await new Promise(r => setTimeout(r, 1000));
       setAnalysisProgress(50);
-      setAnalysisStatus("ط§ط³طھط®ط±ط§ط¬ ط§ظ„ظ†طµظˆطµ...");
+      setAnalysisStatus("ط§ط³ت�®ط±ط§ط¬ ط§ظ„ظ†طµظˆطµ...");
 
       await new Promise(r => setTimeout(r, 1000));
       setAnalysisProgress(100);
-      setAnalysisStatus("طھظ… ط§ظ„طھط­ظ„ظٹظ„ ط¨ظ†ط¬ط§ط­");
+      setAnalysisStatus("ت�… ط§ظ„ت�­ظ„ي�„ ط¨ظ†ط¬ط§ط­");
 
       // Keep existing data mostly, maybe update title if empty?
       // For now, just a simulation.
@@ -289,7 +289,7 @@ export default function LegalArchive() {
 
     } catch (e) {
       console.error(e);
-      toast({ title: "ط®ط·ط£", description: "ظپط´ظ„ طھط­ظ„ظٹظ„ ط§ظ„ظ…ظ„ظپ", variant: "destructive" });
+      toast({ title: "ط®ط·ط£", description: "ف�´ظ„ ت�­ظ„ي�„ ط§ظ„ظ…ظ„ف", variant: "destructive" });
       setIsAnalyzing(false);
     }
   };
@@ -340,8 +340,8 @@ export default function LegalArchive() {
             <Scale className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">ط§ظ„ظ…ط±ط§ط³ظٹظ… ظˆط§ظ„طھط¹ظ„ظٹظ…ط§طھ</h1>
-            <p className="text-muted-foreground">ط£ط±ط´ظٹظپ ط§ظ„ظˆط«ط§ط¦ظ‚ ط§ظ„ظ‚ط§ظ†ظˆظ†ظٹط© ظˆط§ظ„طھظ†ط¸ظٹظ…ظٹط©</p>
+            <h1 className="text-2xl font-bold">ط§ظ„ظ…ط±ط§ط³ي�… ظˆط§ظ„ت�¹ظ„ي�…ط§ت</h1>
+            <p className="text-muted-foreground">ط£ط±ط´يف ط§ظ„ظˆط«ط§ط¦ظ‚ ط§ظ„ظ‚ط§ظ†ظˆظ†ي�© ظˆط§ظ„ت�†ط¸ي�…ي�©</p>
           </div>
         </div>
 
@@ -352,33 +352,33 @@ export default function LegalArchive() {
                 <FileImport
                   documentType="legal_document"
                   onDataExtracted={handleDataExtracted}
-                  buttonLabel="ط§ط³طھظٹط±ط§ط¯ ظ…ظ† ظ…ظ„ظپ"
+                  buttonLabel="ط§ط³تيط±ط§ط¯ ظ…ظ† ظ…ظ„ف"
                 />
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
                     <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
                       <Plus className="w-4 h-4 ml-2" />
-                      ط¥ط¶ط§ظپط© ظˆط«ظٹظ‚ط©
+                      ط¥ط¶ط§ف�© ظˆط«ي�‚ط©
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>ط¥ط¶ط§ظپط© ظˆط«ظٹظ‚ط© ظ‚ط§ظ†ظˆظ†ظٹط©</DialogTitle>
+                      <DialogTitle>ط¥ط¶ط§ف�© ظˆط«ي�‚ط© ظ‚ط§ظ†ظˆظ†ي�©</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ظٹط© *</Label>
+                          <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ي�© *</Label>
                           <Input
                             value={formData.title_ar}
                             onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
-                            placeholder="ط£ط¯ط®ظ„ ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ظٹط©"
+                            placeholder="ط£ط¯ط®ظ„ ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ي�©"
                             required
                             className={autoFillClass("title_ar")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ظپط±ظ†ط³ظٹط©</Label>
+                          <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ف�±ظ†ط³ي�©</Label>
                           <Input
                             value={formData.title_fr}
                             onChange={(e) => setFormData({ ...formData, title_fr: e.target.value })}
@@ -390,18 +390,18 @@ export default function LegalArchive() {
                       </div>
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
-                          <Label>ظ†ظˆط¹ ط§ظ„ظˆط«ظٹظ‚ط© *</Label>
+                          <Label>ظ†ظˆط¹ ط§ظ„ظˆط«ي�‚ط© *</Label>
                           <Select
                             value={formData.document_type}
                             onValueChange={(value) => setFormData({ ...formData, document_type: value })}
                           >
                             <SelectTrigger className={cn(autoFillClass("document_type"), "text-right flex flex-row-reverse items-center justify-between")}>
-                              <SelectValue placeholder="ط§ط®طھط± ط§ظ„ظ†ظˆط¹" />
+                              <SelectValue placeholder="ط§ط®ت�± ط§ظ„ظ†ظˆط¹" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="ظ…ط±ط³ظˆظ…">ظ…ط±ط³ظˆظ…</SelectItem>
                               <SelectItem value="ظ‚ط±ط§ط±">ظ‚ط±ط§ط±</SelectItem>
-                              <SelectItem value="طھط¹ظ„ظٹظ…ط©">طھط¹ظ„ظٹظ…ط©</SelectItem>
+                              <SelectItem value="ت�¹ظ„ي�…ط©">ت�¹ظ„ي�…ط©</SelectItem>
                               <SelectItem value="ظ…ظ†ط´ظˆط±">ظ…ظ†ط´ظˆط±</SelectItem>
                               <SelectItem value="ظ‚ط§ظ†ظˆظ†">ظ‚ط§ظ†ظˆظ†</SelectItem>
                               <SelectItem value="ط£ظ…ط±">ط£ظ…ط±</SelectItem>
@@ -409,7 +409,7 @@ export default function LegalArchive() {
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label>ط±ظ‚ظ… ط§ظ„ظ…ظ„ظپ</Label>
+                          <Label>ط±ظ‚ظ… ط§ظ„ظ…ظ„ف</Label>
                           <Input
                             value={formData.document_number}
                             onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
@@ -418,7 +418,7 @@ export default function LegalArchive() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>طھط§ط±ظٹط® ط§ظ„ظˆط«ظٹظ‚ط©</Label>
+                          <Label>ت�§ط±ي�® ط§ظ„ظˆط«ي�‚ط©</Label>
                           <DateInput
                             value={formData.document_date}
                             onChange={(date) => setFormData({ ...formData, document_date: date })}
@@ -428,37 +428,37 @@ export default function LegalArchive() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>ط§ظ„ظˆطµظپ</Label>
+                        <Label>ط§ظ„ظˆطµف</Label>
                         <Textarea
                           value={formData.description}
                           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                          placeholder="ظˆطµظپ ظ…ط®طھطµط± ظ„ظ„ظˆط«ظٹظ‚ط©"
+                          placeholder="ظˆطµف ظ…ط®ت�µط± ظ„ظ„ظˆط«ي�‚ط©"
                           rows={2}
                           className={autoFillClass("description")}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>ظ…ط­طھظˆظ‰ ط§ظ„ظˆط«ظٹظ‚ط© (ظ„ظ„ط¨ط­ط«)</Label>
+                        <Label>ظ…ط­ت�ˆظ‰ ط§ظ„ظˆط«ي�‚ط© (ظ„ظ„ط¨ط­ط«)</Label>
                         <Textarea
                           value={formData.content_text}
                           onChange={(e) => setFormData({ ...formData, content_text: e.target.value })}
-                          placeholder="ط£ط¯ط®ظ„ ظ†طµ ط§ظ„ظˆط«ظٹظ‚ط© ط£ظˆ ط¬ط²ط، ظ…ظ†ظ‡ ظ„ظ„ط¨ط­ط«"
+                          placeholder="ط£ط¯ط®ظ„ ظ†طµ ط§ظ„ظˆط«ي�‚ط© ط£ظˆ ط¬ط²ء ظ…ظ†ظ‡ ظ„ظ„ط¨ط­ط«"
                           rows={4}
                           className={autoFillClass("content_text")}
                         />
                       </div>
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label>ط§ظ„ظƒظ„ظ…ط§طھ ط§ظ„ظ…ظپطھط§ط­ظٹط© (ظ…ظپطµظˆظ„ط© ط¨ظپط§طµظ„ط©)</Label>
+                          <Label>ط§ظ„ظƒظ„ظ…ط§ت ط§ظ„ظ…فتط§ط­ي�© (ظ…ف�µظˆظ„ط© ط¨ف�§طµظ„ط©)</Label>
                           <Input
                             value={formData.keywords}
                             onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
-                            placeholder="طھط¹ظ…ظٹط±طŒ ط¨ظ†ط§ط،طŒ ط±ط®طµط©طŒ ..."
+                            placeholder="ت�¹ظ…ي�±طŒ ط¨ظ†ط§ء�Œ ط±ط®طµط©طŒ ..."
                             className={autoFillClass("keywords")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>ط§ظ„ظ„ط؛ط©</Label>
+                          <Label>ط§ظ„ظ„غ�©</Label>
                           <Select
                             value={formData.language}
                             onValueChange={(value) => setFormData({ ...formData, language: value })}
@@ -467,9 +467,9 @@ export default function LegalArchive() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="ar">ط§ظ„ط¹ط±ط¨ظٹط©</SelectItem>
-                              <SelectItem value="fr">ط§ظ„ظپط±ظ†ط³ظٹط©</SelectItem>
-                              <SelectItem value="both">ط«ظ†ط§ط¦ظٹ ط§ظ„ظ„ط؛ط©</SelectItem>
+                              <SelectItem value="ar">ط§ظ„ط¹ط±ط¨ي�©</SelectItem>
+                              <SelectItem value="fr">ط§ظ„ف�±ظ†ط³ي�©</SelectItem>
+                              <SelectItem value="both">ط«ظ†ط§ط¦ي ط§ظ„ظ„غ�©</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -478,17 +478,17 @@ export default function LegalArchive() {
                       {/* File Drop Zone */}
                       <div className="col-span-2 space-y-2">
                         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                          <Label className="block text-sm font-medium">ط§ظ„ظ…ظ„ظپ ط§ظ„ظ…ط±ظپظ‚ (PDF/طµظˆط±ط©) *</Label>
+                          <Label className="block text-sm font-medium">ط§ظ„ظ…ظ„ف ط§ظ„ظ…ط±ف�‚ (PDF/طµظˆط±ط©) *</Label>
                           <Button type="button" variant="outline" onClick={handleDirectScan} disabled={isScanning}>
                             {isScanning ? (
                               <>
                                 <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                                ط¬ط§ط±ظٹ ط§ظ„ظ…ط³ط­...
+                                ط¬ط§ط±ي ط§ظ„ظ…ط³ط­...
                               </>
                             ) : (
                               <>
                                 <Scan className="w-4 h-4 ml-2" />
-                                ظ…ط³ط­ ط¶ظˆط¦ظٹ ظ…ط¨ط§ط´ط±
+                                ظ…ط³ط­ ط¶ظˆط¦ي ظ…ط¨ط§ط´ط±
                               </>
                             )}
                           </Button>
@@ -517,10 +517,10 @@ export default function LegalArchive() {
 
                       <div className="flex gap-2 justify-end">
                         <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                          ط¥ظ„ط؛ط§ط،
+                          ط¥ظ„غ�§ء
                         </Button>
                         <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "ط­ظپط¸"}
+                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "ط­ف�¸"}
                         </Button>
                       </div>
                     </form>
@@ -535,7 +535,7 @@ export default function LegalArchive() {
               className="gap-2"
             >
               <Trash2 className="w-4 h-4" />
-              {showRecycleBin ? "ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ط£ط±ط´ظٹظپ" : "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆظپط§طھ"}
+              {showRecycleBin ? "ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ط£ط±ط´يف" : "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆف�§ت"}
             </Button>
           </div>
         )}
@@ -548,7 +548,7 @@ export default function LegalArchive() {
             <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="ط¨ط­ط« ظپظٹ ط§ظ„ظˆط«ط§ط¦ظ‚..."
+                placeholder="ط¨ط­ط« في ط§ظ„ظˆط«ط§ط¦ظ‚..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pr-10"
@@ -564,7 +564,7 @@ export default function LegalArchive() {
                   <SelectItem value="all">ط§ظ„ظƒظ„</SelectItem>
                   <SelectItem value="ظ…ط±ط³ظˆظ…">ظ…ط±ط³ظˆظ…</SelectItem>
                   <SelectItem value="ظ‚ط±ط§ط±">ظ‚ط±ط§ط±</SelectItem>
-                  <SelectItem value="طھط¹ظ„ظٹظ…ط©">طھط¹ظ„ظٹظ…ط©</SelectItem>
+                  <SelectItem value="ت�¹ظ„ي�…ط©">ت�¹ظ„ي�…ط©</SelectItem>
                   <SelectItem value="ظ…ظ†ط´ظˆط±">ظ…ظ†ط´ظˆط±</SelectItem>
                   <SelectItem value="ظ‚ط§ظ†ظˆظ†">ظ‚ط§ظ†ظˆظ†</SelectItem>
                   <SelectItem value="ط£ظ…ط±">ط£ظ…ط±</SelectItem>
@@ -579,16 +579,16 @@ export default function LegalArchive() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {showRecycleBin ? "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆظپط§طھ" : "ظ‚ط§ط¦ظ…ط© ط§ظ„ظˆط«ط§ط¦ظ‚"}
+            {showRecycleBin ? "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆف�§ت" : "ظ‚ط§ط¦ظ…ط© ط§ظ„ظˆط«ط§ط¦ظ‚"}
           </CardTitle>
           <CardDescription>
-            {showRecycleBin ? `${trashedDocuments.length} ظ…ظ„ظپ ظ…ط­ط°ظˆظپ` : `ط¹ط±ط¶ ${filteredDocuments.length} ظˆط«ظٹظ‚ط©`}
+            {showRecycleBin ? `${trashedDocuments.length} ظ…ظ„ف ظ…ط­ط°ظˆف` : `ط¹ط±ط¶ ${filteredDocuments.length} ظˆط«ي�‚ط©`}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {filteredDocuments.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {showRecycleBin ? "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆظپط§طھ ظپط§ط±ط؛ط©" : "ظ„ط§ طھظˆط¬ط¯ ظˆط«ط§ط¦ظ‚ ظ…ط·ط§ط¨ظ‚ط©"}
+              {showRecycleBin ? "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆف�§ت ف�§ط±غ�©" : "ظ„ط§ ت�ˆط¬ط¯ ظˆط«ط§ط¦ظ‚ ظ…ط·ط§ط¨ظ‚ط©"}
             </div>
           ) : (
             <Table>
@@ -597,9 +597,9 @@ export default function LegalArchive() {
                   <TableHead className="w-[10%] text-right py-4 px-6">ط§ظ„ط±ظ‚ظ…</TableHead>
                   <TableHead className="w-[30%] text-right py-4 px-6">ط§ظ„ط¹ظ†ظˆط§ظ†</TableHead>
                   <TableHead className="w-[10%] text-center py-4 px-6">ط§ظ„ظ†ظˆط¹</TableHead>
-                  <TableHead className="w-[15%] text-right py-4 px-6">ط§ظ„طھط§ط±ظٹط®</TableHead>
-                  <TableHead className="w-[15%] text-right py-4 px-6">ظƒظ„ظ…ط§طھ ظ…ظپطھط§ط­ظٹط©</TableHead>
-                  <TableHead className="w-[20%] text-left py-4 px-6">ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</TableHead>
+                  <TableHead className="w-[15%] text-right py-4 px-6">ط§ظ„ت�§ط±ي�®</TableHead>
+                  <TableHead className="w-[15%] text-right py-4 px-6">ظƒظ„ظ…ط§ت ظ…فتط§ط­ي�©</TableHead>
+                  <TableHead className="w-[20%] text-left py-4 px-6">ط§ظ„ط¥ط¬ط±ط§ء�§ت</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -641,12 +641,12 @@ export default function LegalArchive() {
                                 className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                                 disabled={!doc.file_url && !doc.file_base64}
                                 onClick={(e) => viewOriginalDocument(e, doc)}
-                                title="ظ…ط¹ط§ظٹظ†ط© ط§ظ„ظ…ظ„ظپ ط§ظ„ط£طµظ„ظٹ"
+                                title="ظ…ط¹ط§ي�†ط© ط§ظ„ظ…ظ„ف ط§ظ„ط£طµظ„ي"
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent><p>ظ…ط¹ط§ظٹظ†ط© ط§ظ„ظ…ظ„ظپ</p></TooltipContent>
+                            <TooltipContent><p>ظ…ط¹ط§ي�†ط© ط§ظ„ظ…ظ„ف</p></TooltipContent>
                           </Tooltip>
 
                           {showRecycleBin ? (
@@ -662,7 +662,7 @@ export default function LegalArchive() {
                                     <RefreshCcw className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>ط§ط³طھط±ط¬ط§ط¹</p></TooltipContent>
+                                <TooltipContent><p>ط§ط³ت�±ط¬ط§ط¹</p></TooltipContent>
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -675,7 +675,7 @@ export default function LegalArchive() {
                                     <Trash className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>ط­ط°ظپ ظ†ظ‡ط§ط¦ظٹ</p></TooltipContent>
+                                <TooltipContent><p>ط­ط°ف ظ†ظ‡ط§ط¦ي</p></TooltipContent>
                               </Tooltip>
                             </>
                           ) : (
@@ -695,7 +695,7 @@ export default function LegalArchive() {
                                       <Pencil className="h-4 w-4 text-slate-500" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent><p>طھط¹ط¯ظٹظ„</p></TooltipContent>
+                                  <TooltipContent><p>ت�¹ط¯ي�„</p></TooltipContent>
                                 </Tooltip>
 
                                 <Tooltip>
@@ -709,7 +709,7 @@ export default function LegalArchive() {
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top"><p>ط­ط°ظپ (ظ†ظ‚ظ„ ظ„ظ„ط³ظ„ط©)</p></TooltipContent>
+                                  <TooltipContent side="top"><p>ط­ط°ف (ظ†ظ‚ظ„ ظ„ظ„ط³ظ„ط©)</p></TooltipContent>
                                 </Tooltip>
                               </>
                             )
@@ -729,18 +729,18 @@ export default function LegalArchive() {
       <Dialog open={!!viewDocument} onOpenChange={() => setViewDocument(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>طھظپط§طµظٹظ„ ط§ظ„ظˆط«ظٹظ‚ط©</DialogTitle>
+            <DialogTitle>تفط§طµي�„ ط§ظ„ظˆط«ي�‚ط©</DialogTitle>
           </DialogHeader>
           {viewDocument && (
             <div className="space-y-4 py-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label className="text-muted-foreground">ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ظٹط©</Label>
+                  <Label className="text-muted-foreground">ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ي�©</Label>
                   <p className="font-medium text-lg">{viewDocument.title_ar}</p>
                 </div>
                 {viewDocument.title_fr && (
                   <div>
-                    <Label className="text-muted-foreground">ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ظپط±ظ†ط³ظٹط©</Label>
+                    <Label className="text-muted-foreground">ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ف�±ظ†ط³ي�©</Label>
                     <p className="font-medium text-lg" dir="ltr">{viewDocument.title_fr}</p>
                   </div>
                 )}
@@ -751,7 +751,7 @@ export default function LegalArchive() {
                   <p className="font-medium">{viewDocument.document_type}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">ط±ظ‚ظ… ط§ظ„ظ…ظ„ظپ</Label>
+                  <Label className="text-muted-foreground">ط±ظ‚ظ… ط§ظ„ظ…ظ„ف</Label>
                   <p className="font-medium">
                     {viewDocument.document_number && viewDocument.document_date
                       ? `${viewDocument.document_number} / ${new Date(viewDocument.document_date).getFullYear()}`
@@ -759,7 +759,7 @@ export default function LegalArchive() {
                   </p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">ط§ظ„طھط§ط±ظٹط®</Label>
+                  <Label className="text-muted-foreground">ط§ظ„ت�§ط±ي�®</Label>
                   <p className="font-medium">
                     {viewDocument.document_date ? format(new Date(viewDocument.document_date), "yyyy/MM/dd") : "-"}
                   </p>
@@ -767,13 +767,13 @@ export default function LegalArchive() {
               </div>
               {viewDocument.description && (
                 <div>
-                  <Label className="text-muted-foreground">ط§ظ„ظˆطµظپ</Label>
+                  <Label className="text-muted-foreground">ط§ظ„ظˆطµف</Label>
                   <p className="font-medium whitespace-pre-wrap">{viewDocument.description}</p>
                 </div>
               )}
               {viewDocument.keywords?.length > 0 && (
                 <div>
-                  <Label className="text-muted-foreground">ط§ظ„ظƒظ„ظ…ط§طھ ط§ظ„ظ…ظپطھط§ط­ظٹط©</Label>
+                  <Label className="text-muted-foreground">ط§ظ„ظƒظ„ظ…ط§ت ط§ظ„ظ…فتط§ط­ي�©</Label>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {viewDocument.keywords.map((keyword: string, index: number) => (
                       <span key={index} className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
@@ -785,7 +785,7 @@ export default function LegalArchive() {
               )}
               {viewDocument.content_text && (
                 <div>
-                  <Label className="text-muted-foreground">ط§ظ„ظ…ط­طھظˆظ‰ ط§ظ„ظ†طµظٹ</Label>
+                  <Label className="text-muted-foreground">ط§ظ„ظ…ط­ت�ˆظ‰ ط§ظ„ظ†طµي</Label>
                   <pre className="font-mono text-sm whitespace-pre-wrap bg-muted/50 p-3 rounded-lg max-h-60 overflow-y-auto border">
                     {viewDocument.content_text}
                   </pre>
@@ -795,7 +795,7 @@ export default function LegalArchive() {
               {/* File preview if available */}
               {viewDocument.file_url && (
                 <div className="space-y-2 pt-4">
-                  <Label className="text-muted-foreground">ظ…ط¹ط§ظٹظ†ط© ط§ظ„ظ…ظ„ظپ ط§ظ„ظ…ط±ظپظ‚</Label>
+                  <Label className="text-muted-foreground">ظ…ط¹ط§ي�†ط© ط§ظ„ظ…ظ„ف ط§ظ„ظ…ط±ف�‚</Label>
                   <div className="border rounded-lg p-2 mt-2 h-[60vh] overflow-hidden">
                     {viewDocument.file_url.endsWith('.pdf') || viewDocument.file_url.includes('application/pdf') ? (
                       <iframe src={viewDocument.file_url} className="w-full h-full" title="PDF Preview" />
@@ -814,7 +814,7 @@ export default function LegalArchive() {
       <Dialog open={!!previewDocument} onOpenChange={() => setPreviewDocument(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>ظ…ط¹ط§ظٹظ†ط© ط§ظ„ظˆط«ظٹظ‚ط©</DialogTitle>
+            <DialogTitle>ظ…ط¹ط§ي�†ط© ط§ظ„ظˆط«ي�‚ط©</DialogTitle>
           </DialogHeader>
           {previewDocument && (
             <div>
@@ -825,7 +825,7 @@ export default function LegalArchive() {
                   <img src={previewDocument.file_url} alt={previewDocument.title_ar} className="w-full h-auto object-contain max-h-[80vh]" />
                 )
               ) : (
-                <p className="text-center text-muted-foreground">ظ„ط§ طھظˆط¬ط¯ ظ…ط¹ط§ظٹظ†ط© ظ„ظ„ظˆط«ظٹظ‚ط©</p>
+                <p className="text-center text-muted-foreground">ظ„ط§ ت�ˆط¬ط¯ ظ…ط¹ط§ي�†ط© ظ„ظ„ظˆط«ي�‚ط©</p>
               )}
             </div>
           )}
@@ -838,7 +838,7 @@ export default function LegalArchive() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="w-5 h-5 text-primary" />
-              طھط¹ط¯ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ„ظپ
+              ت�¹ط¯ي�„ ط¨ي�§ظ†ط§ت ط§ظ„ظ…ظ„ف
             </DialogTitle>
           </DialogHeader>
 
@@ -850,7 +850,7 @@ export default function LegalArchive() {
                   <div className="p-3 border-b bg-muted/40 flex items-center justify-between">
                     <Label className="flex items-center gap-2 font-semibold">
                       <FileText className="w-4 h-4 text-primary" />
-                      {newFile ? "ط§ظ„ظ…ظ„ظپ ط§ظ„ط¬ط¯ظٹط¯ (ظ‚ظٹط¯ ط§ظ„ط¥ط¶ط§ظپط©)" : "ط§ظ„ظ…ظ„ظپ ط§ظ„ط­ط§ظ„ظٹ"}
+                      {newFile ? "ط§ظ„ظ…ظ„ف ط§ظ„ط¬ط¯ي�¯ (ظ‚ي�¯ ط§ظ„ط¥ط¶ط§ف�©)" : "ط§ظ„ظ…ظ„ف ط§ظ„ط­ط§ظ„ي"}
                     </Label>
                     {!isReplacingFile && !newFile && (
                       <Button
@@ -861,7 +861,7 @@ export default function LegalArchive() {
                         className="gap-1 h-7 text-xs"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
-                        طھط؛ظٹظٹط± ط§ظ„ظ…ظ„ظپ
+                        تغييط± ط§ظ„ظ…ظ„ف
                       </Button>
                     )}
                     {(isReplacingFile || newFile) && (
@@ -879,7 +879,7 @@ export default function LegalArchive() {
                         }}
                       >
                         <X className="w-3.5 h-3.5" />
-                        ط¥ظ„ط؛ط§ط، ط§ظ„طھط؛ظٹظٹط±
+                        ط¥ظ„غ�§ء ط§ظ„تغييط±
                       </Button>
                     )}
                   </div>
@@ -941,7 +941,7 @@ export default function LegalArchive() {
                               variant="secondary"
                             >
                               <Sparkles className="w-4 h-4 text-purple-600" />
-                              طھط­ظ„ظٹظ„ ظˆط§ط³طھط®ط±ط§ط¬ ط§ظ„ط¨ظٹط§ظ†ط§طھ طھظ„ظ‚ط§ط¦ظٹط§ظ‹
+                              ت�­ظ„ي�„ ظˆط§ط³ت�®ط±ط§ط¬ ط§ظ„ط¨ي�§ظ†ط§ت ت�„ظ‚ط§ط¦ي�§ظ‹
                             </Button>
                           ) : (
                             <div className="space-y-2">
@@ -963,24 +963,24 @@ export default function LegalArchive() {
               <form onSubmit={handleEditSubmit} className="flex flex-col space-y-4">
                 <Alert className="bg-blue-50 border-blue-100 dark:bg-blue-950/20 dark:border-blue-900">
                   <Pencil className="h-4 w-4 text-blue-500" />
-                  <AlertTitle className="text-blue-700 dark:text-blue-300">ظˆط¶ط¹ ط§ظ„طھط¹ط¯ظٹظ„</AlertTitle>
+                  <AlertTitle className="text-blue-700 dark:text-blue-300">ظˆط¶ط¹ ط§ظ„ت�¹ط¯ي�„</AlertTitle>
                   <AlertDescription className="text-blue-600/80 dark:text-blue-400/80 text-xs">
-                    ظ‚ظ… ط¨طھط¹ط¯ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط£ط¯ظ†ط§ظ‡. ظٹظ…ظƒظ†ظƒ طھط­ط¯ظٹط« ط§ظ„ط¨ظٹط§ظ†ط§طھ طھظ„ظ‚ط§ط¦ظٹط§ظ‹ ط¹ظ†ط¯ طھط؛ظٹظٹط± ط§ظ„ظ…ظ„ظپ ظˆطھط­ظ„ظٹظ„ظ‡.
+                    ظ‚ظ… ط¨ت�¹ط¯ي�„ ط§ظ„ط¨ي�§ظ†ط§ت ط£ط¯ظ†ط§ظ‡. ي�…ظƒظ†ظƒ ت�­ط¯ي�« ط§ظ„ط¨ي�§ظ†ط§ت ت�„ظ‚ط§ط¦ي�§ظ‹ ط¹ظ†ط¯ تغييط± ط§ظ„ظ…ظ„ف ظˆت�­ظ„ي�„ظ‡.
                   </AlertDescription>
                 </Alert>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ظٹط© *</Label>
+                    <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ي�© *</Label>
                     <Input
                       value={editFormData.title_ar}
                       onChange={(e) => setEditFormData({ ...editFormData, title_ar: e.target.value })}
-                      placeholder="ط£ط¯ط®ظ„ ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ظٹط©"
+                      placeholder="ط£ط¯ط®ظ„ ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ي�©"
                       className={autoFillClass("title_ar")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ظپط±ظ†ط³ظٹط©</Label>
+                    <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ف�±ظ†ط³ي�©</Label>
                     <Input
                       value={editFormData.title_fr}
                       onChange={(e) => setEditFormData({ ...editFormData, title_fr: e.target.value })}
@@ -992,18 +992,18 @@ export default function LegalArchive() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label>ظ†ظˆط¹ ط§ظ„ظˆط«ظٹظ‚ط© *</Label>
+                    <Label>ظ†ظˆط¹ ط§ظ„ظˆط«ي�‚ط© *</Label>
                     <Select
                       value={editFormData.document_type}
                       onValueChange={(value) => setEditFormData({ ...editFormData, document_type: value })}
                     >
                       <SelectTrigger className={autoFillClass("document_type")}>
-                        <SelectValue placeholder="ط§ط®طھط± ط§ظ„ظ†ظˆط¹" />
+                        <SelectValue placeholder="ط§ط®ت�± ط§ظ„ظ†ظˆط¹" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ظ…ط±ط³ظˆظ…">ظ…ط±ط³ظˆظ…</SelectItem>
                         <SelectItem value="ظ‚ط±ط§ط±">ظ‚ط±ط§ط±</SelectItem>
-                        <SelectItem value="طھط¹ظ„ظٹظ…ط©">طھط¹ظ„ظٹظ…ط©</SelectItem>
+                        <SelectItem value="ت�¹ظ„ي�…ط©">ت�¹ظ„ي�…ط©</SelectItem>
                         <SelectItem value="ظ…ظ†ط´ظˆط±">ظ…ظ†ط´ظˆط±</SelectItem>
                         <SelectItem value="ظ‚ط§ظ†ظˆظ†">ظ‚ط§ظ†ظˆظ†</SelectItem>
                         <SelectItem value="ط£ظ…ط±">ط£ظ…ط±</SelectItem>
@@ -1011,7 +1011,7 @@ export default function LegalArchive() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>ط±ظ‚ظ… ط§ظ„ظ…ظ„ظپ</Label>
+                    <Label>ط±ظ‚ظ… ط§ظ„ظ…ظ„ف</Label>
                     <Input
                       value={editFormData.document_number}
                       onChange={(e) => setEditFormData({ ...editFormData, document_number: e.target.value })}
@@ -1020,7 +1020,7 @@ export default function LegalArchive() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>طھط§ط±ظٹط® ط§ظ„ظˆط«ظٹظ‚ط©</Label>
+                    <Label>ت�§ط±ي�® ط§ظ„ظˆط«ي�‚ط©</Label>
                     <DateInput
                       value={editFormData.document_date}
                       onChange={(date) => setEditFormData({ ...editFormData, document_date: date })}
@@ -1030,7 +1030,7 @@ export default function LegalArchive() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>ط§ظ„ظˆطµظپ</Label>
+                  <Label>ط§ظ„ظˆطµف</Label>
                   <Textarea
                     value={editFormData.description}
                     onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
@@ -1039,7 +1039,7 @@ export default function LegalArchive() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>ظ…ط­طھظˆظ‰ ط§ظ„ظˆط«ظٹظ‚ط© (ظ„ظ„ط¨ط­ط«)</Label>
+                  <Label>ظ…ط­ت�ˆظ‰ ط§ظ„ظˆط«ي�‚ط© (ظ„ظ„ط¨ط­ط«)</Label>
                   <Textarea
                     value={editFormData.content_text}
                     onChange={(e) => setEditFormData({ ...editFormData, content_text: e.target.value })}
@@ -1049,7 +1049,7 @@ export default function LegalArchive() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>ط§ظ„ظƒظ„ظ…ط§طھ ط§ظ„ظ…ظپطھط§ط­ظٹط©</Label>
+                    <Label>ط§ظ„ظƒظ„ظ…ط§ت ط§ظ„ظ…فتط§ط­ي�©</Label>
                     <Input
                       value={editFormData.keywords}
                       onChange={(e) => setEditFormData({ ...editFormData, keywords: e.target.value })}
@@ -1057,7 +1057,7 @@ export default function LegalArchive() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>ط§ظ„ظ„ط؛ط©</Label>
+                    <Label>ط§ظ„ظ„غ�©</Label>
                     <Select
                       value={editFormData.language}
                       onValueChange={(value) => setEditFormData({ ...editFormData, language: value })}
@@ -1066,9 +1066,9 @@ export default function LegalArchive() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ar">ط§ظ„ط¹ط±ط¨ظٹط©</SelectItem>
-                        <SelectItem value="fr">ط§ظ„ظپط±ظ†ط³ظٹط©</SelectItem>
-                        <SelectItem value="both">ط«ظ†ط§ط¦ظٹ ط§ظ„ظ„ط؛ط©</SelectItem>
+                        <SelectItem value="ar">ط§ظ„ط¹ط±ط¨ي�©</SelectItem>
+                        <SelectItem value="fr">ط§ظ„ف�±ظ†ط³ي�©</SelectItem>
+                        <SelectItem value="both">ط«ظ†ط§ط¦ي ط§ظ„ظ„غ�©</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1076,11 +1076,11 @@ export default function LegalArchive() {
 
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <Button type="button" variant="outline" onClick={closeEditModal}>
-                    ط¥ظ„ط؛ط§ط،
+                    ط¥ظ„غ�§ء
                   </Button>
                   <Button type="submit" style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
                     <Pencil className="w-4 h-4 ml-2" />
-                    ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„ط§طھ
+                    ط­ف�¸ ط§ظ„ت�¹ط¯ي�„ط§ت
                   </Button>
                 </div>
               </form>
@@ -1092,5 +1092,7 @@ export default function LegalArchive() {
     </div>
   );
 }
+
+
 
 

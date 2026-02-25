@@ -25,32 +25,32 @@ import { AdminLoginModal } from "@/components/AdminLoginModal";
 import { ViewerSettingsPanel } from "@/components/ViewerSettingsPanel";
 
 const mainMenuItems = [
-  { title: "ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…", url: "/", icon: LayoutDashboard },
-  { title: "ظ…ظ„ظپ ط¬ط¯ظٹط¯", url: "/new-file", icon: FilePlus, requiresEdit: true },
+  { title: "ظ„ظˆط­ط© ط§ظ„ت�­ظƒظ…", url: "/", icon: LayoutDashboard },
+  { title: "ظ…ظ„ف ط¬ط¯ي�¯", url: "/new-file", icon: FilePlus, requiresEdit: true },
   { title: "ط¥ط¹ط§ط¯ط© ط§ظ„ط¯ط±ط§ط³ط©", url: "/restudy", icon: RefreshCw, requiresEdit: true },
-  { title: "ط§ظ„ط£ط±ط´ظٹظپ", url: "/archive", icon: Archive },
-  { title: "ط§ظ„ط®ط±ظٹط·ط© ط§ظ„ط¹ظ…ط±ط§ظ†ظٹط©", url: "/urban-map", icon: MapPin },
+  { title: "ط§ظ„ط£ط±ط´يف", url: "/archive", icon: Archive },
+  { title: "ط§ظ„ط®ط±ي�·ط© ط§ظ„ط¹ظ…ط±ط§ظ†ي�©", url: "/urban-map", icon: MapPin },
 ];
 
 // These modules are hidden from viewers (requires edit permissions)
 const newModulesItems = [
-  { title: "ظ…ط­ط§ط¶ط± ط§ظ„ط¬ظ„ط³ط§طھ", url: "/minutes", icon: FileText },
-  { title: "ط§ظ„ط§ط³طھط¯ط¹ط§ط،ط§طھ", url: "/summons", icon: Users2 },
+  { title: "ظ…ط­ط§ط¶ط± ط§ظ„ط¬ظ„ط³ط§ت", url: "/minutes", icon: FileText },
+  { title: "ط§ظ„ط§ط³ت�¯ط¹ط§ء�§ت", url: "/summons", icon: Users2 },
 ];
 
 // Legal archive is visible to all
 const publicModulesItems = [
-  { title: "ط§ظ„ظ…ط±ط§ط³ظٹظ… ظˆط§ظ„طھط¹ظ„ظٹظ…ط§طھ", url: "/legal-archive", icon: Scale },
+  { title: "ط§ظ„ظ…ط±ط§ط³ي�… ظˆط§ظ„ت�¹ظ„ي�…ط§ت", url: "/legal-archive", icon: Scale },
 ];
 
 // Data Management - hidden from viewers
 const dataManagementItems = [
-  { title: "ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©", url: "/backup", icon: DatabaseIcon },
-  { title: "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆظپط§طھ", url: "/recycle-bin", icon: Trash2 },
+  { title: "ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­تيط§ط·ي�©", url: "/backup", icon: DatabaseIcon },
+  { title: "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆف�§ت", url: "/recycle-bin", icon: Trash2 },
 ];
 
 const adminMenuItems = [
-  { title: "ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†", url: "/users", icon: Users },
+  { title: "ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³ت�®ط¯ظ…ي�†", url: "/users", icon: Users },
 ];
 
 export function AppSidebar() {
@@ -84,7 +84,7 @@ export function AppSidebar() {
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">
-                ط¯ظٹظˆط§ظ† ط­ظ…ط§ظٹط© ظˆط§ط¯ظٹ ظ…ظٹط²ط§ط¨ ظˆطھط±ظ‚ظٹطھظ‡
+                ط¯ي�ˆط§ظ† ط­ظ…ط§ي�© ظˆط§ط¯ي ظ…ي�²ط§ط¨ ظˆت�±ظ‚يتظ‡
               </h2>
               <p className="text-xs text-sidebar-foreground/70 mt-0.5">
                 OPVM
@@ -98,7 +98,7 @@ export function AppSidebar() {
                 {isViewer ? "ظ…ط´ط§ظ‡ط¯" : user?.email}
               </p>
               <p className="text-xs text-sidebar-foreground/70">
-                {role === "admin" ? "ظ…ط¯ظٹط±" : role === "viewer" || isViewer ? "ظ…ط´ط§ظ‡ط¯" : "ظ…ظˆط¸ظپ"}
+                {role === "admin" ? "ظ…ط¯ي�±" : role === "viewer" || isViewer ? "ظ…ط´ط§ظ‡ط¯" : "ظ…ظˆط¸ف"}
               </p>
             </div>
             <div className="flex items-center gap-1">
@@ -113,7 +113,7 @@ export function AppSidebar() {
                   }
                 }}
                 className={cn("text-sidebar-foreground hover:bg-sidebar-accent", isAdminMode && "text-[#D4AF37]")}
-                title={isAdminMode ? "ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ط³ط¤ظˆظ„" : "ظˆط¶ط¹ ط§ظ„ظ…ط³ط¤ظˆظ„"}
+                title={isAdminMode ? "ط¥ط¹ط¯ط§ط¯ط§ت ط§ظ„ظ…ط³ط¤ظˆظ„" : "ظˆط¶ط¹ ط§ظ„ظ…ط³ط¤ظˆظ„"}
               >
                 <ShieldCheck className="h-5 w-5" />
               </Button>
@@ -123,7 +123,7 @@ export function AppSidebar() {
                 size="icon"
                 onClick={signOut}
                 className="text-sidebar-foreground hover:bg-sidebar-accent"
-                title="طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬"
+                title="ت�³ط¬ي�„ ط§ظ„ط®ط±ظˆط¬"
               >
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -134,7 +134,7 @@ export function AppSidebar() {
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel className="text-sidebar-foreground/70">
-              ط§ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ط±ط¦ظٹط³ظٹط©
+              ط§ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ط±ط¦ي�³ي�©
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -165,7 +165,7 @@ export function AppSidebar() {
 
           <SidebarGroup>
             <SidebarGroupLabel className="text-sidebar-foreground/70">
-              ط§ظ„ظˆط­ط¯ط§طھ
+              ط§ظ„ظˆط­ط¯ط§ت
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -278,7 +278,7 @@ export function AppSidebar() {
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
                       >
                         <Settings className="h-5 w-5 text-[#D4AF37]" />
-                        <span>ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</span>
+                        <span>ط§ظ„ط¥ط¹ط¯ط§ط¯ط§ت</span>
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -296,5 +296,7 @@ export function AppSidebar() {
     </>
   );
 }
+
+
 
 

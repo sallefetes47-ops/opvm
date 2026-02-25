@@ -27,10 +27,10 @@ import { clampPropertyGroupDigits, clampSectionDigits, formatPropertyGroup, form
 import type { Database } from "@/integrations/supabase/types";
 
 type Municipality = Database["public"]["Enums"]["municipality"];
-type OwnershipType = "ط¹ظ‚ط¯ ظ…ظ„ظƒظٹط©" | "ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ" | "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©";
-type OwnershipTypeForNonBuilding = "ط¹ظ‚ط¯ ظ…ظ„ظƒظٹط©" | "ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ";
+type OwnershipType = "ط¹ظ‚ط¯ ظ…ظ„ظƒي�©" | "ط¯فت�± ط¹ظ‚ط§ط±ي" | "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©";
+type OwnershipTypeForNonBuilding = "ط¹ظ‚ط¯ ظ…ظ„ظƒي�©" | "ط¯فت�± ط¹ظ‚ط§ط±ي";
 type CommitteeOpinion = Database["public"]["Enums"]["committee_opinion"];
-type PermitType = "ط±ط®طµط© ط¨ظ†ط§ط،" | "ط±ط®طµط© طھط¬ط²ط¦ط©" | "ط±ط®طµط© ظ‡ط¯ظ…" | "ط´ظ‡ط§ط¯ط© طھظ‚ط³ظٹظ…" | "";
+type PermitType = "ط±ط®طµط© ط¨ظ†ط§ء" | "ط±ط®طµط© ت�¬ط²ط¦ط©" | "ط±ط®طµط© ظ‡ط¯ظ…" | "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…" | "";
 
 interface FileFormData {
   full_name: string;
@@ -72,7 +72,7 @@ export default function NewFile() {
     permit_type: "",
     file_number: "",
     year: currentYear,
-    ownership_type: "ط¹ظ‚ط¯ ظ…ظ„ظƒظٹط©",
+    ownership_type: "ط¹ظ‚ط¯ ظ…ظ„ظƒي�©",
     address: "",
     section: "",
     property_group: "",
@@ -95,7 +95,7 @@ export default function NewFile() {
   // Fetch and Auto-fill Area based on GeoJSON
   useEffect(() => {
     const fetchAreaFromCadastre = async () => {
-      if (formData.ownership_type !== "ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ") return;
+      if (formData.ownership_type !== "ط¯فت�± ط¹ظ‚ط§ط±ي") return;
 
       const sectionStr = formData.section.trim();
       const ilotStr = formData.property_group.trim();
@@ -110,11 +110,11 @@ export default function NewFile() {
 
       // Map municipality to COMMUNE code
       const COMMUNE_CODES: Record<string, string> = {
-        'ط؛ط±ط¯ط§ظٹط©': '4701',
-        'ظ…ظ„ظٹظƒط©': '4701',
+        'غ�±ط¯ط§ي�©': '4701',
+        'ظ…ظ„ي�ƒط©': '4701',
         'ط¨ظ†ظˆط±ط©': '4710',
-        'ط¨ظ†ظٹ ظٹط²ظ‚ظ†': '4710',
-        'ط§ظ„ط¹ط·ظپ': '4707'
+        'ط¨ظ†ي ي�²ظ‚ظ†': '4710',
+        'ط§ظ„ط¹ط·ف': '4707'
       };
 
       const targetCommune = COMMUNE_CODES[municipalityVal];
@@ -153,7 +153,7 @@ export default function NewFile() {
           const areaVal = matchedFeature.properties.AREA;
           const formattedArea = Number(areaVal).toFixed(2); // Keep 2 decimal places
 
-          console.log(`âœ… طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ظ„ظ‚ط·ط¹ط© ظپظٹ (${municipalityVal} - ظ‚ط³ظ… ${targetSection} - ظ…ط¬ظ…ظˆط¹ط© ${targetIlot})طŒ ط§ظ„ظ…ط³ط§ط­ط©: ${formattedArea} ظ…آ²`);
+          console.log(`âœ… ت�… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ظ„ظ‚ط·ط¹ط© في (${municipalityVal} - ظ‚ط³ظ… ${targetSection} - ظ…ط¬ظ…ظˆط¹ط© ${targetIlot})طŒ ط§ظ„ظ…ط³ط§ط­ط©: ${formattedArea} ظ…آ²`);
 
           setFormData(prev => ({
             ...prev,
@@ -164,7 +164,7 @@ export default function NewFile() {
         }
 
       } catch (err) {
-        console.warn("ظپط´ظ„ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ط³ط§ط­ط© طھظ„ظ‚ط§ط¦ظٹط§ظ‹:", err);
+        console.warn("ف�´ظ„ في ط¬ظ„ط¨ ط§ظ„ظ…ط³ط§ط­ط© ت�„ظ‚ط§ط¦ي�§ظ‹:", err);
       }
     };
 
@@ -172,21 +172,21 @@ export default function NewFile() {
   }, [formData.section, formData.property_group, formData.municipality, formData.ownership_type]);
 
   // Determine available ownership types based on permit type
-  // "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©" is only available for "ط±ط®طµط© ط¨ظ†ط§ط،"
+  // "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" is only available for "ط±ط®طµط© ط¨ظ†ط§ء"
   const getAvailableOwnershipTypes = () => {
-    if (formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ط،") {
-      return ["ط¹ظ‚ط¯ ظ…ظ„ظƒظٹط©", "ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ", "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©"] as const;
+    if (formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء") {
+      return ["ط¹ظ‚ط¯ ظ…ظ„ظƒي�©", "ط¯فت�± ط¹ظ‚ط§ط±ي", "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©"] as const;
     }
-    return ["ط¹ظ‚ط¯ ظ…ظ„ظƒظٹط©", "ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ"] as const;
+    return ["ط¹ظ‚ط¯ ظ…ظ„ظƒي�©", "ط¯فت�± ط¹ظ‚ط§ط±ي"] as const;
   };
 
   const handlePermitTypeChange = (value: PermitType) => {
-    // If switching away from "ط±ط®طµط© ط¨ظ†ط§ط،" and currently using "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©", reset to "ط¹ظ‚ط¯ ظ…ظ„ظƒظٹط©"
-    if (value !== "ط±ط®طµط© ط¨ظ†ط§ط،" && formData.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©") {
+    // If switching away from "ط±ط®طµط© ط¨ظ†ط§ء" and currently using "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©", reset to "ط¹ظ‚ط¯ ظ…ظ„ظƒي�©"
+    if (value !== "ط±ط®طµط© ط¨ظ†ط§ء" && formData.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©") {
       setFormData({
         ...formData,
         permit_type: value,
-        ownership_type: "ط¹ظ‚ط¯ ظ…ظ„ظƒظٹط©",
+        ownership_type: "ط¹ظ‚ط¯ ظ…ظ„ظƒي�©",
         lot_number: "",
         subdivision_name: ""
       });
@@ -218,19 +218,19 @@ export default function NewFile() {
         address: data.address,
         section: data.section || null,
         property_group: data.property_group || null,
-        lot_number: data.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©" ? data.lot_number : null,
-        subdivision_name: data.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©" ? data.subdivision_name : null,
-        plot_area: data.permit_type === "ط±ط®طµط© ط¨ظ†ط§ط،" || data.permit_type === "ط´ظ‡ط§ط¯ط© طھظ‚ط³ظٹظ…" || data.permit_type === "ط±ط®طµط© طھط¬ط²ط¦ط©"
+        lot_number: data.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" ? data.lot_number : null,
+        subdivision_name: data.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" ? data.subdivision_name : null,
+        plot_area: data.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" || data.permit_type === "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…" || data.permit_type === "ط±ط®طµط© ت�¬ط²ط¦ط©"
           ? (data.plot_area ? parseFloat(data.plot_area) : null)
           : null,
-        built_area: data.permit_type === "ط±ط®طµط© ط¨ظ†ط§ط،" && data.built_area ? parseFloat(data.built_area) : null,
-        engineer_name: data.permit_type === "ط±ط®طµط© ط¨ظ†ط§ط،" ? data.engineer_name : null,
-        shares_count: data.permit_type === "ط´ظ‡ط§ط¯ط© طھظ‚ط³ظٹظ…" && data.shares_count ? parseInt(data.shares_count) : null,
-        plots_count: data.permit_type === "ط±ط®طµط© طھط¬ط²ط¦ط©" && data.plots_count ? parseInt(data.plots_count) : null,
+        built_area: data.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" && data.built_area ? parseFloat(data.built_area) : null,
+        engineer_name: data.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" ? data.engineer_name : null,
+        shares_count: data.permit_type === "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…" && data.shares_count ? parseInt(data.shares_count) : null,
+        plots_count: data.permit_type === "ط±ط®طµط© ت�¬ط²ط¦ط©" && data.plots_count ? parseInt(data.plots_count) : null,
         submission_date: data.submission_date ? format(data.submission_date, "yyyy-MM-dd") : null,
         session_date: data.session_date ? format(data.session_date, "yyyy-MM-dd") : null,
         committee_opinion: data.committee_opinion || null,
-        rejection_reason: (data.committee_opinion === "طھط­ظپط¸" || data.committee_opinion === "ظ…ط±ظپظˆط¶") ? data.rejection_reason : null,
+        rejection_reason: (data.committee_opinion === "ت�­ف�¸" || data.committee_opinion === "ظ…ط±ف�ˆط¶") ? data.rejection_reason : null,
         created_by: user?.id,
       });
 
@@ -240,8 +240,8 @@ export default function NewFile() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-files"] });
       queryClient.invalidateQueries({ queryKey: ["archive-files"] });
       toast({
-        title: "طھظ… ط§ظ„ط­ظپط¸ ط¨ظ†ط¬ط§ط­",
-        description: "طھظ… طھط³ط¬ظٹظ„ ط§ظ„ظ…ظ„ظپ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ",
+        title: "ت�… ط§ظ„ط­ف�¸ ط¨ظ†ط¬ط§ط­",
+        description: "ت�… ت�³ط¬ي�„ ط§ظ„ظ…ظ„ف في ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ي�§ظ†ط§ت",
       });
       navigate("/archive");
     },
@@ -260,34 +260,34 @@ export default function NewFile() {
     if (!formData.full_name || !formData.municipality || !formData.file_number || !formData.address) {
       toast({
         title: "ط®ط·ط£",
-        description: "ظٹط±ط¬ظ‰ ظ…ظ„ط، ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©",
+        description: "ي�±ط¬ظ‰ ظ…ظ„ء ط¬ظ…ي�¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©",
         variant: "destructive",
       });
       return;
     }
 
-    if (formData.ownership_type === "ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ" && (!formData.section || !formData.property_group)) {
+    if (formData.ownership_type === "ط¯فت�± ط¹ظ‚ط§ط±ي" && (!formData.section || !formData.property_group)) {
       toast({
         title: "ط®ط·ط£",
-        description: "ظٹط±ط¬ظ‰ ظ…ظ„ط، ط­ظ‚ظˆظ„ ط§ظ„ظ‚ط³ظ… ظˆظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒظٹط©",
+        description: "ي�±ط¬ظ‰ ظ…ظ„ء ط­ظ‚ظˆظ„ ط§ظ„ظ‚ط³ظ… ظˆظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒي�©",
         variant: "destructive",
       });
       return;
     }
 
-    if (formData.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©" && (!formData.lot_number || !formData.subdivision_name)) {
+    if (formData.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" && (!formData.lot_number || !formData.subdivision_name)) {
       toast({
         title: "ط®ط·ط£",
-        description: "ظٹط±ط¬ظ‰ ظ…ظ„ط، ط­ظ‚ظˆظ„ ط±ظ‚ظ… ط§ظ„ظ‚ط·ط¹ط© ظˆط§ط³ظ… ط§ظ„طھط¬ط²ط¦ط©",
+        description: "ي�±ط¬ظ‰ ظ…ظ„ء ط­ظ‚ظˆظ„ ط±ظ‚ظ… ط§ظ„ظ‚ط·ط¹ط© ظˆط§ط³ظ… ط§ظ„ت�¬ط²ط¦ط©",
         variant: "destructive",
       });
       return;
     }
 
-    if ((formData.committee_opinion === "طھط­ظپط¸" || formData.committee_opinion === "ظ…ط±ظپظˆط¶") && !formData.rejection_reason) {
+    if ((formData.committee_opinion === "ت�­ف�¸" || formData.committee_opinion === "ظ…ط±ف�ˆط¶") && !formData.rejection_reason) {
       toast({
         title: "ط®ط·ط£",
-        description: "ظٹط±ط¬ظ‰ ط°ظƒط± ط³ط¨ط¨ ط§ظ„طھط­ظپط¸ ط£ظˆ ط§ظ„ط±ظپط¶",
+        description: "ي�±ط¬ظ‰ ط°ظƒط± ط³ط¨ط¨ ط§ظ„ت�­ف�¸ ط£ظˆ ط§ظ„ط±ف�¶",
         variant: "destructive",
       });
       return;
@@ -296,7 +296,7 @@ export default function NewFile() {
     createFileMutation.mutate(formData);
   };
 
-  const showRejectionReason = formData.committee_opinion === "طھط­ظپط¸" || formData.committee_opinion === "ظ…ط±ظپظˆط¶";
+  const showRejectionReason = formData.committee_opinion === "ت�­ف�¸" || formData.committee_opinion === "ظ…ط±ف�ˆط¶";
 
   return (
     <div className="max-w-3xl mx-auto space-y-6" dir="rtl">
@@ -305,8 +305,8 @@ export default function NewFile() {
           <FilePlus className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">طھط³ط¬ظٹظ„ ظ…ظ„ظپ ط¬ط¯ظٹط¯</h1>
-          <p className="text-muted-foreground">ظ…ط§ ط¨ط¹ط¯ ط§ظ„ط´ط¨ط§ظƒ ط§ظ„ظˆط­ظٹط¯</p>
+          <h1 className="text-2xl font-bold">ت�³ط¬ي�„ ظ…ظ„ف ط¬ط¯ي�¯</h1>
+          <p className="text-muted-foreground">ظ…ط§ ط¨ط¹ط¯ ط§ظ„ط´ط¨ط§ظƒ ط§ظ„ظˆط­ي�¯</p>
         </div>
       </div>
 
@@ -314,7 +314,7 @@ export default function NewFile() {
         {/* Basic Information */}
         <Card>
           <CardHeader>
-            <CardTitle>ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ط£ط³ط§ط³ظٹط©</CardTitle>
+            <CardTitle>ط§ظ„ظ…ط¹ظ„ظˆظ…ط§ت ط§ظ„ط£ط³ط§ط³ي�©</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
@@ -329,7 +329,7 @@ export default function NewFile() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="municipality">ط§ظ„ط¨ظ„ط¯ظٹط© *</Label>
+              <Label htmlFor="municipality">ط§ظ„ط¨ظ„ط¯ي�© *</Label>
               <Select
                 dir="rtl"
                 value={formData.municipality}
@@ -338,42 +338,42 @@ export default function NewFile() {
                 }
               >
                 <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
-                  <SelectValue placeholder="ط§ط®طھط± ط§ظ„ط¨ظ„ط¯ظٹط©" />
+                  <SelectValue placeholder="ط§ط®ت�± ط§ظ„ط¨ظ„ط¯ي�©" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ط؛ط±ط¯ط§ظٹط©">ط؛ط±ط¯ط§ظٹط©</SelectItem>
-                  <SelectItem value="ط§ظ„ط¹ط·ظپ">ط§ظ„ط¹ط·ظپ</SelectItem>
+                  <SelectItem value="غ�±ط¯ط§ي�©">غ�±ط¯ط§ي�©</SelectItem>
+                  <SelectItem value="ط§ظ„ط¹ط·ف">ط§ظ„ط¹ط·ف</SelectItem>
                   <SelectItem value="ط¨ظ†ظˆط±ط©">ط¨ظ†ظˆط±ط©</SelectItem>
-                  <SelectItem value="ط§ظ„ط¶ط§ظٹط©">ط§ظ„ط¶ط§ظٹط©</SelectItem>
-                  <SelectItem value="ظ…طھظ„ظٹظ„ظٹ">ظ…طھظ„ظٹظ„ظٹ</SelectItem>
+                  <SelectItem value="ط§ظ„ط¶ط§ي�©">ط§ظ„ط¶ط§ي�©</SelectItem>
+                  <SelectItem value="ظ…ت�„ي�„ي">ظ…ت�„ي�„ي</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="permit_type">ظ†ظˆط¹ ط¹ظ‚ط¯ ط§ظ„طھط¹ظ…ظٹط±</Label>
+              <Label htmlFor="permit_type">ظ†ظˆط¹ ط¹ظ‚ط¯ ط§ظ„ت�¹ظ…ي�±</Label>
               <Select
                 dir="rtl"
                 value={formData.permit_type}
                 onValueChange={handlePermitTypeChange}
               >
                 <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
-                  <SelectValue placeholder="ط§ط®طھط± ظ†ظˆط¹ ط§ظ„ط¹ظ‚ط¯" />
+                  <SelectValue placeholder="ط§ط®ت�± ظ†ظˆط¹ ط§ظ„ط¹ظ‚ط¯" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ط±ط®طµط© ط¨ظ†ط§ط،">ط±ط®طµط© ط¨ظ†ط§ط،</SelectItem>
-                  <SelectItem value="ط±ط®طµط© طھط¬ط²ط¦ط©">ط±ط®طµط© طھط¬ط²ط¦ط©</SelectItem>
+                  <SelectItem value="ط±ط®طµط© ط¨ظ†ط§ء">ط±ط®طµط© ط¨ظ†ط§ء</SelectItem>
+                  <SelectItem value="ط±ط®طµط© ت�¬ط²ط¦ط©">ط±ط®طµط© ت�¬ط²ط¦ط©</SelectItem>
                   <SelectItem value="ط±ط®طµط© ظ‡ط¯ظ…">ط±ط®طµط© ظ‡ط¯ظ…</SelectItem>
-                  <SelectItem value="ط´ظ‡ط§ط¯ط© طھظ‚ط³ظٹظ…">ط´ظ‡ط§ط¯ط© طھظ‚ط³ظٹظ…</SelectItem>
+                  <SelectItem value="ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…">ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="file_number">ط±ظ‚ظ… ط§ظ„ظ…ظ„ظپ *</Label>
+              <Label htmlFor="file_number">ط±ظ‚ظ… ط§ظ„ظ…ظ„ف *</Label>
               <Input
                 id="file_number"
                 value={formData.file_number}
                 onChange={(e) => setFormData({ ...formData, file_number: e.target.value })}
-                placeholder="ط£ط¯ط®ظ„ ط±ظ‚ظ… ط§ظ„ظ…ظ„ظپ"
+                placeholder="ط£ط¯ط®ظ„ ط±ظ‚ظ… ط§ظ„ظ…ظ„ف"
                 required
                 className="text-right"
               />
@@ -396,7 +396,7 @@ export default function NewFile() {
         {/* Ownership Documents */}
         <Card>
           <CardHeader>
-            <CardTitle>ط³ظ†ط¯ ط§ظ„ظ…ظ„ظƒظٹط©</CardTitle>
+            <CardTitle>ط³ظ†ط¯ ط§ظ„ظ…ظ„ظƒي�©</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
@@ -405,36 +405,36 @@ export default function NewFile() {
                 dir="rtl"
                 value={formData.ownership_type}
                 onValueChange={(value: OwnershipType | OwnershipTypeForNonBuilding) => {
-                  // If switching to something other than "ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ", clear section/ilot
-                  const isRealEstateDeed = value === "ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ";
+                  // If switching to something other than "ط¯فت�± ط¹ظ‚ط§ط±ي", clear section/ilot
+                  const isRealEstateDeed = value === "ط¯فت�± ط¹ظ‚ط§ط±ي";
 
                   setFormData({
                     ...formData,
                     ownership_type: value,
-                    // Clear cadastre fields if not "ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ"
+                    // Clear cadastre fields if not "ط¯فت�± ط¹ظ‚ط§ط±ي"
                     section: isRealEstateDeed ? formData.section : "",
                     property_group: isRealEstateDeed ? formData.property_group : "",
                     // Also handle certificate of benefit cleanup if needed
-                    lot_number: value !== "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©" ? "" : formData.lot_number,
-                    subdivision_name: value !== "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©" ? "" : formData.subdivision_name,
+                    lot_number: value !== "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" ? "" : formData.lot_number,
+                    subdivision_name: value !== "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" ? "" : formData.subdivision_name,
                   });
                 }}
               >
                 <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
-                  <SelectValue placeholder="ط§ط®طھط± ظ†ظˆط¹ ط§ظ„ط³ظ†ط¯" />
+                  <SelectValue placeholder="ط§ط®ت�± ظ†ظˆط¹ ط§ظ„ط³ظ†ط¯" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ط¹ظ‚ط¯ ظ…ظ„ظƒظٹط©">ط¹ظ‚ط¯ ظ…ظ„ظƒظٹط©</SelectItem>
-                  <SelectItem value="ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ">ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ</SelectItem>
-                  {/* ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط© only visible for ط±ط®طµط© ط¨ظ†ط§ط، */}
-                  {formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ط،" && (
-                    <SelectItem value="ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©">ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©</SelectItem>
+                  <SelectItem value="ط¹ظ‚ط¯ ظ…ظ„ظƒي�©">ط¹ظ‚ط¯ ظ…ظ„ظƒي�©</SelectItem>
+                  <SelectItem value="ط¯فت�± ط¹ظ‚ط§ط±ي">ط¯فت�± ط¹ظ‚ط§ط±ي</SelectItem>
+                  {/* ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط© only visible for ط±ط®طµط© ط¨ظ†ط§ء */}
+                  {formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" && (
+                    <SelectItem value="ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©">ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©</SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
 
-            {formData.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©" && (
+            {formData.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" && (
               <div className="grid gap-4 md:grid-cols-3 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="lot_number">ط±ظ‚ظ… ط§ظ„ظ‚ط·ط¹ط© *</Label>
@@ -447,12 +447,12 @@ export default function NewFile() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="subdivision_name">ط§ظ„طھط¬ط²ط¦ط© *</Label>
+                  <Label htmlFor="subdivision_name">ط§ظ„ت�¬ط²ط¦ط© *</Label>
                   <Input
                     id="subdivision_name"
                     value={formData.subdivision_name}
                     onChange={(e) => setFormData({ ...formData, subdivision_name: e.target.value })}
-                    placeholder="ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„طھط¬ط²ط¦ط©"
+                    placeholder="ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ت�¬ط²ط¦ط©"
                     className="text-right"
                   />
                 </div>
@@ -470,16 +470,16 @@ export default function NewFile() {
             )}
 
             {/* Cadastral Data - Manual Entry */}
-            {/* CONDITIONAL: Only show if ownership type is "ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ" */}
-            {formData.ownership_type === "ط¯ظپطھط± ط¹ظ‚ط§ط±ظٹ" &&
-              ["ط±ط®طµط© ط¨ظ†ط§ط،", "ط±ط®طµط© طھط¬ط²ط¦ط©", "ط±ط®طµط© ظ‡ط¯ظ…", "ط´ظ‡ط§ط¯ط© طھظ‚ط³ظٹظ…"].includes(formData.permit_type) && (
+            {/* CONDITIONAL: Only show if ownership type is "ط¯فت�± ط¹ظ‚ط§ط±ي" */}
+            {formData.ownership_type === "ط¯فت�± ط¹ظ‚ط§ط±ي" &&
+              ["ط±ط®طµط© ط¨ظ†ط§ء", "ط±ط®طµط© ت�¬ط²ط¦ط©", "ط±ط®طµط© ظ‡ط¯ظ…", "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…"].includes(formData.permit_type) && (
                 <div className="grid gap-4 md:grid-cols-2 pt-4 border-t border-border mt-4">
                   <div className="md:col-span-2">
-                    <Label className="text-base font-semibold">ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³ط­ ط§ظ„ط¹ظ‚ط§ط±ظٹ (ط¥ط¯ط®ط§ظ„ ظٹط¯ظˆظٹ)</Label>
-                    <p className="text-xs text-muted-foreground mb-3">ظٹظ…ظƒظ†ظƒ ط¥ط¯ط®ط§ظ„ ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظ‚ط³ظ… ظˆظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒظٹط© ظٹط¯ظˆظٹط§ظ‹</p>
+                    <Label className="text-base font-semibold">ط¨ي�§ظ†ط§ت ط§ظ„ظ…ط³ط­ ط§ظ„ط¹ظ‚ط§ط±ي (ط¥ط¯ط®ط§ظ„ ي�¯ظˆي)</Label>
+                    <p className="text-xs text-muted-foreground mb-3">ي�…ظƒظ†ظƒ ط¥ط¯ط®ط§ظ„ ظ…ط¹ظ„ظˆظ…ط§ت ط§ظ„ظ‚ط³ظ… ظˆظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒي�© ي�¯ظˆي�§ظ‹</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="section">ط§ظ„ظ‚ط³ظ… ط§ظ„ط¹ظ‚ط§ط±ظٹ (Section) *</Label>
+                    <Label htmlFor="section">ط§ظ„ظ‚ط³ظ… ط§ظ„ط¹ظ‚ط§ط±ي (Section) *</Label>
                     <Input
                       id="section"
                       value={formData.section}
@@ -494,13 +494,13 @@ export default function NewFile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="property_group">ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒظٹط© (Ilot) *</Label>
+                    <Label htmlFor="property_group">ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒي�© (Ilot) *</Label>
                     <Input
                       id="property_group"
                       value={formData.property_group}
                       onChange={(e) => setFormData({ ...formData, property_group: clampPropertyGroupDigits(e.target.value) })}
                       onBlur={() => setFormData({ ...formData, property_group: formatPropertyGroup(formData.property_group) })}
-                      placeholder="ط£ط¯ط®ظ„ ط±ظ‚ظ… ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒظٹط©"
+                      placeholder="ط£ط¯ط®ظ„ ط±ظ‚ظ… ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒي�©"
                       required
                       inputMode="numeric"
                       pattern="[0-9]*"
@@ -511,7 +511,7 @@ export default function NewFile() {
                 </div>
               )}
 
-            {formData.ownership_type !== "ط´ظ‡ط§ط¯ط© ط¥ط³طھظپط§ط¯ط©" && (
+            {formData.ownership_type !== "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" && (
               <div className="space-y-2">
                 <Label htmlFor="address">ط§ظ„ط¹ظ†ظˆط§ظ† *</Label>
                 <Input
@@ -526,15 +526,15 @@ export default function NewFile() {
             )}
           </CardContent>
         </Card>
-        {/* Dynamic Fields based on permit_type - ط±ط®طµط© ط¨ظ†ط§ط، */}
-        {formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ط،" && (
+        {/* Dynamic Fields based on permit_type - ط±ط®طµط© ط¨ظ†ط§ء */}
+        {formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" && (
           <Card>
             <CardHeader>
-              <CardTitle>ط¨ظٹط§ظ†ط§طھ ط±ط®طµط© ط§ظ„ط¨ظ†ط§ط،</CardTitle>
+              <CardTitle>ط¨ي�§ظ†ط§ت ط±ط®طµط© ط§ظ„ط¨ظ†ط§ء</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="plot_area">ظ…ط³ط§ط­ط© ط§ظ„ط£ط±ط¶ظٹط© (ظ…آ²)</Label>
+                <Label htmlFor="plot_area">ظ…ط³ط§ط­ط© ط§ظ„ط£ط±ط¶ي�© (ظ…آ²)</Label>
                 <Input
                   id="plot_area"
                   type="number"
@@ -546,7 +546,7 @@ export default function NewFile() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="built_area">ط§ظ„ظ…ط³ط§ط­ط© ط§ظ„ظ…ط¨ظ†ظٹط© (ظ…آ²)</Label>
+                <Label htmlFor="built_area">ط§ظ„ظ…ط³ط§ط­ط© ط§ظ„ظ…ط¨ظ†ي�© (ظ…آ²)</Label>
                 <Input
                   id="built_area"
                   type="number"
@@ -558,12 +558,12 @@ export default function NewFile() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="engineer_name">ظ…ظƒطھط¨ ط§ظ„ط¯ط±ط§ط³ط§طھ</Label>
+                <Label htmlFor="engineer_name">ظ…ظƒت�¨ ط§ظ„ط¯ط±ط§ط³ط§ت</Label>
                 <Input
                   id="engineer_name"
                   value={formData.engineer_name}
                   onChange={(e) => setFormData({ ...formData, engineer_name: e.target.value })}
-                  placeholder="ط£ط¯ط®ظ„ ط§ط³ظ… ظ…ظƒطھط¨ ط§ظ„ط¯ط±ط§ط³ط§طھ"
+                  placeholder="ط£ط¯ط®ظ„ ط§ط³ظ… ظ…ظƒت�¨ ط§ظ„ط¯ط±ط§ط³ط§ت"
                   className="text-right"
                 />
               </div>
@@ -571,15 +571,15 @@ export default function NewFile() {
           </Card>
         )}
 
-        {/* Dynamic Fields based on permit_type - ط±ط®طµط© طھط¬ط²ط¦ط© */}
-        {formData.permit_type === "ط±ط®طµط© طھط¬ط²ط¦ط©" && (
+        {/* Dynamic Fields based on permit_type - ط±ط®طµط© ت�¬ط²ط¦ط© */}
+        {formData.permit_type === "ط±ط®طµط© ت�¬ط²ط¦ط©" && (
           <Card>
             <CardHeader>
-              <CardTitle>ط¨ظٹط§ظ†ط§طھ ط±ط®طµط© ط§ظ„طھط¬ط²ط¦ط©</CardTitle>
+              <CardTitle>ط¨ي�§ظ†ط§ت ط±ط®طµط© ط§ظ„ت�¬ط²ط¦ط©</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="plot_area">ظ…ط³ط§ط­ط© ط§ظ„ط£ط±ط¶ظٹط© (ظ…آ²)</Label>
+                <Label htmlFor="plot_area">ظ…ط³ط§ط­ط© ط§ظ„ط£ط±ط¶ي�© (ظ…آ²)</Label>
                 <Input
                   id="plot_area"
                   type="number"
@@ -606,11 +606,11 @@ export default function NewFile() {
           </Card>
         )}
 
-        {/* Dynamic Fields based on permit_type - ط´ظ‡ط§ط¯ط© طھظ‚ط³ظٹظ… */}
-        {formData.permit_type === "ط´ظ‡ط§ط¯ط© طھظ‚ط³ظٹظ…" && (
+        {/* Dynamic Fields based on permit_type - ط´ظ‡ط§ط¯ط© ت�‚ط³ي�… */}
+        {formData.permit_type === "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…" && (
           <Card>
             <CardHeader>
-              <CardTitle>ط¨ظٹط§ظ†ط§طھ ط´ظ‡ط§ط¯ط© ط§ظ„طھظ‚ط³ظٹظ…</CardTitle>
+              <CardTitle>ط¨ي�§ظ†ط§ت ط´ظ‡ط§ط¯ط© ط§ظ„ت�‚ط³ي�…</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -644,11 +644,11 @@ export default function NewFile() {
         {/* Administrative Status */}
         <Card>
           <CardHeader>
-            <CardTitle>ط§ظ„ظˆط¶ط¹ظٹط© ط§ظ„ط¥ط¯ط§ط±ظٹط©</CardTitle>
+            <CardTitle>ط§ظ„ظˆط¶ط¹ي�© ط§ظ„ط¥ط¯ط§ط±ي�©</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>طھط§ط±ظٹط® ط¥ظٹط¯ط§ط¹ ط§ظ„ظ…ظ„ظپ</Label>
+              <Label>ت�§ط±ي�® ط¥ي�¯ط§ط¹ ط§ظ„ظ…ظ„ف</Label>
               <DateInput
                 value={formData.submission_date}
                 onChange={(date) => setFormData({ ...formData, submission_date: date })}
@@ -656,7 +656,7 @@ export default function NewFile() {
               />
             </div>
             <div className="space-y-2">
-              <Label>طھط§ط±ظٹط® ط§ظ„ط¬ظ„ط³ط©</Label>
+              <Label>ت�§ط±ي�® ط§ظ„ط¬ظ„ط³ط©</Label>
               <DateInput
                 value={formData.session_date}
                 onChange={(date) => setFormData({ ...formData, session_date: date })}
@@ -664,7 +664,7 @@ export default function NewFile() {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>ط±ط£ظٹ ط§ظ„ظ„ط¬ظ†ط©</Label>
+              <Label>ط±ط£ي ط§ظ„ظ„ط¬ظ†ط©</Label>
               <Select
                 dir="rtl"
                 value={formData.committee_opinion}
@@ -673,25 +673,25 @@ export default function NewFile() {
                 }
               >
                 <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
-                  <SelectValue placeholder="ط§ط®طھط± ط±ط£ظٹ ط§ظ„ظ„ط¬ظ†ط©" />
+                  <SelectValue placeholder="ط§ط®ت�± ط±ط£ي ط§ظ„ظ„ط¬ظ†ط©" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ط±ط£ظٹ ط¥ظٹط¬ط§ط¨ظٹ">
+                  <SelectItem value="ط±ط£ي ط¥ي�¬ط§ط¨ي">
                     <span className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-success" />
-                      ط±ط£ظٹ ط¥ظٹط¬ط§ط¨ظٹ
+                      ط±ط£ي ط¥ي�¬ط§ط¨ي
                     </span>
                   </SelectItem>
-                  <SelectItem value="طھط­ظپط¸">
+                  <SelectItem value="ت�­ف�¸">
                     <span className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-warning" />
-                      طھط­ظپط¸
+                      ت�­ف�¸
                     </span>
                   </SelectItem>
-                  <SelectItem value="ظ…ط±ظپظˆط¶">
+                  <SelectItem value="ظ…ط±ف�ˆط¶">
                     <span className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-destructive" />
-                      ظ…ط±ظپظˆط¶
+                      ظ…ط±ف�ˆط¶
                     </span>
                   </SelectItem>
                 </SelectContent>
@@ -700,12 +700,12 @@ export default function NewFile() {
 
             {showRejectionReason && (
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="rejection_reason">ط³ط¨ط¨ ط§ظ„طھط­ظپط¸ ط£ظˆ ط§ظ„ط±ظپط¶ *</Label>
+                <Label htmlFor="rejection_reason">ط³ط¨ط¨ ط§ظ„ت�­ف�¸ ط£ظˆ ط§ظ„ط±ف�¶ *</Label>
                 <Textarea
                   id="rejection_reason"
                   value={formData.rejection_reason}
                   onChange={(e) => setFormData({ ...formData, rejection_reason: e.target.value })}
-                  placeholder="ط§ط°ظƒط± ط³ط¨ط¨ ط§ظ„طھط­ظپط¸ ط£ظˆ ط§ظ„ط±ظپط¶ ط¨ط§ظ„طھظپطµظٹظ„..."
+                  placeholder="ط§ط°ظƒط± ط³ط¨ط¨ ط§ظ„ت�­ف�¸ ط£ظˆ ط§ظ„ط±ف�¶ ط¨ط§ظ„تف�µي�„..."
                   rows={4}
                   required
                   className="text-right"
@@ -714,9 +714,9 @@ export default function NewFile() {
             )}
 
             {/* Electronic Permit Copy - Only for Building Permit */}
-            {formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ط،" && (
+            {formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" && (
               <div className="space-y-2 md:col-span-2 pt-2 border-t border-border">
-                <Label>ظ†ط³ط®ط© ط¥ظ„ظƒطھط±ظˆظ†ظٹط© ظ…ظ† ط§ظ„ط±ط®طµط©</Label>
+                <Label>ظ†ط³ط®ط© ط¥ظ„ظƒت�±ظˆظ†ي�© ظ…ظ† ط§ظ„ط±ط®طµط©</Label>
                 <Input
                   ref={electronicPermitInputRef}
                   type="file"
@@ -728,23 +728,23 @@ export default function NewFile() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Button type="button" variant="outline" onClick={openElectronicPermitPicker}>
                     <FileUp className="w-4 h-4 ml-2" />
-                    ط±ظپط¹ ظ…ظ† ط§ظ„ظƒظ…ط¨ظٹظˆطھط±
+                    ط±ف�¹ ظ…ظ† ط§ظ„ظƒظ…ط¨ي�ˆت�±
                   </Button>
                   <Input
                     value={formData.electronic_permit_file?.name || ""}
                     readOnly
-                    placeholder="ظ„ظ… ظٹطھظ… ط§ط®طھظٹط§ط± ظ…ظ„ظپ ط¨ط¹ط¯"
+                    placeholder="ظ„ظ… يت�… ط§ط®تي�§ط± ظ…ظ„ف ط¨ط¹ط¯"
                     className="flex-1 text-right"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  ظٹظ…ظƒظ†ظƒ ط±ظپط¹ ظ†ط³ط®ط© PDF/طµظˆط±ط© ظ…ظ† ط§ظ„ظƒظ…ط¨ظٹظˆطھط±.
+                  ي�…ظƒظ†ظƒ ط±ف�¹ ظ†ط³ط®ط© PDF/طµظˆط±ط© ظ…ظ† ط§ظ„ظƒظ…ط¨ي�ˆت�±.
                 </p>
               </div>
             )}
 
             {/* Map Location Focus - For All Permit Types */}
-            {["ط±ط®طµط© ط¨ظ†ط§ط،", "ط±ط®طµط© طھط¬ط²ط¦ط©", "ط±ط®طµط© ظ‡ط¯ظ…", "ط´ظ‡ط§ط¯ط© طھظ‚ط³ظٹظ…"].includes(formData.permit_type) && (
+            {["ط±ط®طµط© ط¨ظ†ط§ء", "ط±ط®طµط© ت�¬ط²ط¦ط©", "ط±ط®طµط© ظ‡ط¯ظ…", "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…"].includes(formData.permit_type) && (
               <div className="space-y-2 md:col-span-2 pt-2 border-t border-border">
                 <PermitLocationPicker
                   value={
@@ -775,10 +775,10 @@ export default function NewFile() {
             {createFileMutation.isPending ? (
               <>
                 <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                ط¬ط§ط±ظٹ ط§ظ„ط­ظپط¸...
+                ط¬ط§ط±ي ط§ظ„ط­ف�¸...
               </>
             ) : (
-              "ط­ظپط¸ ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ"
+              "ط­ف�¸ ط§ظ„ظ…ط¹ظ„ظˆظ…ط§ت"
             )}
           </Button>
           <Button
@@ -786,11 +786,12 @@ export default function NewFile() {
             variant="outline"
             onClick={() => navigate("/")}
           >
-            ط¥ظ„ط؛ط§ط،
+            ط¥ظ„غ�§ء
           </Button>
         </div>
       </form>
     </div>
   );
 }
+
 
