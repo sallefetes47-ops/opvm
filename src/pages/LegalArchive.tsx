@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -197,9 +197,10 @@ export default function LegalArchive() {
         description: "تم سحب الوثيقة بنجاح من الماسح الضوئي",
       });
     } catch (error: any) {
+      const guidance = "يرجى التأكد من تشغيل تطبيق Scanner Bridge على جهازك";
       toast({
         title: "خطأ",
-        description: error?.message || "خطأ: لم يتم العثور على برنامج Scanner Bridge. يرجى تشغيله أولاً للاتصال بجهاز Kyocera.",
+        description: `${error?.message || guidance} — ${guidance}`,
         variant: "destructive",
       });
     } finally {
