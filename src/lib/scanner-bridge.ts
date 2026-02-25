@@ -9,6 +9,18 @@ declare global {
 }
 
 const DEFAULT_SOURCE = "Kyocera FS-1035MFP WIA Driver";
+const BRIDGE_SCRIPT_URLS = [
+  "http://127.0.0.1:8080/scanner.js",
+  "http://localhost:8080/scanner.js",
+  "http://127.0.0.1:8081/scanner.js",
+  "http://localhost:8081/scanner.js",
+];
+
+function getScannerBridgeError(): Error {
+  return new Error(
+    "Scanner bridge is unavailable. يرجى التأكد من تشغيل برنامج Scanner Bridge على الكمبيوتر لاستخدام الماسح الضوئي Kyocera."
+  );
+}
 
 function maybeParseJson(text: string): unknown {
   try {
@@ -78,10 +90,50 @@ async function blobToHighQualityJpeg(blob: Blob, filename: string): Promise<File
   return new File([converted], filename, { type: "image/jpeg" });
 }
 
-export async function scanFromLocalScanner(preferredSource = DEFAULT_SOURCE): Promise<File> {
-  if (typeof window === "undefined" || !window.scannerjs) {
-    throw new Error("Scanner bridge is unavailable. Install/start scannerjs bridge locally.");
+function loadBridgeScript(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof document === "undefined") {
+      resolve(false);
+      return;
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>(`script[data-scanner-bridge="${url}"]`);
+    if (existing) {
+      if (window.scannerjs) resolve(true);
+      else resolve(false);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = url;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.dataset.scannerBridge = url;
+    script.onload = () => resolve(Boolean(window.scannerjs));
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
+async function ensureScannerBridgeAvailable(): Promise<void> {
+  if (typeof window === "undefined") {
+    throw getScannerBridgeError();
   }
+  if (window.scannerjs) return;
+
+  for (const url of BRIDGE_SCRIPT_URLS) {
+    // Try known local bridge endpoints in order and stop as soon as scannerjs is ready.
+    const loaded = await loadBridgeScript(url);
+    if (loaded && window.scannerjs) return;
+  }
+
+  if (!window.scannerjs) {
+    throw getScannerBridgeError();
+  }
+}
+
+export async function scanFromLocalScanner(preferredSource = DEFAULT_SOURCE): Promise<File> {
+  await ensureScannerBridgeAvailable();
 
   const config = JSON.stringify({
     select_source: preferredSource,
@@ -112,4 +164,3 @@ export async function scanFromLocalScanner(preferredSource = DEFAULT_SOURCE): Pr
   const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, "");
   return blobToHighQualityJpeg(blob, `scan_${timestamp}.jpg`);
 }
-
