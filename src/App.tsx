@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AdminProvider } from "@/contexts/AdminContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { DashboardLayout } from "@/components/DashboardLayout";
 
@@ -30,57 +31,59 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+      <AdminProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
 
-              {/* Protected Routes */}
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/new-file" element={<NewFile />} />
-                <Route path="/restudy" element={<Restudy />} />
-                <Route path="/archive" element={<Archive />} />
-                <Route path="/minutes" element={<Minutes />} />
-                <Route path="/summons" element={<Summons />} />
-                <Route path="/legal-archive" element={<LegalArchive />} />
+                {/* Protected Routes */}
                 <Route
-                  path="/users"
                   element={
-                    <ProtectedRoute requiredRole="admin">
-                      <Users />
+                    <ProtectedRoute>
+                      <DashboardLayout />
                     </ProtectedRoute>
                   }
-                />
-                <Route path="/backup" element={<Backup />} />
-                <Route path="/urban-map" element={<UrbanMap />} />
-                <Route
-                  path="/trash"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <TrashBin />
-                    </ProtectedRoute>
-                  }
-                />
-              </Route>
+                >
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/new-file" element={<NewFile />} />
+                  <Route path="/restudy" element={<Restudy />} />
+                  <Route path="/archive" element={<Archive />} />
+                  <Route path="/minutes" element={<Minutes />} />
+                  <Route path="/summons" element={<Summons />} />
+                  <Route path="/legal-archive" element={<LegalArchive />} />
+                  <Route
+                    path="/users"
+                    element={
+                      <ProtectedRoute requiredRole="admin">
+                        <Users />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="/backup" element={<Backup />} />
+                  <Route path="/urban-map" element={<UrbanMap />} />
+                  <Route
+                    path="/trash"
+                    element={
+                      <ProtectedRoute requiredRole="admin">
+                        <TrashBin />
+                      </ProtectedRoute>
+                    }
+                  />
+                </Route>
 
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AdminProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );
