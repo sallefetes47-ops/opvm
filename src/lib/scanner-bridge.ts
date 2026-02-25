@@ -1,4 +1,4 @@
-type ScannerJs = {
+﻿type ScannerJs = {
   scan: (success: (message: unknown) => void, error: (message: unknown) => void, config?: string) => void;
 };
 
@@ -10,6 +10,10 @@ declare global {
 
 const DEFAULT_SOURCE = "Kyocera FS-1035MFP WIA Driver";
 const BRIDGE_SCRIPT_URLS = [
+  "http://localhost:18485/scanner.js",
+  "http://127.0.0.1:18485/scanner.js",
+  "http://localhost:18485/scanner/scanner.js",
+  "http://127.0.0.1:18485/scanner/scanner.js",
   "http://127.0.0.1:8080/scanner.js",
   "http://localhost:8080/scanner.js",
   "http://127.0.0.1:8081/scanner.js",
@@ -17,9 +21,7 @@ const BRIDGE_SCRIPT_URLS = [
 ];
 
 function getScannerBridgeError(): Error {
-  return new Error(
-    "Scanner bridge is unavailable. يرجى التأكد من تشغيل برنامج Scanner Bridge على الكمبيوتر لاستخدام الماسح الضوئي Kyocera."
-  );
+  return new Error("خطأ: لم يتم العثور على برنامج Scanner Bridge. يرجى تشغيله أولاً للاتصال بجهاز Kyocera.");
 }
 
 function maybeParseJson(text: string): unknown {
@@ -99,8 +101,7 @@ function loadBridgeScript(url: string): Promise<boolean> {
 
     const existing = document.querySelector<HTMLScriptElement>(`script[data-scanner-bridge="${url}"]`);
     if (existing) {
-      if (window.scannerjs) resolve(true);
-      else resolve(false);
+      resolve(Boolean(window.scannerjs));
       return;
     }
 
@@ -122,7 +123,6 @@ async function ensureScannerBridgeAvailable(): Promise<void> {
   if (window.scannerjs) return;
 
   for (const url of BRIDGE_SCRIPT_URLS) {
-    // Try known local bridge endpoints in order and stop as soon as scannerjs is ready.
     const loaded = await loadBridgeScript(url);
     if (loaded && window.scannerjs) return;
   }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -49,9 +49,9 @@ const parseArabicLegalText = (text: string) => {
 };
 
 const mockDocuments = [
-  { id: "1", title_ar: "مرسوم تنفيذي 23-14", document_type: "مرسوم", document_number: "23-14", document_date: "2023-01-15", status: "active", description: "يحدد كيفيات تطبيق أحكام القانون...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-  { id: "2", title_ar: "قرار وزاري مشترك", document_type: "قرار", document_number: "22-55", document_date: "2022-11-20", status: "active", description: "يتضمن المصادقة على المخطط التوجيهي...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-  { id: "3", title_ar: "تعليمة رقم 05", document_type: "تعليمة", document_number: "05", document_date: "2024-02-01", status: "active", description: "تتعلّق بتسهيل إجراءات منح رخص البناء...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
+  { id: "1", title_ar: "ظ…ط±ط³ظˆظ… طھظ†ظپظٹط°ظٹ 23-14", document_type: "ظ…ط±ط³ظˆظ…", document_number: "23-14", document_date: "2023-01-15", status: "active", description: "ظٹط­ط¯ط¯ ظƒظٹظپظٹط§طھ طھط·ط¨ظٹظ‚ ط£ط­ظƒط§ظ… ط§ظ„ظ‚ط§ظ†ظˆظ†...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+  { id: "2", title_ar: "ظ‚ط±ط§ط± ظˆط²ط§ط±ظٹ ظ…ط´طھط±ظƒ", document_type: "ظ‚ط±ط§ط±", document_number: "22-55", document_date: "2022-11-20", status: "active", description: "ظٹطھط¶ظ…ظ† ط§ظ„ظ…طµط§ط¯ظ‚ط© ط¹ظ„ظ‰ ط§ظ„ظ…ط®ط·ط· ط§ظ„طھظˆط¬ظٹظ‡ظٹ...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+  { id: "3", title_ar: "طھط¹ظ„ظٹظ…ط© ط±ظ‚ظ… 05", document_type: "طھط¹ظ„ظٹظ…ط©", document_number: "05", document_date: "2024-02-01", status: "active", description: "طھطھط¹ظ„ظ‘ظ‚ ط¨طھط³ظ‡ظٹظ„ ط¥ط¬ط±ط§ط،ط§طھ ظ…ظ†ط­ ط±ط®طµ ط§ظ„ط¨ظ†ط§ط،...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
 ];
 
 export default function LegalArchive() {
@@ -123,6 +123,17 @@ export default function LegalArchive() {
 
   const canEdit = !isViewer && role !== "viewer";
 
+  const setNewFileWithPreview = (file: File | null) => {
+    if (newFileUrl) URL.revokeObjectURL(newFileUrl);
+    if (!file) {
+      setNewFile(null);
+      setNewFileUrl(null);
+      return;
+    }
+    setNewFile(file);
+    setNewFileUrl(URL.createObjectURL(file));
+  };
+
   const normalizeLinkedParcel = (input: Record<string, any>) => {
     const section = formatSection(input.section || "");
     const property_group = formatPropertyGroup(input.property_group || input.ilot || "");
@@ -153,15 +164,15 @@ export default function LegalArchive() {
     setIsScanning(true);
     try {
       const scannedFile = await scanFromLocalScanner("Kyocera FS-1035MFP WIA Driver");
-      setNewFile(scannedFile);
+      setNewFileWithPreview(scannedFile);
       toast({
         title: "تم المسح بنجاح",
-        description: "تم إرفاق الملف الممسوح ضوئياً بالوثيقة.",
+        description: "تم سحب الوثيقة بنجاح من الماسح الضوئي",
       });
     } catch (error: any) {
       toast({
-        title: "تعذر المسح الضوئي",
-        description: error?.message || "يرجى التأكد من تشغيل برنامج Scanner Bridge على الكمبيوتر لاستخدام الماسح الضوئي Kyocera",
+        title: "خطأ",
+        description: error?.message || "خطأ: لم يتم العثور على برنامج Scanner Bridge. يرجى تشغيله أولاً للاتصال بجهاز Kyocera.",
         variant: "destructive",
       });
     } finally {
@@ -174,12 +185,12 @@ export default function LegalArchive() {
     if (isSubmitting) return;
 
     if (!formData.title_ar || !formData.document_type) {
-      toast({ title: "خطأ", description: "يرجى ملء الحقول المطلوبة", variant: "destructive" });
+      toast({ title: "ط®ط·ط£", description: "ظٹط±ط¬ظ‰ ظ…ظ„ط، ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©", variant: "destructive" });
       return;
     }
 
     if (!newFile) {
-      toast({ title: "خطأ", description: "يرجى إرفاق ملف الوثيقة (PDF/Image)", variant: "destructive" });
+      toast({ title: "ط®ط·ط£", description: "ظٹط±ط¬ظ‰ ط¥ط±ظپط§ظ‚ ظ…ظ„ظپ ط§ظ„ظˆط«ظٹظ‚ط© (PDF/Image)", variant: "destructive" });
       return;
     }
 
@@ -217,8 +228,7 @@ export default function LegalArchive() {
       section: "",
       property_group: "",
     });
-    setNewFile(null);
-    setNewFileUrl(null);
+    setNewFileWithPreview(null);
   };
 
   // --- Edit & Analysis Handlers ---
@@ -239,41 +249,36 @@ export default function LegalArchive() {
       property_group: formatPropertyGroup(doc.property_group || doc.ilot || ""),
     });
     setIsReplacingFile(false);
-    setNewFile(null);
-    setNewFileUrl(null);
+    setNewFileWithPreview(null);
     setAutoFilledFields(new Set());
   };
 
   const closeEditModal = () => {
     setEditDocument(null);
-    if (newFileUrl) URL.revokeObjectURL(newFileUrl);
-    setNewFile(null);
-    setNewFileUrl(null);
+    setNewFileWithPreview(null);
     setIsAnalyzing(false);
     setAnalysisStatus("");
   };
 
   const handleEditFileSelect = (file: File) => {
-    setNewFile(file);
-    const url = URL.createObjectURL(file);
-    setNewFileUrl(url);
+    setNewFileWithPreview(file);
   };
 
   const handleAnalyzeNewFile = async () => {
     if (!newFile) return;
     setIsAnalyzing(true);
     setAnalysisProgress(10);
-    setAnalysisStatus("جاري قراءة الملف...");
+    setAnalysisStatus("ط¬ط§ط±ظٹ ظ‚ط±ط§ط،ط© ط§ظ„ظ…ظ„ظپ...");
 
     try {
       // Simulate analysis
       await new Promise(r => setTimeout(r, 1000));
       setAnalysisProgress(50);
-      setAnalysisStatus("استخراج النصوص...");
+      setAnalysisStatus("ط§ط³طھط®ط±ط§ط¬ ط§ظ„ظ†طµظˆطµ...");
 
       await new Promise(r => setTimeout(r, 1000));
       setAnalysisProgress(100);
-      setAnalysisStatus("تم التحليل بنجاح");
+      setAnalysisStatus("طھظ… ط§ظ„طھط­ظ„ظٹظ„ ط¨ظ†ط¬ط§ط­");
 
       // Keep existing data mostly, maybe update title if empty?
       // For now, just a simulation.
@@ -284,7 +289,7 @@ export default function LegalArchive() {
 
     } catch (e) {
       console.error(e);
-      toast({ title: "خطأ", description: "فشل تحليل الملف", variant: "destructive" });
+      toast({ title: "ط®ط·ط£", description: "ظپط´ظ„ طھط­ظ„ظٹظ„ ط§ظ„ظ…ظ„ظپ", variant: "destructive" });
       setIsAnalyzing(false);
     }
   };
@@ -335,8 +340,8 @@ export default function LegalArchive() {
             <Scale className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">المراسيم والتعليمات</h1>
-            <p className="text-muted-foreground">أرشيف الوثائق القانونية والتنظيمية</p>
+            <h1 className="text-2xl font-bold">ط§ظ„ظ…ط±ط§ط³ظٹظ… ظˆط§ظ„طھط¹ظ„ظٹظ…ط§طھ</h1>
+            <p className="text-muted-foreground">ط£ط±ط´ظٹظپ ط§ظ„ظˆط«ط§ط¦ظ‚ ط§ظ„ظ‚ط§ظ†ظˆظ†ظٹط© ظˆط§ظ„طھظ†ط¸ظٹظ…ظٹط©</p>
           </div>
         </div>
 
@@ -347,37 +352,37 @@ export default function LegalArchive() {
                 <FileImport
                   documentType="legal_document"
                   onDataExtracted={handleDataExtracted}
-                  buttonLabel="استيراد من ملف"
+                  buttonLabel="ط§ط³طھظٹط±ط§ط¯ ظ…ظ† ظ…ظ„ظپ"
                 />
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
                     <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
                       <Plus className="w-4 h-4 ml-2" />
-                      إضافة وثيقة
+                      ط¥ط¶ط§ظپط© ظˆط«ظٹظ‚ط©
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>إضافة وثيقة قانونية</DialogTitle>
+                      <DialogTitle>ط¥ط¶ط§ظپط© ظˆط«ظٹظ‚ط© ظ‚ط§ظ†ظˆظ†ظٹط©</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label>العنوان بالعربية *</Label>
+                          <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ظٹط© *</Label>
                           <Input
                             value={formData.title_ar}
                             onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
-                            placeholder="أدخل العنوان بالعربية"
+                            placeholder="ط£ط¯ط®ظ„ ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ظٹط©"
                             required
                             className={autoFillClass("title_ar")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>العنوان بالفرنسية</Label>
+                          <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ظپط±ظ†ط³ظٹط©</Label>
                           <Input
                             value={formData.title_fr}
                             onChange={(e) => setFormData({ ...formData, title_fr: e.target.value })}
-                            placeholder="Titre en français"
+                            placeholder="Titre en franأ§ais"
                             dir="ltr"
                             className={autoFillClass("title_fr")}
                           />
@@ -385,35 +390,35 @@ export default function LegalArchive() {
                       </div>
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
-                          <Label>نوع الوثيقة *</Label>
+                          <Label>ظ†ظˆط¹ ط§ظ„ظˆط«ظٹظ‚ط© *</Label>
                           <Select
                             value={formData.document_type}
                             onValueChange={(value) => setFormData({ ...formData, document_type: value })}
                           >
                             <SelectTrigger className={cn(autoFillClass("document_type"), "text-right flex flex-row-reverse items-center justify-between")}>
-                              <SelectValue placeholder="اختر النوع" />
+                              <SelectValue placeholder="ط§ط®طھط± ط§ظ„ظ†ظˆط¹" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="مرسوم">مرسوم</SelectItem>
-                              <SelectItem value="قرار">قرار</SelectItem>
-                              <SelectItem value="تعليمة">تعليمة</SelectItem>
-                              <SelectItem value="منشور">منشور</SelectItem>
-                              <SelectItem value="قانون">قانون</SelectItem>
-                              <SelectItem value="أمر">أمر</SelectItem>
+                              <SelectItem value="ظ…ط±ط³ظˆظ…">ظ…ط±ط³ظˆظ…</SelectItem>
+                              <SelectItem value="ظ‚ط±ط§ط±">ظ‚ط±ط§ط±</SelectItem>
+                              <SelectItem value="طھط¹ظ„ظٹظ…ط©">طھط¹ظ„ظٹظ…ط©</SelectItem>
+                              <SelectItem value="ظ…ظ†ط´ظˆط±">ظ…ظ†ط´ظˆط±</SelectItem>
+                              <SelectItem value="ظ‚ط§ظ†ظˆظ†">ظ‚ط§ظ†ظˆظ†</SelectItem>
+                              <SelectItem value="ط£ظ…ط±">ط£ظ…ط±</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label>رقم الملف</Label>
+                          <Label>ط±ظ‚ظ… ط§ظ„ظ…ظ„ظپ</Label>
                           <Input
                             value={formData.document_number}
                             onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
-                            placeholder="الرقم / السنة"
+                            placeholder="ط§ظ„ط±ظ‚ظ… / ط§ظ„ط³ظ†ط©"
                             className={autoFillClass("document_number")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>تاريخ الوثيقة</Label>
+                          <Label>طھط§ط±ظٹط® ط§ظ„ظˆط«ظٹظ‚ط©</Label>
                           <DateInput
                             value={formData.document_date}
                             onChange={(date) => setFormData({ ...formData, document_date: date })}
@@ -423,37 +428,37 @@ export default function LegalArchive() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>الوصف</Label>
+                        <Label>ط§ظ„ظˆطµظپ</Label>
                         <Textarea
                           value={formData.description}
                           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                          placeholder="وصف مختصر للوثيقة"
+                          placeholder="ظˆطµظپ ظ…ط®طھطµط± ظ„ظ„ظˆط«ظٹظ‚ط©"
                           rows={2}
                           className={autoFillClass("description")}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>محتوى الوثيقة (للبحث)</Label>
+                        <Label>ظ…ط­طھظˆظ‰ ط§ظ„ظˆط«ظٹظ‚ط© (ظ„ظ„ط¨ط­ط«)</Label>
                         <Textarea
                           value={formData.content_text}
                           onChange={(e) => setFormData({ ...formData, content_text: e.target.value })}
-                          placeholder="أدخل نص الوثيقة أو جزء منه للبحث"
+                          placeholder="ط£ط¯ط®ظ„ ظ†طµ ط§ظ„ظˆط«ظٹظ‚ط© ط£ظˆ ط¬ط²ط، ظ…ظ†ظ‡ ظ„ظ„ط¨ط­ط«"
                           rows={4}
                           className={autoFillClass("content_text")}
                         />
                       </div>
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label>الكلمات المفتاحية (مفصولة بفاصلة)</Label>
+                          <Label>ط§ظ„ظƒظ„ظ…ط§طھ ط§ظ„ظ…ظپطھط§ط­ظٹط© (ظ…ظپطµظˆظ„ط© ط¨ظپط§طµظ„ط©)</Label>
                           <Input
                             value={formData.keywords}
                             onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
-                            placeholder="تعمير، بناء، رخصة، ..."
+                            placeholder="طھط¹ظ…ظٹط±طŒ ط¨ظ†ط§ط،طŒ ط±ط®طµط©طŒ ..."
                             className={autoFillClass("keywords")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>اللغة</Label>
+                          <Label>ط§ظ„ظ„ط؛ط©</Label>
                           <Select
                             value={formData.language}
                             onValueChange={(value) => setFormData({ ...formData, language: value })}
@@ -462,9 +467,9 @@ export default function LegalArchive() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="ar">العربية</SelectItem>
-                              <SelectItem value="fr">الفرنسية</SelectItem>
-                              <SelectItem value="both">ثنائي اللغة</SelectItem>
+                              <SelectItem value="ar">ط§ظ„ط¹ط±ط¨ظٹط©</SelectItem>
+                              <SelectItem value="fr">ط§ظ„ظپط±ظ†ط³ظٹط©</SelectItem>
+                              <SelectItem value="both">ط«ظ†ط§ط¦ظٹ ط§ظ„ظ„ط؛ط©</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -473,37 +478,49 @@ export default function LegalArchive() {
                       {/* File Drop Zone */}
                       <div className="col-span-2 space-y-2">
                         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                          <Label className="block text-sm font-medium">الملف المرفق (PDF/صورة) *</Label>
+                          <Label className="block text-sm font-medium">ط§ظ„ظ…ظ„ظپ ط§ظ„ظ…ط±ظپظ‚ (PDF/طµظˆط±ط©) *</Label>
                           <Button type="button" variant="outline" onClick={handleDirectScan} disabled={isScanning}>
                             {isScanning ? (
                               <>
                                 <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                                جاري المسح...
+                                ط¬ط§ط±ظٹ ط§ظ„ظ…ط³ط­...
                               </>
                             ) : (
                               <>
                                 <Scan className="w-4 h-4 ml-2" />
-                                مسح ضوئي مباشر
+                                ظ…ط³ط­ ط¶ظˆط¦ظٹ ظ…ط¨ط§ط´ط±
                               </>
                             )}
                           </Button>
                         </div>
                         <FileDropZone
-                          onFileSelect={setNewFile}
+                          onFileSelect={setNewFileWithPreview}
                           selectedFile={newFile}
-                          onClear={() => setNewFile(null)}
+                          onClear={() => setNewFileWithPreview(null)}
                         />
                         <p className="text-xs text-muted-foreground">
                           يرجى التأكد من تشغيل برنامج Scanner Bridge على الكمبيوتر لاستخدام الماسح الضوئي Kyocera
                         </p>
+                        {newFile && newFileUrl && (
+                          <div className="space-y-2 pt-2">
+                            <Label className="text-muted-foreground">معاينة</Label>
+                            <div className="h-72 w-full overflow-hidden rounded-lg border bg-muted/10">
+                              {newFile.type === "application/pdf" ? (
+                                <iframe src={newFileUrl} title="PDF Preview" className="h-full w-full" />
+                              ) : (
+                                <img src={newFileUrl} alt="معاينة الملف الممسوح" className="h-full w-full object-contain" />
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex gap-2 justify-end">
                         <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                          إلغاء
+                          ط¥ظ„ط؛ط§ط،
                         </Button>
                         <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
+                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "ط­ظپط¸"}
                         </Button>
                       </div>
                     </form>
@@ -518,7 +535,7 @@ export default function LegalArchive() {
               className="gap-2"
             >
               <Trash2 className="w-4 h-4" />
-              {showRecycleBin ? "العودة للأرشيف" : "سلة المحذوفات"}
+              {showRecycleBin ? "ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ط£ط±ط´ظٹظپ" : "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆظپط§طھ"}
             </Button>
           </div>
         )}
@@ -531,26 +548,26 @@ export default function LegalArchive() {
             <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="بحث في الوثائق..."
+                placeholder="ط¨ط­ط« ظپظٹ ط§ظ„ظˆط«ط§ط¦ظ‚..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pr-10"
               />
             </div>
             <div className="flex items-center gap-2">
-              <Label className="text-sm shrink-0">النوع:</Label>
+              <Label className="text-sm shrink-0">ط§ظ„ظ†ظˆط¹:</Label>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="الكل" />
+                  <SelectValue placeholder="ط§ظ„ظƒظ„" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">الكل</SelectItem>
-                  <SelectItem value="مرسوم">مرسوم</SelectItem>
-                  <SelectItem value="قرار">قرار</SelectItem>
-                  <SelectItem value="تعليمة">تعليمة</SelectItem>
-                  <SelectItem value="منشور">منشور</SelectItem>
-                  <SelectItem value="قانون">قانون</SelectItem>
-                  <SelectItem value="أمر">أمر</SelectItem>
+                  <SelectItem value="all">ط§ظ„ظƒظ„</SelectItem>
+                  <SelectItem value="ظ…ط±ط³ظˆظ…">ظ…ط±ط³ظˆظ…</SelectItem>
+                  <SelectItem value="ظ‚ط±ط§ط±">ظ‚ط±ط§ط±</SelectItem>
+                  <SelectItem value="طھط¹ظ„ظٹظ…ط©">طھط¹ظ„ظٹظ…ط©</SelectItem>
+                  <SelectItem value="ظ…ظ†ط´ظˆط±">ظ…ظ†ط´ظˆط±</SelectItem>
+                  <SelectItem value="ظ‚ط§ظ†ظˆظ†">ظ‚ط§ظ†ظˆظ†</SelectItem>
+                  <SelectItem value="ط£ظ…ط±">ط£ظ…ط±</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -562,27 +579,27 @@ export default function LegalArchive() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {showRecycleBin ? "سلة المحذوفات" : "قائمة الوثائق"}
+            {showRecycleBin ? "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆظپط§طھ" : "ظ‚ط§ط¦ظ…ط© ط§ظ„ظˆط«ط§ط¦ظ‚"}
           </CardTitle>
           <CardDescription>
-            {showRecycleBin ? `${trashedDocuments.length} ملف محذوف` : `عرض ${filteredDocuments.length} وثيقة`}
+            {showRecycleBin ? `${trashedDocuments.length} ظ…ظ„ظپ ظ…ط­ط°ظˆظپ` : `ط¹ط±ط¶ ${filteredDocuments.length} ظˆط«ظٹظ‚ط©`}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {filteredDocuments.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {showRecycleBin ? "سلة المحذوفات فارغة" : "لا توجد وثائق مطابقة"}
+              {showRecycleBin ? "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆظپط§طھ ظپط§ط±ط؛ط©" : "ظ„ط§ طھظˆط¬ط¯ ظˆط«ط§ط¦ظ‚ ظ…ط·ط§ط¨ظ‚ط©"}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[10%] text-right py-4 px-6">الرقم</TableHead>
-                  <TableHead className="w-[30%] text-right py-4 px-6">العنوان</TableHead>
-                  <TableHead className="w-[10%] text-center py-4 px-6">النوع</TableHead>
-                  <TableHead className="w-[15%] text-right py-4 px-6">التاريخ</TableHead>
-                  <TableHead className="w-[15%] text-right py-4 px-6">كلمات مفتاحية</TableHead>
-                  <TableHead className="w-[20%] text-left py-4 px-6">الإجراءات</TableHead>
+                  <TableHead className="w-[10%] text-right py-4 px-6">ط§ظ„ط±ظ‚ظ…</TableHead>
+                  <TableHead className="w-[30%] text-right py-4 px-6">ط§ظ„ط¹ظ†ظˆط§ظ†</TableHead>
+                  <TableHead className="w-[10%] text-center py-4 px-6">ط§ظ„ظ†ظˆط¹</TableHead>
+                  <TableHead className="w-[15%] text-right py-4 px-6">ط§ظ„طھط§ط±ظٹط®</TableHead>
+                  <TableHead className="w-[15%] text-right py-4 px-6">ظƒظ„ظ…ط§طھ ظ…ظپطھط§ط­ظٹط©</TableHead>
+                  <TableHead className="w-[20%] text-left py-4 px-6">ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -624,12 +641,12 @@ export default function LegalArchive() {
                                 className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                                 disabled={!doc.file_url && !doc.file_base64}
                                 onClick={(e) => viewOriginalDocument(e, doc)}
-                                title="معاينة الملف الأصلي"
+                                title="ظ…ط¹ط§ظٹظ†ط© ط§ظ„ظ…ظ„ظپ ط§ظ„ط£طµظ„ظٹ"
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent><p>معاينة الملف</p></TooltipContent>
+                            <TooltipContent><p>ظ…ط¹ط§ظٹظ†ط© ط§ظ„ظ…ظ„ظپ</p></TooltipContent>
                           </Tooltip>
 
                           {showRecycleBin ? (
@@ -645,7 +662,7 @@ export default function LegalArchive() {
                                     <RefreshCcw className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>استرجاع</p></TooltipContent>
+                                <TooltipContent><p>ط§ط³طھط±ط¬ط§ط¹</p></TooltipContent>
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -658,7 +675,7 @@ export default function LegalArchive() {
                                     <Trash className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>حذف نهائي</p></TooltipContent>
+                                <TooltipContent><p>ط­ط°ظپ ظ†ظ‡ط§ط¦ظٹ</p></TooltipContent>
                               </Tooltip>
                             </>
                           ) : (
@@ -678,7 +695,7 @@ export default function LegalArchive() {
                                       <Pencil className="h-4 w-4 text-slate-500" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent><p>تعديل</p></TooltipContent>
+                                  <TooltipContent><p>طھط¹ط¯ظٹظ„</p></TooltipContent>
                                 </Tooltip>
 
                                 <Tooltip>
@@ -692,7 +709,7 @@ export default function LegalArchive() {
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent side="top"><p>حذف (نقل للسلة)</p></TooltipContent>
+                                  <TooltipContent side="top"><p>ط­ط°ظپ (ظ†ظ‚ظ„ ظ„ظ„ط³ظ„ط©)</p></TooltipContent>
                                 </Tooltip>
                               </>
                             )
@@ -712,29 +729,29 @@ export default function LegalArchive() {
       <Dialog open={!!viewDocument} onOpenChange={() => setViewDocument(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>تفاصيل الوثيقة</DialogTitle>
+            <DialogTitle>طھظپط§طµظٹظ„ ط§ظ„ظˆط«ظٹظ‚ط©</DialogTitle>
           </DialogHeader>
           {viewDocument && (
             <div className="space-y-4 py-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label className="text-muted-foreground">العنوان بالعربية</Label>
+                  <Label className="text-muted-foreground">ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ظٹط©</Label>
                   <p className="font-medium text-lg">{viewDocument.title_ar}</p>
                 </div>
                 {viewDocument.title_fr && (
                   <div>
-                    <Label className="text-muted-foreground">العنوان بالفرنسية</Label>
+                    <Label className="text-muted-foreground">ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ظپط±ظ†ط³ظٹط©</Label>
                     <p className="font-medium text-lg" dir="ltr">{viewDocument.title_fr}</p>
                   </div>
                 )}
               </div>
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
-                  <Label className="text-muted-foreground">النوع</Label>
+                  <Label className="text-muted-foreground">ط§ظ„ظ†ظˆط¹</Label>
                   <p className="font-medium">{viewDocument.document_type}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">رقم الملف</Label>
+                  <Label className="text-muted-foreground">ط±ظ‚ظ… ط§ظ„ظ…ظ„ظپ</Label>
                   <p className="font-medium">
                     {viewDocument.document_number && viewDocument.document_date
                       ? `${viewDocument.document_number} / ${new Date(viewDocument.document_date).getFullYear()}`
@@ -742,7 +759,7 @@ export default function LegalArchive() {
                   </p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">التاريخ</Label>
+                  <Label className="text-muted-foreground">ط§ظ„طھط§ط±ظٹط®</Label>
                   <p className="font-medium">
                     {viewDocument.document_date ? format(new Date(viewDocument.document_date), "yyyy/MM/dd") : "-"}
                   </p>
@@ -750,13 +767,13 @@ export default function LegalArchive() {
               </div>
               {viewDocument.description && (
                 <div>
-                  <Label className="text-muted-foreground">الوصف</Label>
+                  <Label className="text-muted-foreground">ط§ظ„ظˆطµظپ</Label>
                   <p className="font-medium whitespace-pre-wrap">{viewDocument.description}</p>
                 </div>
               )}
               {viewDocument.keywords?.length > 0 && (
                 <div>
-                  <Label className="text-muted-foreground">الكلمات المفتاحية</Label>
+                  <Label className="text-muted-foreground">ط§ظ„ظƒظ„ظ…ط§طھ ط§ظ„ظ…ظپطھط§ط­ظٹط©</Label>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {viewDocument.keywords.map((keyword: string, index: number) => (
                       <span key={index} className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
@@ -768,7 +785,7 @@ export default function LegalArchive() {
               )}
               {viewDocument.content_text && (
                 <div>
-                  <Label className="text-muted-foreground">المحتوى النصي</Label>
+                  <Label className="text-muted-foreground">ط§ظ„ظ…ط­طھظˆظ‰ ط§ظ„ظ†طµظٹ</Label>
                   <pre className="font-mono text-sm whitespace-pre-wrap bg-muted/50 p-3 rounded-lg max-h-60 overflow-y-auto border">
                     {viewDocument.content_text}
                   </pre>
@@ -778,7 +795,7 @@ export default function LegalArchive() {
               {/* File preview if available */}
               {viewDocument.file_url && (
                 <div className="space-y-2 pt-4">
-                  <Label className="text-muted-foreground">معاينة الملف المرفق</Label>
+                  <Label className="text-muted-foreground">ظ…ط¹ط§ظٹظ†ط© ط§ظ„ظ…ظ„ظپ ط§ظ„ظ…ط±ظپظ‚</Label>
                   <div className="border rounded-lg p-2 mt-2 h-[60vh] overflow-hidden">
                     {viewDocument.file_url.endsWith('.pdf') || viewDocument.file_url.includes('application/pdf') ? (
                       <iframe src={viewDocument.file_url} className="w-full h-full" title="PDF Preview" />
@@ -797,7 +814,7 @@ export default function LegalArchive() {
       <Dialog open={!!previewDocument} onOpenChange={() => setPreviewDocument(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>معاينة الوثيقة</DialogTitle>
+            <DialogTitle>ظ…ط¹ط§ظٹظ†ط© ط§ظ„ظˆط«ظٹظ‚ط©</DialogTitle>
           </DialogHeader>
           {previewDocument && (
             <div>
@@ -808,32 +825,32 @@ export default function LegalArchive() {
                   <img src={previewDocument.file_url} alt={previewDocument.title_ar} className="w-full h-auto object-contain max-h-[80vh]" />
                 )
               ) : (
-                <p className="text-center text-muted-foreground">لا توجد معاينة للوثيقة</p>
+                <p className="text-center text-muted-foreground">ظ„ط§ طھظˆط¬ط¯ ظ…ط¹ط§ظٹظ†ط© ظ„ظ„ظˆط«ظٹظ‚ط©</p>
               )}
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* ═══════ EDIT DOCUMENT DIALOG (Dual Preview) ═══════ */}
+      {/* â•گâ•گâ•گâ•گâ•گâ•گâ•گ EDIT DOCUMENT DIALOG (Dual Preview) â•گâ•گâ•گâ•گâ•گâ•گâ•گ */}
       <Dialog open={!!editDocument} onOpenChange={(open) => { if (!open && !isAnalyzing) closeEditModal(); }}>
         <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="w-5 h-5 text-primary" />
-              تعديل بيانات الملف
+              طھط¹ط¯ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ„ظپ
             </DialogTitle>
           </DialogHeader>
 
           {editDocument && (
             <div className="flex flex-col gap-6">
-              {/* ── TOP SECTION: File Preview / Management ── */}
+              {/* â”€â”€ TOP SECTION: File Preview / Management â”€â”€ */}
               <div className="relative w-full h-[300px] overflow-hidden rounded-xl border z-0 mb-4">
                 <div className="border rounded-lg bg-muted/10 flex flex-col h-full overflow-hidden">
                   <div className="p-3 border-b bg-muted/40 flex items-center justify-between">
                     <Label className="flex items-center gap-2 font-semibold">
                       <FileText className="w-4 h-4 text-primary" />
-                      {newFile ? "الملف الجديد (قيد الإضافة)" : "الملف الحالي"}
+                      {newFile ? "ط§ظ„ظ…ظ„ظپ ط§ظ„ط¬ط¯ظٹط¯ (ظ‚ظٹط¯ ط§ظ„ط¥ط¶ط§ظپط©)" : "ط§ظ„ظ…ظ„ظپ ط§ظ„ط­ط§ظ„ظٹ"}
                     </Label>
                     {!isReplacingFile && !newFile && (
                       <Button
@@ -844,7 +861,7 @@ export default function LegalArchive() {
                         className="gap-1 h-7 text-xs"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
-                        تغيير الملف
+                        طھط؛ظٹظٹط± ط§ظ„ظ…ظ„ظپ
                       </Button>
                     )}
                     {(isReplacingFile || newFile) && (
@@ -862,7 +879,7 @@ export default function LegalArchive() {
                         }}
                       >
                         <X className="w-3.5 h-3.5" />
-                        إلغاء التغيير
+                        ط¥ظ„ط؛ط§ط، ط§ظ„طھط؛ظٹظٹط±
                       </Button>
                     )}
                   </div>
@@ -909,7 +926,7 @@ export default function LegalArchive() {
                         <div className="p-3 bg-white border-t space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-green-600 font-medium truncate flex-1">
-                              ✅ {newFile.name}
+                              âœ… {newFile.name}
                             </span>
                             <span className="text-[10px] text-muted-foreground">
                               {(newFile.size / (1024 * 1024)).toFixed(1)} MB
@@ -924,7 +941,7 @@ export default function LegalArchive() {
                               variant="secondary"
                             >
                               <Sparkles className="w-4 h-4 text-purple-600" />
-                              تحليل واستخراج البيانات تلقائياً
+                              طھط­ظ„ظٹظ„ ظˆط§ط³طھط®ط±ط§ط¬ ط§ظ„ط¨ظٹط§ظ†ط§طھ طھظ„ظ‚ط§ط¦ظٹط§ظ‹
                             </Button>
                           ) : (
                             <div className="space-y-2">
@@ -942,32 +959,32 @@ export default function LegalArchive() {
                 </div>
               </div>
 
-              {/* ── BOTTOM SECTION: Form Fields ── */}
+              {/* â”€â”€ BOTTOM SECTION: Form Fields â”€â”€ */}
               <form onSubmit={handleEditSubmit} className="flex flex-col space-y-4">
                 <Alert className="bg-blue-50 border-blue-100 dark:bg-blue-950/20 dark:border-blue-900">
                   <Pencil className="h-4 w-4 text-blue-500" />
-                  <AlertTitle className="text-blue-700 dark:text-blue-300">وضع التعديل</AlertTitle>
+                  <AlertTitle className="text-blue-700 dark:text-blue-300">ظˆط¶ط¹ ط§ظ„طھط¹ط¯ظٹظ„</AlertTitle>
                   <AlertDescription className="text-blue-600/80 dark:text-blue-400/80 text-xs">
-                    قم بتعديل البيانات أدناه. يمكنك تحديث البيانات تلقائياً عند تغيير الملف وتحليله.
+                    ظ‚ظ… ط¨طھط¹ط¯ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط£ط¯ظ†ط§ظ‡. ظٹظ…ظƒظ†ظƒ طھط­ط¯ظٹط« ط§ظ„ط¨ظٹط§ظ†ط§طھ طھظ„ظ‚ط§ط¦ظٹط§ظ‹ ط¹ظ†ط¯ طھط؛ظٹظٹط± ط§ظ„ظ…ظ„ظپ ظˆطھط­ظ„ظٹظ„ظ‡.
                   </AlertDescription>
                 </Alert>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>العنوان بالعربية *</Label>
+                    <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ظٹط© *</Label>
                     <Input
                       value={editFormData.title_ar}
                       onChange={(e) => setEditFormData({ ...editFormData, title_ar: e.target.value })}
-                      placeholder="أدخل العنوان بالعربية"
+                      placeholder="ط£ط¯ط®ظ„ ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ظٹط©"
                       className={autoFillClass("title_ar")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>العنوان بالفرنسية</Label>
+                    <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ظپط±ظ†ط³ظٹط©</Label>
                     <Input
                       value={editFormData.title_fr}
                       onChange={(e) => setEditFormData({ ...editFormData, title_fr: e.target.value })}
-                      placeholder="Titre en français"
+                      placeholder="Titre en franأ§ais"
                       dir="ltr"
                       className={autoFillClass("title_fr")}
                     />
@@ -975,35 +992,35 @@ export default function LegalArchive() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label>نوع الوثيقة *</Label>
+                    <Label>ظ†ظˆط¹ ط§ظ„ظˆط«ظٹظ‚ط© *</Label>
                     <Select
                       value={editFormData.document_type}
                       onValueChange={(value) => setEditFormData({ ...editFormData, document_type: value })}
                     >
                       <SelectTrigger className={autoFillClass("document_type")}>
-                        <SelectValue placeholder="اختر النوع" />
+                        <SelectValue placeholder="ط§ط®طھط± ط§ظ„ظ†ظˆط¹" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="مرسوم">مرسوم</SelectItem>
-                        <SelectItem value="قرار">قرار</SelectItem>
-                        <SelectItem value="تعليمة">تعليمة</SelectItem>
-                        <SelectItem value="منشور">منشور</SelectItem>
-                        <SelectItem value="قانون">قانون</SelectItem>
-                        <SelectItem value="أمر">أمر</SelectItem>
+                        <SelectItem value="ظ…ط±ط³ظˆظ…">ظ…ط±ط³ظˆظ…</SelectItem>
+                        <SelectItem value="ظ‚ط±ط§ط±">ظ‚ط±ط§ط±</SelectItem>
+                        <SelectItem value="طھط¹ظ„ظٹظ…ط©">طھط¹ظ„ظٹظ…ط©</SelectItem>
+                        <SelectItem value="ظ…ظ†ط´ظˆط±">ظ…ظ†ط´ظˆط±</SelectItem>
+                        <SelectItem value="ظ‚ط§ظ†ظˆظ†">ظ‚ط§ظ†ظˆظ†</SelectItem>
+                        <SelectItem value="ط£ظ…ط±">ط£ظ…ط±</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>رقم الملف</Label>
+                    <Label>ط±ظ‚ظ… ط§ظ„ظ…ظ„ظپ</Label>
                     <Input
                       value={editFormData.document_number}
                       onChange={(e) => setEditFormData({ ...editFormData, document_number: e.target.value })}
-                      placeholder="الرقم / السنة"
+                      placeholder="ط§ظ„ط±ظ‚ظ… / ط§ظ„ط³ظ†ط©"
                       className={autoFillClass("document_number")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>تاريخ الوثيقة</Label>
+                    <Label>طھط§ط±ظٹط® ط§ظ„ظˆط«ظٹظ‚ط©</Label>
                     <DateInput
                       value={editFormData.document_date}
                       onChange={(date) => setEditFormData({ ...editFormData, document_date: date })}
@@ -1013,7 +1030,7 @@ export default function LegalArchive() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>الوصف</Label>
+                  <Label>ط§ظ„ظˆطµظپ</Label>
                   <Textarea
                     value={editFormData.description}
                     onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
@@ -1022,7 +1039,7 @@ export default function LegalArchive() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>محتوى الوثيقة (للبحث)</Label>
+                  <Label>ظ…ط­طھظˆظ‰ ط§ظ„ظˆط«ظٹظ‚ط© (ظ„ظ„ط¨ط­ط«)</Label>
                   <Textarea
                     value={editFormData.content_text}
                     onChange={(e) => setEditFormData({ ...editFormData, content_text: e.target.value })}
@@ -1032,7 +1049,7 @@ export default function LegalArchive() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>الكلمات المفتاحية</Label>
+                    <Label>ط§ظ„ظƒظ„ظ…ط§طھ ط§ظ„ظ…ظپطھط§ط­ظٹط©</Label>
                     <Input
                       value={editFormData.keywords}
                       onChange={(e) => setEditFormData({ ...editFormData, keywords: e.target.value })}
@@ -1040,7 +1057,7 @@ export default function LegalArchive() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>اللغة</Label>
+                    <Label>ط§ظ„ظ„ط؛ط©</Label>
                     <Select
                       value={editFormData.language}
                       onValueChange={(value) => setEditFormData({ ...editFormData, language: value })}
@@ -1049,9 +1066,9 @@ export default function LegalArchive() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ar">العربية</SelectItem>
-                        <SelectItem value="fr">الفرنسية</SelectItem>
-                        <SelectItem value="both">ثنائي اللغة</SelectItem>
+                        <SelectItem value="ar">ط§ظ„ط¹ط±ط¨ظٹط©</SelectItem>
+                        <SelectItem value="fr">ط§ظ„ظپط±ظ†ط³ظٹط©</SelectItem>
+                        <SelectItem value="both">ط«ظ†ط§ط¦ظٹ ط§ظ„ظ„ط؛ط©</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1059,11 +1076,11 @@ export default function LegalArchive() {
 
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <Button type="button" variant="outline" onClick={closeEditModal}>
-                    إلغاء
+                    ط¥ظ„ط؛ط§ط،
                   </Button>
                   <Button type="submit" style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
                     <Pencil className="w-4 h-4 ml-2" />
-                    حفظ التعديلات
+                    ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„ط§طھ
                   </Button>
                 </div>
               </form>
@@ -1075,3 +1092,5 @@ export default function LegalArchive() {
     </div>
   );
 }
+
+
