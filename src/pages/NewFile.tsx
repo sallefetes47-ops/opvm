@@ -176,7 +176,7 @@ export default function NewFile() {
   }, [formData.section, formData.property_group, formData.municipality, formData.ownership_type]);
 
   // Determine available ownership types based on permit type
-  // "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" is only available for "ط±ط®طµط© ط¨ظ†ط§ء"
+  // "شهادة استفادة" is only available for "رخصة بناء"
   const getAvailableOwnershipTypes = () => {
     if (formData.permit_type === "رخصة بناء") {
       return ["عقد ملكية", "دفتر عقاري", "شهادة استفادة"] as const;
@@ -222,19 +222,19 @@ export default function NewFile() {
         address: data.address,
         section: data.section || null,
         property_group: data.property_group || null,
-        lot_number: data.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" ? data.lot_number : null,
-        subdivision_name: data.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" ? data.subdivision_name : null,
-        plot_area: data.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" || data.permit_type === "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…" || data.permit_type === "ط±ط®طµط© ت�¬ط²ط¦ط©"
+        lot_number: data.ownership_type === "شهادة استفادة" ? data.lot_number : null,
+        subdivision_name: data.ownership_type === "شهادة استفادة" ? data.subdivision_name : null,
+        plot_area: data.permit_type === "رخصة بناء" || data.permit_type === "شهادة تقسيم" || data.permit_type === "رخصة تجزئة"
           ? (data.plot_area ? parseFloat(data.plot_area) : null)
           : null,
-        built_area: data.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" && data.built_area ? parseFloat(data.built_area) : null,
-        engineer_name: data.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" ? data.engineer_name : null,
-        shares_count: data.permit_type === "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…" && data.shares_count ? parseInt(data.shares_count) : null,
-        plots_count: data.permit_type === "ط±ط®طµط© ت�¬ط²ط¦ط©" && data.plots_count ? parseInt(data.plots_count) : null,
+        built_area: data.permit_type === "رخصة بناء" && data.built_area ? parseFloat(data.built_area) : null,
+        engineer_name: data.permit_type === "رخصة بناء" ? data.engineer_name : null,
+        shares_count: data.permit_type === "شهادة تقسيم" && data.shares_count ? parseInt(data.shares_count) : null,
+        plots_count: data.permit_type === "رخصة تجزئة" && data.plots_count ? parseInt(data.plots_count) : null,
         submission_date: data.submission_date ? format(data.submission_date, "yyyy-MM-dd") : null,
         session_date: data.session_date ? format(data.session_date, "yyyy-MM-dd") : null,
         committee_opinion: data.committee_opinion || null,
-        rejection_reason: (data.committee_opinion === "ت�­ف�¸" || data.committee_opinion === "ظ…ط±ف�ˆط¶") ? data.rejection_reason : null,
+        rejection_reason: (data.committee_opinion === "تحفظ" || data.committee_opinion === "مرفوض") ? data.rejection_reason : null,
         created_by: user?.id,
       });
 
@@ -244,14 +244,14 @@ export default function NewFile() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-files"] });
       queryClient.invalidateQueries({ queryKey: ["archive-files"] });
       toast({
-        title: "ت�… ط§ظ„ط­ف�¸ ط¨ظ†ط¬ط§ط­",
-        description: "ت�… ت�³ط¬ي�„ ط§ظ„ظ…ظ„ف في ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ي�§ظ†ط§ت",
+        title: "تم الحفظ بنجاح",
+        description: "تم تسجيل الملف في قاعدة البيانات",
       });
       navigate("/archive");
     },
     onError: (error) => {
       toast({
-        title: "ط®ط·ط£",
+        title: "خطأ",
         description: error.message,
         variant: "destructive",
       });
@@ -263,35 +263,35 @@ export default function NewFile() {
 
     if (!formData.full_name || !formData.municipality || !formData.file_number || !formData.address) {
       toast({
-        title: "ط®ط·ط£",
-        description: "ي�±ط¬ظ‰ ظ…ظ„ء ط¬ظ…ي�¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©",
+        title: "خطأ",
+        description: "يرجى ملء جميع الحقول المطلوبة",
         variant: "destructive",
       });
       return;
     }
 
-    if (formData.ownership_type === "ط¯فت�± ط¹ظ‚ط§ط±ي" && (!formData.section || !formData.property_group)) {
+    if (formData.ownership_type === "دفتر عقاري" && (!formData.section || !formData.property_group)) {
       toast({
-        title: "ط®ط·ط£",
-        description: "ي�±ط¬ظ‰ ظ…ظ„ء ط­ظ‚ظˆظ„ ط§ظ„ظ‚ط³ظ… ظˆظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒي�©",
+        title: "خطأ",
+        description: "يرجى ملء حقلي القسم ومجموعة الملكية",
         variant: "destructive",
       });
       return;
     }
 
-    if (formData.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" && (!formData.lot_number || !formData.subdivision_name)) {
+    if (formData.ownership_type === "شهادة استفادة" && (!formData.lot_number || !formData.subdivision_name)) {
       toast({
-        title: "ط®ط·ط£",
-        description: "ي�±ط¬ظ‰ ظ…ظ„ء ط­ظ‚ظˆظ„ ط±ظ‚ظ… ط§ظ„ظ‚ط·ط¹ط© ظˆط§ط³ظ… ط§ظ„ت�¬ط²ط¦ط©",
+        title: "خطأ",
+        description: "يرجى ملء حقلي رقم القطعة واسم التجزئة",
         variant: "destructive",
       });
       return;
     }
 
-    if ((formData.committee_opinion === "ت�­ف�¸" || formData.committee_opinion === "ظ…ط±ف�ˆط¶") && !formData.rejection_reason) {
+    if ((formData.committee_opinion === "تحفظ" || formData.committee_opinion === "مرفوض") && !formData.rejection_reason) {
       toast({
-        title: "ط®ط·ط£",
-        description: "ي�±ط¬ظ‰ ط°ظƒط± ط³ط¨ط¨ ط§ظ„ت�­ف�¸ ط£ظˆ ط§ظ„ط±ف�¶",
+        title: "خطأ",
+        description: "يرجى ذكر سبب التحفظ أو الرفض",
         variant: "destructive",
       });
       return;
@@ -300,7 +300,7 @@ export default function NewFile() {
     createFileMutation.mutate(formData);
   };
 
-  const showRejectionReason = formData.committee_opinion === "ت�­ف�¸" || formData.committee_opinion === "ظ…ط±ف�ˆط¶";
+  const showRejectionReason = formData.committee_opinion === "تحفظ" || formData.committee_opinion === "مرفوض";
 
   return (
     <div className="max-w-3xl mx-auto space-y-6" dir="rtl">
@@ -309,8 +309,8 @@ export default function NewFile() {
           <FilePlus className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">ت�³ط¬ي�„ ظ…ظ„ف ط¬ط¯ي�¯</h1>
-          <p className="text-muted-foreground">ظ…ط§ ط¨ط¹ط¯ ط§ظ„ط´ط¨ط§ظƒ ط§ظ„ظˆط­ي�¯</p>
+          <h1 className="text-2xl font-bold">تسجيل ملف جديد</h1>
+          <p className="text-muted-foreground">ما بعد الشباك الوحيد</p>
         </div>
       </div>
 
@@ -318,22 +318,22 @@ export default function NewFile() {
         {/* Basic Information */}
         <Card>
           <CardHeader>
-            <CardTitle>ط§ظ„ظ…ط¹ظ„ظˆظ…ط§ت ط§ظ„ط£ط³ط§ط³ي�©</CardTitle>
+            <CardTitle>المعلومات الأساسية</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="full_name">ط§ظ„ط§ط³ظ… ط§ظ„ظƒط§ظ…ظ„ *</Label>
+              <Label htmlFor="full_name">الاسم الكامل *</Label>
               <Input
                 id="full_name"
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                placeholder="ط£ط¯ط®ظ„ ط§ظ„ط§ط³ظ… ط§ظ„ظƒط§ظ…ظ„ ظ„ظ„ظ…ط§ظ„ظƒ"
+                placeholder="أدخل الاسم الكامل للمالك"
                 required
                 className="text-right"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="municipality">ط§ظ„ط¨ظ„ط¯ي�© *</Label>
+              <Label htmlFor="municipality">البلدية *</Label>
               <Select
                 dir="rtl"
                 value={formData.municipality}
@@ -342,48 +342,48 @@ export default function NewFile() {
                 }
               >
                 <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
-                  <SelectValue placeholder="ط§ط®ت�± ط§ظ„ط¨ظ„ط¯ي�©" />
+                  <SelectValue placeholder="اختر البلدية" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="غ�±ط¯ط§ي�©">غ�±ط¯ط§ي�©</SelectItem>
-                  <SelectItem value="ط§ظ„ط¹ط·ف">ط§ظ„ط¹ط·ف</SelectItem>
-                  <SelectItem value="ط¨ظ†ظˆط±ط©">ط¨ظ†ظˆط±ط©</SelectItem>
-                  <SelectItem value="ط§ظ„ط¶ط§ي�©">ط§ظ„ط¶ط§ي�©</SelectItem>
-                  <SelectItem value="ظ…ت�„ي�„ي">ظ…ت�„ي�„ي</SelectItem>
+                  <SelectItem value="غرداية">غرداية</SelectItem>
+                  <SelectItem value="العطف">العطف</SelectItem>
+                  <SelectItem value="بنورة">بنورة</SelectItem>
+                  <SelectItem value="الضاية">الضاية</SelectItem>
+                  <SelectItem value="متليلي">متليلي</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="permit_type">ظ†ظˆط¹ ط¹ظ‚ط¯ ط§ظ„ت�¹ظ…ي�±</Label>
+              <Label htmlFor="permit_type">نوع عقد التعمير</Label>
               <Select
                 dir="rtl"
                 value={formData.permit_type}
                 onValueChange={handlePermitTypeChange}
               >
                 <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
-                  <SelectValue placeholder="ط§ط®ت�± ظ†ظˆط¹ ط§ظ„ط¹ظ‚ط¯" />
+                  <SelectValue placeholder="اختر نوع العقد" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ط±ط®طµط© ط¨ظ†ط§ء">ط±ط®طµط© ط¨ظ†ط§ء</SelectItem>
-                  <SelectItem value="ط±ط®طµط© ت�¬ط²ط¦ط©">ط±ط®طµط© ت�¬ط²ط¦ط©</SelectItem>
-                  <SelectItem value="ط±ط®طµط© ظ‡ط¯ظ…">ط±ط®طµط© ظ‡ط¯ظ…</SelectItem>
-                  <SelectItem value="ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…">ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…</SelectItem>
+                  <SelectItem value="رخصة بناء">رخصة بناء</SelectItem>
+                  <SelectItem value="رخصة تجزئة">رخصة تجزئة</SelectItem>
+                  <SelectItem value="رخصة هدم">رخصة هدم</SelectItem>
+                  <SelectItem value="شهادة تقسيم">شهادة تقسيم</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="file_number">ط±ظ‚ظ… ط§ظ„ظ…ظ„ف *</Label>
+              <Label htmlFor="file_number">رقم الملف *</Label>
               <Input
                 id="file_number"
                 value={formData.file_number}
                 onChange={(e) => setFormData({ ...formData, file_number: e.target.value })}
-                placeholder="ط£ط¯ط®ظ„ ط±ظ‚ظ… ط§ظ„ظ…ظ„ف"
+                placeholder="أدخل رقم الملف"
                 required
                 className="text-right"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="year">ط§ظ„ط³ظ†ط©</Label>
+              <Label htmlFor="year">السنة</Label>
               <Input
                 id="year"
                 type="number"
@@ -400,73 +400,73 @@ export default function NewFile() {
         {/* Ownership Documents */}
         <Card>
           <CardHeader>
-            <CardTitle>ط³ظ†ط¯ ط§ظ„ظ…ظ„ظƒي�©</CardTitle>
+            <CardTitle>سند الملكية</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              <Label>ظ†ظˆط¹ ط§ظ„ط³ظ†ط¯ *</Label>
+              <Label>نوع السند *</Label>
               <Select
                 dir="rtl"
                 value={formData.ownership_type}
                 onValueChange={(value: OwnershipType | OwnershipTypeForNonBuilding) => {
-                  // If switching to something other than "ط¯فت�± ط¹ظ‚ط§ط±ي", clear section/ilot
-                  const isRealEstateDeed = value === "ط¯فت�± ط¹ظ‚ط§ط±ي";
+                  // If switching to something other than "دفتر عقاري", clear section/ilot
+                  const isRealEstateDeed = value === "دفتر عقاري";
 
                   setFormData({
                     ...formData,
                     ownership_type: value,
-                    // Clear cadastre fields if not "ط¯فت�± ط¹ظ‚ط§ط±ي"
+                    // Clear cadastre fields if not "دفتر عقاري"
                     section: isRealEstateDeed ? formData.section : "",
                     property_group: isRealEstateDeed ? formData.property_group : "",
                     // Also handle certificate of benefit cleanup if needed
-                    lot_number: value !== "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" ? "" : formData.lot_number,
-                    subdivision_name: value !== "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" ? "" : formData.subdivision_name,
+                    lot_number: value !== "شهادة استفادة" ? "" : formData.lot_number,
+                    subdivision_name: value !== "شهادة استفادة" ? "" : formData.subdivision_name,
                   });
                 }}
               >
                 <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
-                  <SelectValue placeholder="ط§ط®ت�± ظ†ظˆط¹ ط§ظ„ط³ظ†ط¯" />
+                  <SelectValue placeholder="اختر نوع السند" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ط¹ظ‚ط¯ ظ…ظ„ظƒي�©">ط¹ظ‚ط¯ ظ…ظ„ظƒي�©</SelectItem>
-                  <SelectItem value="ط¯فت�± ط¹ظ‚ط§ط±ي">ط¯فت�± ط¹ظ‚ط§ط±ي</SelectItem>
-                  {/* ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط© only visible for ط±ط®طµط© ط¨ظ†ط§ء */}
-                  {formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" && (
-                    <SelectItem value="ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©">ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©</SelectItem>
+                  <SelectItem value="عقد ملكية">عقد ملكية</SelectItem>
+                  <SelectItem value="دفتر عقاري">دفتر عقاري</SelectItem>
+                  {/* شهادة استفادة only visible for رخصة بناء */}
+                  {formData.permit_type === "رخصة بناء" && (
+                    <SelectItem value="شهادة استفادة">شهادة استفادة</SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
 
-            {formData.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" && (
+            {formData.ownership_type === "شهادة استفادة" && (
               <div className="grid gap-4 md:grid-cols-3 pt-2">
                 <div className="space-y-2">
-                  <Label htmlFor="lot_number">ط±ظ‚ظ… ط§ظ„ظ‚ط·ط¹ط© *</Label>
+                  <Label htmlFor="lot_number">رقم القطعة *</Label>
                   <Input
                     id="lot_number"
                     value={formData.lot_number}
                     onChange={(e) => setFormData({ ...formData, lot_number: e.target.value })}
-                    placeholder="ط£ط¯ط®ظ„ ط±ظ‚ظ… ط§ظ„ظ‚ط·ط¹ط©"
+                    placeholder="أدخل رقم القطعة"
                     className="text-right"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="subdivision_name">ط§ظ„ت�¬ط²ط¦ط© *</Label>
+                  <Label htmlFor="subdivision_name">التجزئة *</Label>
                   <Input
                     id="subdivision_name"
                     value={formData.subdivision_name}
                     onChange={(e) => setFormData({ ...formData, subdivision_name: e.target.value })}
-                    placeholder="ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ت�¬ط²ط¦ط©"
+                    placeholder="أدخل اسم التجزئة"
                     className="text-right"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address_cert">ط§ظ„ط¹ظ†ظˆط§ظ† *</Label>
+                  <Label htmlFor="address_cert">العنوان *</Label>
                   <Input
                     id="address_cert"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="ط£ط¯ط®ظ„ ط§ظ„ط¹ظ†ظˆط§ظ†"
+                    placeholder="أدخل العنوان"
                     className="text-right"
                   />
                 </div>
@@ -474,22 +474,22 @@ export default function NewFile() {
             )}
 
             {/* Cadastral Data - Manual Entry */}
-            {/* CONDITIONAL: Only show if ownership type is "ط¯فت�± ط¹ظ‚ط§ط±ي" */}
-            {formData.ownership_type === "ط¯فت�± ط¹ظ‚ط§ط±ي" &&
-              ["ط±ط®طµط© ط¨ظ†ط§ء", "ط±ط®طµط© ت�¬ط²ط¦ط©", "ط±ط®طµط© ظ‡ط¯ظ…", "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…"].includes(formData.permit_type) && (
+            {/* CONDITIONAL: Only show if ownership type is "دفتر عقاري" */}
+            {formData.ownership_type === "دفتر عقاري" &&
+              ["رخصة بناء", "رخصة تجزئة", "رخصة هدم", "شهادة تقسيم"].includes(formData.permit_type) && (
                 <div className="grid gap-4 md:grid-cols-2 pt-4 border-t border-border mt-4">
                   <div className="md:col-span-2">
-                    <Label className="text-base font-semibold">ط¨ي�§ظ†ط§ت ط§ظ„ظ…ط³ط­ ط§ظ„ط¹ظ‚ط§ط±ي (ط¥ط¯ط®ط§ظ„ ي�¯ظˆي)</Label>
-                    <p className="text-xs text-muted-foreground mb-3">ي�…ظƒظ†ظƒ ط¥ط¯ط®ط§ظ„ ظ…ط¹ظ„ظˆظ…ط§ت ط§ظ„ظ‚ط³ظ… ظˆظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒي�© ي�¯ظˆي�§ظ‹</p>
+                    <Label className="text-base font-semibold">معلومات المسح (إدخال يدوي)</Label>
+                    <p className="text-xs text-muted-foreground mb-3">يمكنك إدخال رقم القسم ومجموعة الملكية يدوياً (مع الالتزام بالتنسيق).</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="section">ط§ظ„ظ‚ط³ظ… ط§ظ„ط¹ظ‚ط§ط±ي (Section) *</Label>
+                    <Label htmlFor="section">القسم (3 أرقام) *</Label>
                     <Input
                       id="section"
                       value={formData.section}
                       onChange={(e) => setFormData({ ...formData, section: clampSectionDigits(e.target.value) })}
                       onBlur={() => setFormData({ ...formData, section: formatSection(formData.section) })}
-                      placeholder="ط£ط¯ط®ظ„ ط±ظ‚ظ… ط§ظ„ظ‚ط³ظ…"
+                      placeholder="مثال: 001"
                       required
                       inputMode="numeric"
                       pattern="[0-9]*"
@@ -498,13 +498,13 @@ export default function NewFile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="property_group">ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒي�© (Ilot) *</Label>
+                    <Label htmlFor="property_group">مجموعة الملكية (4 أرقام) *</Label>
                     <Input
                       id="property_group"
                       value={formData.property_group}
                       onChange={(e) => setFormData({ ...formData, property_group: clampPropertyGroupDigits(e.target.value) })}
                       onBlur={() => setFormData({ ...formData, property_group: formatPropertyGroup(formData.property_group) })}
-                      placeholder="ط£ط¯ط®ظ„ ط±ظ‚ظ… ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظ„ظƒي�©"
+                      placeholder="مثال: 0001"
                       required
                       inputMode="numeric"
                       pattern="[0-9]*"
@@ -515,14 +515,14 @@ export default function NewFile() {
                 </div>
               )}
 
-            {formData.ownership_type !== "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" && (
+            {formData.ownership_type !== "شهادة استفادة" && (
               <div className="space-y-2">
-                <Label htmlFor="address">ط§ظ„ط¹ظ†ظˆط§ظ† *</Label>
+                <Label htmlFor="address">العنوان *</Label>
                 <Input
                   id="address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="ط£ط¯ط®ظ„ ط§ظ„ط¹ظ†ظˆط§ظ† ط§ظ„ظƒط§ظ…ظ„"
+                  placeholder="أدخل العنوان الكامل"
                   required
                   className="text-right"
                 />
@@ -530,15 +530,15 @@ export default function NewFile() {
             )}
           </CardContent>
         </Card>
-        {/* Dynamic Fields based on permit_type - ط±ط®طµط© ط¨ظ†ط§ء */}
-        {formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" && (
+        {/* Dynamic Fields based on permit_type - رخصة بناء */}
+        {formData.permit_type === "رخصة بناء" && (
           <Card>
             <CardHeader>
-              <CardTitle>ط¨ي�§ظ†ط§ت ط±ط®طµط© ط§ظ„ط¨ظ†ط§ء</CardTitle>
+              <CardTitle>بيانات رخصة البناء</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="plot_area">ظ…ط³ط§ط­ط© ط§ظ„ط£ط±ط¶ي�© (ظ…آ²)</Label>
+                <Label htmlFor="plot_area">مساحة الأرضية (م²)</Label>
                 <Input
                   id="plot_area"
                   type="number"
@@ -550,7 +550,7 @@ export default function NewFile() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="built_area">ط§ظ„ظ…ط³ط§ط­ط© ط§ظ„ظ…ط¨ظ†ي�© (ظ…آ²)</Label>
+                <Label htmlFor="built_area">المساحة المبنية (م²)</Label>
                 <Input
                   id="built_area"
                   type="number"
@@ -562,12 +562,12 @@ export default function NewFile() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="engineer_name">ظ…ظƒت�¨ ط§ظ„ط¯ط±ط§ط³ط§ت</Label>
+                <Label htmlFor="engineer_name">مكتب الدراسات</Label>
                 <Input
                   id="engineer_name"
                   value={formData.engineer_name}
                   onChange={(e) => setFormData({ ...formData, engineer_name: e.target.value })}
-                  placeholder="ط£ط¯ط®ظ„ ط§ط³ظ… ظ…ظƒت�¨ ط§ظ„ط¯ط±ط§ط³ط§ت"
+                  placeholder="أدخل اسم مكتب الدراسات"
                   className="text-right"
                 />
               </div>
@@ -575,15 +575,15 @@ export default function NewFile() {
           </Card>
         )}
 
-        {/* Dynamic Fields based on permit_type - ط±ط®طµط© ت�¬ط²ط¦ط© */}
-        {formData.permit_type === "ط±ط®طµط© ت�¬ط²ط¦ط©" && (
+        {/* Dynamic Fields based on permit_type - رخصة تجزئة */}
+        {formData.permit_type === "رخصة تجزئة" && (
           <Card>
             <CardHeader>
-              <CardTitle>ط¨ي�§ظ†ط§ت ط±ط®طµط© ط§ظ„ت�¬ط²ط¦ط©</CardTitle>
+              <CardTitle>بيانات رخصة التجزئة</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="plot_area">ظ…ط³ط§ط­ط© ط§ظ„ط£ط±ط¶ي�© (ظ…آ²)</Label>
+                <Label htmlFor="plot_area">مساحة الأرضية (م²)</Label>
                 <Input
                   id="plot_area"
                   type="number"
@@ -595,7 +595,7 @@ export default function NewFile() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="plots_count">ط¹ط¯ط¯ ط§ظ„ظ‚ط·ط¹</Label>
+                <Label htmlFor="plots_count">عدد القطع</Label>
                 <Input
                   id="plots_count"
                   type="number"
@@ -610,15 +610,15 @@ export default function NewFile() {
           </Card>
         )}
 
-        {/* Dynamic Fields based on permit_type - ط´ظ‡ط§ط¯ط© ت�‚ط³ي�… */}
-        {formData.permit_type === "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…" && (
+        {/* Dynamic Fields based on permit_type - شهادة تقسيم */}
+        {formData.permit_type === "شهادة تقسيم" && (
           <Card>
             <CardHeader>
-              <CardTitle>ط¨ي�§ظ†ط§ت ط´ظ‡ط§ط¯ط© ط§ظ„ت�‚ط³ي�…</CardTitle>
+              <CardTitle>بيانات شهادة التقسيم</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="plot_area">ظ…ط³ط§ط­ط© ط§ظ„ظ‚ط·ط¹ط© (ظ…آ²)</Label>
+                <Label htmlFor="plot_area">مساحة القطعة (م²)</Label>
                 <Input
                   id="plot_area"
                   type="number"
@@ -630,7 +630,7 @@ export default function NewFile() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="shares_count">ط¹ط¯ط¯ ط§ظ„ط­طµطµ</Label>
+                <Label htmlFor="shares_count">عدد الحصص</Label>
                 <Input
                   id="shares_count"
                   type="number"
@@ -648,11 +648,11 @@ export default function NewFile() {
         {/* Administrative Status */}
         <Card>
           <CardHeader>
-            <CardTitle>ط§ظ„ظˆط¶ط¹ي�© ط§ظ„ط¥ط¯ط§ط±ي�©</CardTitle>
+            <CardTitle>الوضعية الإدارية</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>ت�§ط±ي�® ط¥ي�¯ط§ط¹ ط§ظ„ظ…ظ„ف</Label>
+              <Label>تاريخ إيداع الملف</Label>
               <DateInput
                 value={formData.submission_date}
                 onChange={(date) => setFormData({ ...formData, submission_date: date })}
@@ -660,7 +660,7 @@ export default function NewFile() {
               />
             </div>
             <div className="space-y-2">
-              <Label>ت�§ط±ي�® ط§ظ„ط¬ظ„ط³ط©</Label>
+              <Label>تاريخ الجلسة</Label>
               <DateInput
                 value={formData.session_date}
                 onChange={(date) => setFormData({ ...formData, session_date: date })}
@@ -668,7 +668,7 @@ export default function NewFile() {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>ط±ط£ي ط§ظ„ظ„ط¬ظ†ط©</Label>
+              <Label>رأي اللجنة</Label>
               <Select
                 dir="rtl"
                 value={formData.committee_opinion}
@@ -677,25 +677,25 @@ export default function NewFile() {
                 }
               >
                 <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between">
-                  <SelectValue placeholder="ط§ط®ت�± ط±ط£ي ط§ظ„ظ„ط¬ظ†ط©" />
+                  <SelectValue placeholder="اختر رأي اللجنة" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ط±ط£ي ط¥ي�¬ط§ط¨ي">
+                  <SelectItem value="رأي إيجابي">
                     <span className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-success" />
-                      ط±ط£ي ط¥ي�¬ط§ط¨ي
+                      رأي إيجابي
                     </span>
                   </SelectItem>
-                  <SelectItem value="ت�­ف�¸">
+                  <SelectItem value="تحفظ">
                     <span className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-warning" />
-                      ت�­ف�¸
+                      تحفظ
                     </span>
                   </SelectItem>
-                  <SelectItem value="ظ…ط±ف�ˆط¶">
+                  <SelectItem value="مرفوض">
                     <span className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-destructive" />
-                      ظ…ط±ف�ˆط¶
+                      مرفوض
                     </span>
                   </SelectItem>
                 </SelectContent>
@@ -704,12 +704,12 @@ export default function NewFile() {
 
             {showRejectionReason && (
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="rejection_reason">ط³ط¨ط¨ ط§ظ„ت�­ف�¸ ط£ظˆ ط§ظ„ط±ف�¶ *</Label>
+                <Label htmlFor="rejection_reason">سبب التحفظ أو الرفض *</Label>
                 <Textarea
                   id="rejection_reason"
                   value={formData.rejection_reason}
                   onChange={(e) => setFormData({ ...formData, rejection_reason: e.target.value })}
-                  placeholder="ط§ط°ظƒط± ط³ط¨ط¨ ط§ظ„ت�­ف�¸ ط£ظˆ ط§ظ„ط±ف�¶ ط¨ط§ظ„تف�µي�„..."
+                  placeholder="اذكر السبب بالتفصيل..."
                   rows={4}
                   required
                   className="text-right"
@@ -718,9 +718,9 @@ export default function NewFile() {
             )}
 
             {/* Electronic Permit Copy - Only for Building Permit */}
-            {formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء" && (
+            {formData.permit_type === "رخصة بناء" && (
               <div className="space-y-2 md:col-span-2 pt-2 border-t border-border">
-                <Label>ظ†ط³ط®ط© ط¥ظ„ظƒت�±ظˆظ†ي�© ظ…ظ† ط§ظ„ط±ط®طµط©</Label>
+                <Label>نسخة إلكترونية من الرخصة</Label>
                 <Input
                   ref={electronicPermitInputRef}
                   type="file"
@@ -732,23 +732,23 @@ export default function NewFile() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Button type="button" variant="outline" onClick={openElectronicPermitPicker}>
                     <FileUp className="w-4 h-4 ml-2" />
-                    ط±ف�¹ ظ…ظ† ط§ظ„ظƒظ…ط¨ي�ˆت�±
+                    رفع من الكمبيوتر
                   </Button>
                   <Input
                     value={formData.electronic_permit_file?.name || ""}
                     readOnly
-                    placeholder="ظ„ظ… يت�… ط§ط®تي�§ط± ظ…ظ„ف ط¨ط¹ط¯"
+                    placeholder="لم يتم اختيار ملف بعد"
                     className="flex-1 text-right"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  ي�…ظƒظ†ظƒ ط±ف�¹ ظ†ط³ط®ط© PDF/طµظˆط±ط© ظ…ظ† ط§ظ„ظƒظ…ط¨ي�ˆت�±.
+                  يمكنك رفع نسخة PDF/صورة من الكمبيوتر.
                 </p>
               </div>
             )}
 
             {/* Map Location Focus - For All Permit Types */}
-            {["ط±ط®طµط© ط¨ظ†ط§ء", "ط±ط®طµط© ت�¬ط²ط¦ط©", "ط±ط®طµط© ظ‡ط¯ظ…", "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…"].includes(formData.permit_type) && (
+            {["رخصة بناء", "رخصة تجزئة", "رخصة هدم", "شهادة تقسيم"].includes(formData.permit_type) && (
               <div className="space-y-2 md:col-span-2 pt-2 border-t border-border">
                 <PermitLocationPicker
                   value={
@@ -779,10 +779,10 @@ export default function NewFile() {
             {createFileMutation.isPending ? (
               <>
                 <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                ط¬ط§ط±ي ط§ظ„ط­ف�¸...
+                جاري الحفظ...
               </>
             ) : (
-              "ط­ف�¸ ط§ظ„ظ…ط¹ظ„ظˆظ…ط§ت"
+              "حفظ المعلومات"
             )}
           </Button>
           <Button
@@ -790,7 +790,7 @@ export default function NewFile() {
             variant="outline"
             onClick={() => navigate("/")}
           >
-            ط¥ظ„غ�§ء
+            إلغاء
           </Button>
         </div>
       </form>

@@ -49,9 +49,36 @@ const parseArabicLegalText = (text: string) => {
 };
 
 const mockDocuments = [
-  { id: "1", title_ar: "ظ…ط±ط³ظˆظ… ت�†فيط°ي 23-14", document_type: "ظ…ط±ط³ظˆظ…", document_number: "23-14", document_date: "2023-01-15", status: "active", description: "ي�­ط¯ط¯ ظƒيفيط§ت ت�·ط¨ي�‚ ط£ط­ظƒط§ظ… ط§ظ„ظ‚ط§ظ†ظˆظ†...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-  { id: "2", title_ar: "ظ‚ط±ط§ط± ظˆط²ط§ط±ي ظ…ط´ت�±ظƒ", document_type: "ظ‚ط±ط§ط±", document_number: "22-55", document_date: "2022-11-20", status: "active", description: "يتط¶ظ…ظ† ط§ظ„ظ…طµط§ط¯ظ‚ط© ط¹ظ„ظ‰ ط§ظ„ظ…ط®ط·ط· ط§ظ„ت�ˆط¬ي�‡ي...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
-  { id: "3", title_ar: "ت�¹ظ„ي�…ط© ط±ظ‚ظ… 05", document_type: "ت�¹ظ„ي�…ط©", document_number: "05", document_date: "2024-02-01", status: "active", description: "تتط¹ظ„ظ‘ظ‚ ط¨ت�³ظ‡ي�„ ط¥ط¬ط±ط§ء�§ت ظ…ظ†ط­ ط±ط®طµ ط§ظ„ط¨ظ†ط§ء...", file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
+  {
+    id: "1",
+    title_ar: "مرسوم تنفيذي 23-14",
+    document_type: "مرسوم",
+    document_number: "23-14",
+    document_date: "2023-01-15",
+    status: "active",
+    description: "يحدد كيفيات تطبيق أحكام القانون المتعلق بالتعمير...",
+    file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+  },
+  {
+    id: "2",
+    title_ar: "قرار وزاري مشترك",
+    document_type: "قرار",
+    document_number: "22-55",
+    document_date: "2022-11-20",
+    status: "active",
+    description: "يتضمن المصادقة على المخطط التوجيهي...",
+    file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+  },
+  {
+    id: "3",
+    title_ar: "تعليمة رقم 05",
+    document_type: "تعليمة",
+    document_number: "05",
+    document_date: "2024-02-01",
+    status: "active",
+    description: "تتعلق بتسهيل إجراءات منح رخص البناء...",
+    file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+  },
 ];
 
 export default function LegalArchive() {
@@ -185,12 +212,12 @@ export default function LegalArchive() {
     if (isSubmitting) return;
 
     if (!formData.title_ar || !formData.document_type) {
-      toast({ title: "ط®ط·ط£", description: "ي�±ط¬ظ‰ ظ…ظ„ء ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط©", variant: "destructive" });
+      toast({ title: "خطأ", description: "يرجى ملء الحقول المطلوبة", variant: "destructive" });
       return;
     }
 
     if (!newFile) {
-      toast({ title: "ط®ط·ط£", description: "ي�±ط¬ظ‰ ط¥ط±ف�§ظ‚ ظ…ظ„ف ط§ظ„ظˆط«ي�‚ط© (PDF/Image)", variant: "destructive" });
+      toast({ title: "خطأ", description: "يرجى إرفاق ملف الوثيقة (PDF/صورة)", variant: "destructive" });
       return;
     }
 
@@ -340,8 +367,8 @@ export default function LegalArchive() {
             <Scale className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">ط§ظ„ظ…ط±ط§ط³ي�… ظˆط§ظ„ت�¹ظ„ي�…ط§ت</h1>
-            <p className="text-muted-foreground">ط£ط±ط´يف ط§ظ„ظˆط«ط§ط¦ظ‚ ط§ظ„ظ‚ط§ظ†ظˆظ†ي�© ظˆط§ظ„ت�†ط¸ي�…ي�©</p>
+            <h1 className="text-2xl font-bold">المراسيم والتعليمات</h1>
+            <p className="text-muted-foreground">أرشيف الوثائق القانونية والتنظيمية</p>
           </div>
         </div>
 
@@ -352,18 +379,18 @@ export default function LegalArchive() {
                 <FileImport
                   documentType="legal_document"
                   onDataExtracted={handleDataExtracted}
-                  buttonLabel="ط§ط³تيط±ط§ط¯ ظ…ظ† ظ…ظ„ف"
+                  buttonLabel="استيراد من ملف"
                 />
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
                     <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
                       <Plus className="w-4 h-4 ml-2" />
-                      ط¥ط¶ط§ف�© ظˆط«ي�‚ط©
+                      إضافة وثيقة
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>ط¥ط¶ط§ف�© ظˆط«ي�‚ط© ظ‚ط§ظ†ظˆظ†ي�©</DialogTitle>
+                      <DialogTitle>إضافة وثيقة قانونية</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-2">
@@ -372,7 +399,7 @@ export default function LegalArchive() {
                           <Input
                             value={formData.title_ar}
                             onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
-                            placeholder="ط£ط¯ط®ظ„ ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ي�©"
+                            placeholder="أدخل العنوان بالعربية"
                             required
                             className={autoFillClass("title_ar")}
                           />
@@ -390,35 +417,35 @@ export default function LegalArchive() {
                       </div>
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
-                          <Label>ظ†ظˆط¹ ط§ظ„ظˆط«ي�‚ط© *</Label>
+                          <Label>نوع الوثيقة *</Label>
                           <Select
                             value={formData.document_type}
                             onValueChange={(value) => setFormData({ ...formData, document_type: value })}
                           >
                             <SelectTrigger className={cn(autoFillClass("document_type"), "text-right flex flex-row-reverse items-center justify-between")}>
-                              <SelectValue placeholder="ط§ط®ت�± ط§ظ„ظ†ظˆط¹" />
+                              <SelectValue placeholder="اختر النوع" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="ظ…ط±ط³ظˆظ…">ظ…ط±ط³ظˆظ…</SelectItem>
-                              <SelectItem value="ظ‚ط±ط§ط±">ظ‚ط±ط§ط±</SelectItem>
-                              <SelectItem value="ت�¹ظ„ي�…ط©">ت�¹ظ„ي�…ط©</SelectItem>
-                              <SelectItem value="ظ…ظ†ط´ظˆط±">ظ…ظ†ط´ظˆط±</SelectItem>
-                              <SelectItem value="ظ‚ط§ظ†ظˆظ†">ظ‚ط§ظ†ظˆظ†</SelectItem>
-                              <SelectItem value="ط£ظ…ط±">ط£ظ…ط±</SelectItem>
+                              <SelectItem value="مرسوم">مرسوم</SelectItem>
+                              <SelectItem value="قرار">قرار</SelectItem>
+                              <SelectItem value="تعليمة">تعليمة</SelectItem>
+                              <SelectItem value="منشور">منشور</SelectItem>
+                              <SelectItem value="قانون">قانون</SelectItem>
+                              <SelectItem value="أمر">أمر</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label>ط±ظ‚ظ… ط§ظ„ظ…ظ„ف</Label>
+                          <Label>رقم الوثيقة</Label>
                           <Input
                             value={formData.document_number}
                             onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
-                            placeholder="ط§ظ„ط±ظ‚ظ… / ط§ظ„ط³ظ†ط©"
+                            placeholder="الرقم / السنة"
                             className={autoFillClass("document_number")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>ت�§ط±ي�® ط§ظ„ظˆط«ي�‚ط©</Label>
+                          <Label>تاريخ الوثيقة</Label>
                           <DateInput
                             value={formData.document_date}
                             onChange={(date) => setFormData({ ...formData, document_date: date })}
@@ -428,37 +455,37 @@ export default function LegalArchive() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label>ط§ظ„ظˆطµف</Label>
+                        <Label>الوصف</Label>
                         <Textarea
                           value={formData.description}
                           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                          placeholder="ظˆطµف ظ…ط®ت�µط± ظ„ظ„ظˆط«ي�‚ط©"
+                          placeholder="وصف مختصر للوثيقة"
                           rows={2}
                           className={autoFillClass("description")}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>ظ…ط­ت�ˆظ‰ ط§ظ„ظˆط«ي�‚ط© (ظ„ظ„ط¨ط­ط«)</Label>
+                        <Label>محتوى الوثيقة (للبحث)</Label>
                         <Textarea
                           value={formData.content_text}
                           onChange={(e) => setFormData({ ...formData, content_text: e.target.value })}
-                          placeholder="ط£ط¯ط®ظ„ ظ†طµ ط§ظ„ظˆط«ي�‚ط© ط£ظˆ ط¬ط²ء ظ…ظ†ظ‡ ظ„ظ„ط¨ط­ط«"
+                          placeholder="أدخل نص الوثيقة أو جزءاً منه للبحث"
                           rows={4}
                           className={autoFillClass("content_text")}
                         />
                       </div>
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label>ط§ظ„ظƒظ„ظ…ط§ت ط§ظ„ظ…فتط§ط­ي�© (ظ…ف�µظˆظ„ط© ط¨ف�§طµظ„ط©)</Label>
+                          <Label>الكلمات المفتاحية (مفصولة بفاصلة)</Label>
                           <Input
                             value={formData.keywords}
                             onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
-                            placeholder="ت�¹ظ…ي�±طŒ ط¨ظ†ط§ء�Œ ط±ط®طµط©طŒ ..."
+                            placeholder="تعمير، بناء، رخصة، ..."
                             className={autoFillClass("keywords")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>ط§ظ„ظ„غ�©</Label>
+                          <Label>اللغة</Label>
                           <Select
                             value={formData.language}
                             onValueChange={(value) => setFormData({ ...formData, language: value })}
@@ -467,9 +494,9 @@ export default function LegalArchive() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="ar">ط§ظ„ط¹ط±ط¨ي�©</SelectItem>
-                              <SelectItem value="fr">ط§ظ„ف�±ظ†ط³ي�©</SelectItem>
-                              <SelectItem value="both">ط«ظ†ط§ط¦ي ط§ظ„ظ„غ�©</SelectItem>
+                              <SelectItem value="ar">العربية</SelectItem>
+                              <SelectItem value="fr">الفرنسية</SelectItem>
+                              <SelectItem value="both">ثنائي اللغة</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -478,17 +505,17 @@ export default function LegalArchive() {
                       {/* File Drop Zone */}
                       <div className="col-span-2 space-y-2">
                         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                          <Label className="block text-sm font-medium">ط§ظ„ظ…ظ„ف ط§ظ„ظ…ط±ف�‚ (PDF/طµظˆط±ط©) *</Label>
+                          <Label className="block text-sm font-medium">الملف المرفق (PDF/صورة) *</Label>
                           <Button type="button" variant="outline" onClick={handleDirectScan} disabled={isScanning}>
                             {isScanning ? (
                               <>
                                 <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                                ط¬ط§ط±ي ط§ظ„ظ…ط³ط­...
+                                جاري المسح...
                               </>
                             ) : (
                               <>
                                 <Scan className="w-4 h-4 ml-2" />
-                                ظ…ط³ط­ ط¶ظˆط¦ي ظ…ط¨ط§ط´ط±
+                                مسح ضوئي مباشر
                               </>
                             )}
                           </Button>
@@ -517,10 +544,10 @@ export default function LegalArchive() {
 
                       <div className="flex gap-2 justify-end">
                         <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                          ط¥ظ„غ�§ء
+                          إلغاء
                         </Button>
                         <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "ط­ف�¸"}
+                          {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
                         </Button>
                       </div>
                     </form>
@@ -535,7 +562,7 @@ export default function LegalArchive() {
               className="gap-2"
             >
               <Trash2 className="w-4 h-4" />
-              {showRecycleBin ? "ط§ظ„ط¹ظˆط¯ط© ظ„ظ„ط£ط±ط´يف" : "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆف�§ت"}
+              {showRecycleBin ? "العودة للأرشيف" : "سلة المحذوفات"}
             </Button>
           </div>
         )}
@@ -548,14 +575,14 @@ export default function LegalArchive() {
             <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="ط¨ط­ط« في ط§ظ„ظˆط«ط§ط¦ظ‚..."
+                placeholder="بحث في الوثائق..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pr-10"
               />
             </div>
             <div className="flex items-center gap-2">
-              <Label className="text-sm shrink-0">ط§ظ„ظ†ظˆط¹:</Label>
+              <Label className="text-sm shrink-0">النوع:</Label>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-full md:w-[180px]">
                   <SelectValue placeholder="ط§ظ„ظƒظ„" />
