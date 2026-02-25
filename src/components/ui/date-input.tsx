@@ -24,18 +24,11 @@ export function DateInput({
   className,
   disabled = false
 }: DateInputProps) {
-  const [inputValue, setInputValue] = React.useState(
-    value ? format(value, DDMMYYYY_PATTERN) : ""
-  );
+  const [inputValue, setInputValue] = React.useState(value ? format(value, DDMMYYYY_PATTERN) : "");
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
 
-  // Sync input value when prop changes
   React.useEffect(() => {
-    if (value) {
-      setInputValue(format(value, DDMMYYYY_PATTERN));
-    } else {
-      setInputValue("");
-    }
+    setInputValue(value ? format(value, DDMMYYYY_PATTERN) : "");
   }, [value]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,9 +46,7 @@ export function DateInput({
 
   const handleCalendarSelect = (date: Date | undefined) => {
     onChange(date);
-    if (date) {
-      setInputValue(format(date, DDMMYYYY_PATTERN));
-    }
+    if (date) setInputValue(format(date, DDMMYYYY_PATTERN));
     setIsCalendarOpen(false);
   };
 
@@ -65,7 +56,7 @@ export function DateInput({
         type="text"
         value={inputValue}
         onChange={handleInputChange}
-        placeholder="سنة/شهر/يوم"
+        placeholder={placeholder}
         className={cn("flex-1 text-right font-mono", className)}
         disabled={disabled}
         dir="rtl"
@@ -74,10 +65,7 @@ export function DateInput({
         <PopoverTrigger asChild>
           <Button
             variant={"outline"}
-            className={cn(
-              "w-10 h-10 p-0 text-left font-normal",
-              !value && "text-muted-foreground"
-            )}
+            className={cn("w-10 h-10 p-0 text-left font-normal", !value && "text-muted-foreground")}
             onClick={() => setIsCalendarOpen(true)}
           >
             <CalendarIcon className="h-4 w-4" />
@@ -89,10 +77,11 @@ export function DateInput({
             selected={value}
             onSelect={handleCalendarSelect}
             initialFocus
-            locale={ar} // Ensure Arabic locale
+            locale={ar}
           />
         </PopoverContent>
       </Popover>
     </div>
   );
 }
+
