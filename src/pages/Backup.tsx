@@ -187,7 +187,7 @@ export default function Backup() {
         const summarySheet = XLSX.utils.json_to_sheet([{
           'البيان': 'عدد الملفات',
           'القيمة': result.data.files.length,
-          'التاريخ': formatDate(new Date(), "yyyy/MM/dd"),
+          'التاريخ': formatDate(new Date(), "dd/MM/yyyy"),
         }, {
           'البيان': 'سجلات الدراسات',
           'القيمة': result.data.file_studies.length,
@@ -275,7 +275,7 @@ export default function Backup() {
 
       if (result.data) {
         const doc = new jsPDF('p', 'mm', 'a4');
-        const timestamp = formatDate(new Date(), "yyyy/MM/dd");
+        const timestamp = formatDate(new Date(), "dd/MM/yyyy");
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         let yPosition = 15;
