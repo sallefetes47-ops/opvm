@@ -12,6 +12,8 @@ describe("date formatting (yyyy/MM/dd)", () => {
     expect(formatYYYYMMDDInput("2026022")).toBe("2026/02/2");
     expect(formatYYYYMMDDInput("20260225")).toBe("2026/02/25");
     expect(formatYYYYMMDDInput("2026-02-25")).toBe("2026/02/25");
+    expect(formatYYYYMMDDInput("2026/2/5")).toBe("2026/02/05");
+    expect(formatYYYYMMDDInput("٢٠٢٦/٢/٥")).toBe("2026/02/05");
     expect(formatYYYYMMDDInput("20260225xxxx")).toBe("2026/02/25");
   });
 
