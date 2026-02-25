@@ -25,21 +25,31 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Trash2, RotateCcw, AlertTriangle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatFileNumberWithYear } from "@/lib/file-number";
+import { formatSection, formatPropertyGroup } from "@/lib/cadastre";
 
 interface DeletedFile {
   id: string;
-  file_number: string;
-  year: number;
-  full_name: string;
   municipality: string;
-  permit_type: string | null;
-  deleted_at: string;
+  section: string | null;
+  property_group: string | null;
+  deleted_at: string | null;
+  file_number?: string;
+  full_name?: string;
 }
 
-export default function TrashBin() {
+const cleanMunicipality = (name: string) => {
+  if (!name) return "";
+  const cleaned = name.replace(/بلدية\s*/g, "").trim();
+  // Ensure we just output the core names
+  const coreNames = ["غرداية", "العطف", "بنورة", "الضاية", "متليلي"];
+  for (const coreName of coreNames) {
+    if (cleaned.includes(coreName)) return coreName;
+  }
+  return cleaned;
+};
+
+export default function RecycleBin() {
   const { role, isViewer } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -48,15 +58,16 @@ export default function TrashBin() {
 
   const canManage = role === "admin" && !isViewer;
 
-  /* ── جلب الملفات المحذوفة (deleted_at IS NOT NULL) ── */
+  /* ── جلب الملفات المحذوفة ── */
   const { data: deletedFiles, isLoading } = useQuery({
     queryKey: ["deleted-files"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("files")
-        .select("id, file_number, year, full_name, municipality, permit_type, deleted_at")
-        .not("deleted_at", "is", null)
-        .order("deleted_at", { ascending: false });
+        .select("id, municipality, section, property_group, deleted_at, file_number, full_name")
+        .or("is_deleted.eq.true,deleted_at.not.is.null")
+        // sort by most recently deleted if deleted_at exists, else sort by ID
+        .order("deleted_at", { ascending: false, nullsFirst: false });
 
       if (error) throw error;
       return data as DeletedFile[];
@@ -189,10 +200,10 @@ export default function TrashBin() {
       </div>
 
       {/* ── الجدول ── */}
-      <Card className="border-t-4 border-t-destructive/20">
+      <Card className="border-t-4 border-t-destructive/20 shadow-sm">
         <CardHeader className="p-4 pb-2 border-b bg-muted/20">
           <CardTitle className="text-sm">
-            الملفات المحذوفة ({deletedFiles?.length || 0})
+            المرجع العمراني ({deletedFiles?.length || 0})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -201,59 +212,51 @@ export default function TrashBin() {
               <Table>
                 <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                   <TableRow>
-                    <TableHead className="w-[80px]">رقم الملف</TableHead>
-                    <TableHead>صاحب الملف</TableHead>
-                    <TableHead className="w-[140px]">تاريخ الحذف</TableHead>
-                    <TableHead className="w-[100px]">الإجراءات</TableHead>
+                    <TableHead className="w-[140px]">البلدية</TableHead>
+                    <TableHead className="w-[100px]">القسم</TableHead>
+                    <TableHead className="w-[150px]">مجموعة الملكية</TableHead>
+                    <TableHead className="w-[150px]">تاريخ الحذف</TableHead>
+                    <TableHead className="w-[120px]">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {deletedFiles.map((file) => (
-                    <TableRow key={file.id} className="hover:bg-muted/50">
-                      <TableCell className="font-mono text-xs font-bold">
-                        {formatFileNumberWithYear(file.file_number, file.year)}
+                    <TableRow key={file.id} className="hover:bg-muted/50 transition-colors">
+                      <TableCell className="font-medium text-sm">
+                        {cleanMunicipality(file.municipality)}
                       </TableCell>
-                      <TableCell className="py-2">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-sm">
-                            {file.full_name}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground flex gap-1">
-                            <span>{file.municipality}</span>
-                            {file.permit_type && (
-                              <span>• {file.permit_type}</span>
-                            )}
-                          </span>
-                        </div>
+                      <TableCell className="font-mono text-sm">
+                        {formatSection(file.section)}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell className="font-mono text-sm">
+                        {formatPropertyGroup(file.property_group)}
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-600">
                         {file.deleted_at
-                          ? format(
-                            new Date(file.deleted_at),
-                            "d MMMM yyyy",
-                            { locale: ar }
-                          )
-                          : "-"}
+                          ? format(new Date(file.deleted_at), "yyyy/MM/dd")
+                          : "---"}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
+                        <div className="flex gap-2">
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1.5 border-green-200 text-green-700 bg-green-50 hover:bg-green-100 hover:text-green-800 transition-colors"
                             onClick={() => handleAction(file, "restore")}
-                            title="استعادة الملف"
+                            title="استعادة"
                           >
-                            <RotateCcw className="h-4 w-4" />
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            <span className="text-xs font-semibold">استعادة</span>
                           </Button>
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1.5 border-red-200 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 transition-colors"
                             onClick={() => handleAction(file, "delete")}
                             title="حذف نهائي"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span className="text-xs font-semibold">حذف نهائي</span>
                           </Button>
                         </div>
                       </TableCell>
@@ -263,10 +266,12 @@ export default function TrashBin() {
               </Table>
             </div>
           ) : (
-            <div className="text-center py-16 text-muted-foreground">
-              <Trash2 className="w-16 h-16 mx-auto mb-4 opacity-20" />
-              <p className="text-lg font-medium">سلة المحذوفات فارغة</p>
-              <p className="text-sm mt-1">لا توجد ملفات محذوفة حالياً</p>
+            <div className="text-center py-20 text-muted-foreground">
+              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                <Trash2 className="w-10 h-10 text-slate-300" />
+              </div>
+              <p className="text-xl font-semibold text-slate-700">سلة المحذوفات فارغة حالياً</p>
+              <p className="text-sm text-slate-500 mt-2">لا توجد أي ملفات أو قيود بانتظار الحذف النهائي</p>
             </div>
           )}
         </CardContent>
@@ -275,42 +280,55 @@ export default function TrashBin() {
       {/* ── نافذة التأكيد ── */}
       <AlertDialog
         open={!!selectedFile && !!actionType}
-        onOpenChange={() => {
-          setSelectedFile(null);
-          setActionType(null);
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedFile(null);
+            setActionType(null);
+          }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl border-0 shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {actionType === "restore"
-                ? "تأكيد استعادة الملف"
-                : "تأكيد الحذف النهائي"}
+            <AlertDialogTitle className="flex items-center gap-2 text-xl">
+              {actionType === "restore" ? (
+                <>
+                  <RotateCcw className="h-5 w-5 text-green-600" />
+                  <span>تأكيد الاستعادة</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <span className="text-red-600">تأكيد الحذف النهائي</span>
+                </>
+              )}
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-base text-slate-600 mt-3 leading-relaxed">
               {actionType === "restore"
-                ? `هل تريد استعادة الملف رقم "${formatFileNumberWithYear(selectedFile?.file_number, selectedFile?.year)}" الخاص بـ "${selectedFile?.full_name}" وإعادته إلى الأرشيف الرقمي؟`
-                : `هل أنت متأكد من الحذف النهائي للملف رقم "${formatFileNumberWithYear(selectedFile?.file_number, selectedFile?.year)}" الخاص بـ "${selectedFile?.full_name}"؟ هذا الإجراء لا يمكن التراجع عنه.`}
+                ? `هل أنت متأكد من رغبتك في استعادة بيانات "${cleanMunicipality(selectedFile?.municipality)}" القسم ${formatSection(selectedFile?.section)} بمجموعة الملكية ${formatPropertyGroup(selectedFile?.property_group)} وإعادتها إلى النظام؟`
+                : `هل أنت متأكد من الحذف النهائي لبيانات "${cleanMunicipality(selectedFile?.municipality)}" القسم ${formatSection(selectedFile?.section)} بمجموعة الملكية ${formatPropertyGroup(selectedFile?.property_group)}؟ هذا الإجراء لا يمكن التراجع عنه بأي شكل من الأشكال.`
+              }
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          <AlertDialogFooter className="mt-6 gap-3 sm:gap-0">
+            <AlertDialogCancel className="border-slate-200 hover:bg-slate-100 font-medium">إلغاء الأمر</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmAction}
+              onClick={(e) => {
+                e.preventDefault(); // Prevent closing right away if we wanna show loader
+                confirmAction();
+              }}
               className={
                 actionType === "delete"
-                  ? "bg-destructive hover:bg-destructive/90"
-                  : "bg-green-600 hover:bg-green-700"
+                  ? "bg-red-600 text-white hover:bg-red-700 font-semibold"
+                  : "bg-green-600 text-white hover:bg-green-700 font-semibold"
               }
               disabled={
                 restoreMutation.isPending || permanentDeleteMutation.isPending
               }
             >
-              {restoreMutation.isPending ||
-                permanentDeleteMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-              ) : null}
-              {actionType === "restore" ? "استعادة" : "حذف نهائي"}
+              {(restoreMutation.isPending || permanentDeleteMutation.isPending) && (
+                <Loader2 className="w-4 h-4 animate-spin outline-none ml-2" />
+              )}
+              {actionType === "restore" ? "تأكيد الاستعادة" : "نعم، احذف نهائياً"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
