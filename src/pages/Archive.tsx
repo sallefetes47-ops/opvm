@@ -270,7 +270,9 @@ export default function ArchivePage() {
                 <SelectItem value="all">الكل</SelectItem>
                 <SelectItem value="غرداية">غرداية</SelectItem>
                 <SelectItem value="العطف">العطف</SelectItem>
-                <SelectItem value="بونورة">بنورة</SelectItem>
+                <SelectItem value="بنورة">بنورة</SelectItem>
+                <SelectItem value="الضاية">الضاية</SelectItem>
+                <SelectItem value="متليلي">متليلي</SelectItem>
               </SelectContent>
             </Select>
             <Select value={opinionFilter} onValueChange={setOpinionFilter}>
@@ -444,7 +446,7 @@ export default function ArchivePage() {
                   <Label className="text-right block">البلدية</Label>
                   <Select
                     value={editFormData.municipality || 'غرداية'}
-                    onValueChange={v => setEditFormData({ ...editFormData, municipality: v as "غرداية" | "العطف" | "بونورة" })}
+                    onValueChange={v => setEditFormData({ ...editFormData, municipality: v as "غرداية" | "العطف" | "بنورة" | "الضاية" | "متليلي" })}
                     dir="rtl"
                   >
                     <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between bg-white">
@@ -453,7 +455,9 @@ export default function ArchivePage() {
                     <SelectContent dir="rtl">
                       <SelectItem value="غرداية" className="text-right justify-end">غرداية</SelectItem>
                       <SelectItem value="العطف" className="text-right justify-end">العطف</SelectItem>
-                      <SelectItem value="بونورة" className="text-right justify-end">بنورة</SelectItem>
+                      <SelectItem value="بنورة" className="text-right justify-end">بنورة</SelectItem>
+                      <SelectItem value="الضاية" className="text-right justify-end">الضاية</SelectItem>
+                      <SelectItem value="متليلي" className="text-right justify-end">متليلي</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -553,7 +557,7 @@ export default function ArchivePage() {
                       <TableBody>
                         {fileStudies.map(s => (
                           <TableRow key={s.id}>
-                            <TableCell>{format(new Date(s.study_date), "yyyy-MM-dd")}</TableCell>
+                            <TableCell>{format(new Date(s.study_date), "yyyy/MM/dd")}</TableCell>
                             <TableCell>{s.committee_opinion}</TableCell>
                           </TableRow>
                         ))}

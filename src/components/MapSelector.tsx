@@ -12,6 +12,7 @@ import { Loader2, Zap, Satellite, Plus, FileText, Calendar, Hash, CheckCircle2 }
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
 
 // --- Fix Leaflet Default Icons (Critical) ---
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -331,15 +332,15 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                                     ) : (
                                         <div className="space-y-2 text-xs">
                                             <div className="flex justify-between items-center bg-white border p-1.5 rounded">
-                                                <span className="text-muted-foreground">القسم (Section):</span>
-                                                <span className="font-mono font-bold text-sm">{cadastreInfo.section}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center bg-white border p-1.5 rounded">
-                                                <span className="text-muted-foreground">مجموعة الملكية:</span>
-                                                <span className="font-mono font-bold text-sm">{cadastreInfo.group}</span>
-                                            </div>
-                                        </div>
-                                    )}
+                                                 <span className="text-muted-foreground">القسم (Section):</span>
+                                                <span className="font-mono font-bold text-sm">{formatSection(cadastreInfo.section) || cadastreInfo.section}</span>
+                                             </div>
+                                             <div className="flex justify-between items-center bg-white border p-1.5 rounded">
+                                                 <span className="text-muted-foreground">مجموعة الملكية:</span>
+                                                <span className="font-mono font-bold text-sm">{formatPropertyGroup(cadastreInfo.group) || cadastreInfo.group}</span>
+                                             </div>
+                                         </div>
+                                     )}
 
                                 </div>
                             </Popup>
@@ -408,13 +409,13 @@ function ContractPopupContent({ contract, color }: { contract: any; color: strin
                         {contract.section && (
                             <div className="flex justify-between">
                                 <span>القسم العقاري:</span>
-                                <span className="font-mono font-bold text-slate-900">{contract.section}</span>
+                                <span className="font-mono font-bold text-slate-900">{formatSection(contract.section) || contract.section}</span>
                             </div>
                         )}
                         {contract.property_group && (
                             <div className="flex justify-between">
                                 <span>مجموعة الملكية:</span>
-                                <span className="font-mono font-bold text-slate-900">{contract.property_group}</span>
+                                <span className="font-mono font-bold text-slate-900">{formatPropertyGroup(contract.property_group) || contract.property_group}</span>
                             </div>
                         )}
                     </div>

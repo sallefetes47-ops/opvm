@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DDMMYYYY_PATTERN, formatDDMMYYYYInput, parseDDMMYYYY } from "@/lib/date";
+import { formatYYYYMMDDInput, parseYYYYMMDD, YYYYMMDD_PATTERN } from "@/lib/date";
 
 interface DateInputProps {
   value: Date | undefined;
@@ -20,19 +20,19 @@ interface DateInputProps {
 export function DateInput({
   value,
   onChange,
-  placeholder = "DD/MM/YYYY",
+  placeholder = "YYYY/MM/DD",
   className,
   disabled = false
 }: DateInputProps) {
-  const [inputValue, setInputValue] = React.useState(value ? format(value, DDMMYYYY_PATTERN) : "");
+  const [inputValue, setInputValue] = React.useState(value ? format(value, YYYYMMDD_PATTERN) : "");
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
 
   React.useEffect(() => {
-    setInputValue(value ? format(value, DDMMYYYY_PATTERN) : "");
+    setInputValue(value ? format(value, YYYYMMDD_PATTERN) : "");
   }, [value]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatDDMMYYYYInput(e.target.value);
+    const formatted = formatYYYYMMDDInput(e.target.value);
     setInputValue(formatted);
 
     if (formatted === "") {
@@ -40,13 +40,13 @@ export function DateInput({
       return;
     }
 
-    const parsed = parseDDMMYYYY(formatted);
+    const parsed = parseYYYYMMDD(formatted);
     if (parsed) onChange(parsed);
   };
 
   const handleCalendarSelect = (date: Date | undefined) => {
     onChange(date);
-    if (date) setInputValue(format(date, DDMMYYYY_PATTERN));
+    if (date) setInputValue(format(date, YYYYMMDD_PATTERN));
     setIsCalendarOpen(false);
   };
 
@@ -84,4 +84,3 @@ export function DateInput({
     </div>
   );
 }
-

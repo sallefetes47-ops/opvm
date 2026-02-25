@@ -12,7 +12,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter,
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
@@ -90,6 +89,44 @@ export function AppSidebar() {
               <p className="text-xs text-sidebar-foreground/70 mt-0.5">
                 OPVM
               </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
+                {isViewer ? "مشاهد" : user?.email}
+              </p>
+              <p className="text-xs text-sidebar-foreground/70">
+                {role === "admin" ? "مدير" : role === "viewer" || isViewer ? "مشاهد" : "موظف"}
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (isAdminMode) {
+                    setShowSettings(true);
+                  } else {
+                    setShowLoginModal(true);
+                  }
+                }}
+                className={cn("text-sidebar-foreground hover:bg-sidebar-accent", isAdminMode && "text-[#D4AF37]")}
+                title={isAdminMode ? "إعدادات المسؤول" : "وضع المسؤول"}
+              >
+                <ShieldCheck className="h-5 w-5" />
+              </Button>
+              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={signOut}
+                className="text-sidebar-foreground hover:bg-sidebar-accent"
+                title="تسجيل الخروج"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
             </div>
           </div>
         </SidebarHeader>
@@ -251,49 +288,6 @@ export function AppSidebar() {
           )}
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-sidebar-border p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">
-                {isViewer ? "مشاهد" : user?.email}
-              </p>
-              <p className="text-xs text-sidebar-foreground/70">
-                {role === "admin" ? "مدير" : role === "viewer" || isViewer ? "مشاهد" : "موظف"}
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              {/* Admin mode toggle icon */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (isAdminMode) {
-                    setShowSettings(true);
-                  } else {
-                    setShowLoginModal(true);
-                  }
-                }}
-                className={cn(
-                  "text-sidebar-foreground hover:bg-sidebar-accent",
-                  isAdminMode && "text-[#D4AF37]"
-                )}
-                title={isAdminMode ? "إعدادات المسؤول" : "وضع المسؤول"}
-              >
-                <ShieldCheck className="h-5 w-5" />
-              </Button>
-              <ThemeToggle />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={signOut}
-                className="text-sidebar-foreground hover:bg-sidebar-accent"
-                title="تسجيل الخروج"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </SidebarFooter>
       </Sidebar>
 
       {/* Modals */}

@@ -242,7 +242,9 @@ export default function Restudy() {
                 <SelectContent>
                   <SelectItem value="غرداية">غرداية</SelectItem>
                   <SelectItem value="العطف">العطف</SelectItem>
-                  <SelectItem value="بونورة">بنورة</SelectItem>
+                  <SelectItem value="بنورة">بنورة</SelectItem>
+                  <SelectItem value="الضاية">الضاية</SelectItem>
+                  <SelectItem value="متليلي">متليلي</SelectItem>
                 </SelectContent>
               </Select>
             </div>

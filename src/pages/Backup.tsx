@@ -13,6 +13,7 @@ import { Download, Upload, FolderSync, FileJson, FileSpreadsheet, FileCode, Load
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { format as formatDate } from "date-fns";
 import { AMIRI_FONT_BASE64 } from "@/lib/fonts";
 import { fixArabicText } from "@/lib/pdf-utils";
 
@@ -186,7 +187,7 @@ export default function Backup() {
         const summarySheet = XLSX.utils.json_to_sheet([{
           'البيان': 'عدد الملفات',
           'القيمة': result.data.files.length,
-          'التاريخ': new Date().toLocaleDateString('ar-EG'),
+          'التاريخ': formatDate(new Date(), "yyyy/MM/dd"),
         }, {
           'البيان': 'سجلات الدراسات',
           'القيمة': result.data.file_studies.length,
@@ -274,7 +275,7 @@ export default function Backup() {
 
       if (result.data) {
         const doc = new jsPDF('p', 'mm', 'a4');
-        const timestamp = new Date().toLocaleDateString('en-GB'); // Use Western numerals
+        const timestamp = formatDate(new Date(), "yyyy/MM/dd");
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         let yPosition = 15;

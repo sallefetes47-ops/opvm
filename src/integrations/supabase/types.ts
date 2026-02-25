@@ -381,7 +381,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "employee" | "viewer"
       committee_opinion: "رأي إيجابي" | "تحفظ" | "مرفوض"
-      municipality: "غرداية" | "العطف" | "بونورة"
+      municipality: "غرداية" | "العطف" | "بنورة" | "الضاية" | "متليلي"
       ownership_type: "عقد ملكية" | "دفتر عقاري" | "شهادة إستفادة"
       permit_type: "رخصة بناء" | "رخصة تجزئة" | "رخصة هدم" | "شهادة تقسيم"
     }
@@ -513,7 +513,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "employee", "viewer"],
       committee_opinion: ["رأي إيجابي", "تحفظ", "مرفوض"],
-      municipality: ["غرداية", "العطف", "بونورة"],
+      municipality: ["غرداية", "العطف", "بنورة", "الضاية", "متليلي"],
       ownership_type: ["عقد ملكية", "دفتر عقاري", "شهادة إستفادة"],
       permit_type: ["رخصة بناء", "رخصة تجزئة", "رخصة هدم", "شهادة تقسيم"],
     },

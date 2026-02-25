@@ -122,8 +122,7 @@ export function ViewerSettingsPanel({ open, onClose }: ViewerSettingsPanelProps)
                     />
                 </div>
 
-                {/* Footer */}
-                <div className="border-t border-white/10 px-6 py-4">
+                <div className="px-6 pb-6">
                     <button
                         onClick={() => {
                             logoutAdmin();

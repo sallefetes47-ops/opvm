@@ -152,7 +152,7 @@ export default function NewFile() {
           const areaVal = matchedFeature.properties.AREA;
           const formattedArea = Number(areaVal).toFixed(2); // Keep 2 decimal places
 
-          console.log(`✅ تم العثور على القطعة في (بلدية ${municipalityVal} - قسم ${targetSection} - مجموعة ${targetIlot})، المساحة: ${formattedArea} م²`);
+          console.log(`✅ تم العثور على القطعة في (${municipalityVal} - قسم ${targetSection} - مجموعة ${targetIlot})، المساحة: ${formattedArea} م²`);
 
           setFormData(prev => ({
             ...prev,
@@ -338,7 +338,9 @@ export default function NewFile() {
                 <SelectContent>
                   <SelectItem value="غرداية">غرداية</SelectItem>
                   <SelectItem value="العطف">العطف</SelectItem>
-                  <SelectItem value="بونورة">بنورة</SelectItem>
+                  <SelectItem value="بنورة">بنورة</SelectItem>
+                  <SelectItem value="الضاية">الضاية</SelectItem>
+                  <SelectItem value="متليلي">متليلي</SelectItem>
                 </SelectContent>
               </Select>
             </div>
