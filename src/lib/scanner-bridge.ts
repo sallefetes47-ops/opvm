@@ -21,7 +21,7 @@ const BRIDGE_SCRIPT_URLS = [
 ];
 
 function getScannerBridgeError(): Error {
-  return new Error("خطأ: لم يتم العثور على برنامج Scanner Bridge. يرجى تشغيله أولاً للاتصال بجهاز Kyocera.");
+  return new Error("تعذر الاتصال بجسر الماسح الضوئي (Scanner Bridge). يرجى تشغيله أولاً للاتصال بجهاز Kyocera.");
 }
 
 function maybeParseJson(text: string): unknown {
