@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation, Link } from "react-router-dom";
+﻿import { useState } from "react";
+import { useLocation, NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/contexts/AdminContext";
 import {
@@ -25,32 +25,32 @@ import { AdminLoginModal } from "@/components/AdminLoginModal";
 import { ViewerSettingsPanel } from "@/components/ViewerSettingsPanel";
 
 const mainMenuItems = [
-  { title: "لوحة التحكم", url: "/", icon: LayoutDashboard },
-  { title: "ملف جديد", url: "/new-file", icon: FilePlus, requiresEdit: true },
-  { title: "إعادة الدراسة", url: "/restudy", icon: RefreshCw, requiresEdit: true },
-  { title: "الأرشيف", url: "/archive", icon: Archive },
-  { title: "الخريطة العمرانية", url: "/urban-map", icon: MapPin },
+  { title: "ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…", url: "/", icon: LayoutDashboard },
+  { title: "ظ…ظ„ظپ ط¬ط¯ظٹط¯", url: "/new-file", icon: FilePlus, requiresEdit: true },
+  { title: "ط¥ط¹ط§ط¯ط© ط§ظ„ط¯ط±ط§ط³ط©", url: "/restudy", icon: RefreshCw, requiresEdit: true },
+  { title: "ط§ظ„ط£ط±ط´ظٹظپ", url: "/archive", icon: Archive },
+  { title: "ط§ظ„ط®ط±ظٹط·ط© ط§ظ„ط¹ظ…ط±ط§ظ†ظٹط©", url: "/urban-map", icon: MapPin },
 ];
 
 // These modules are hidden from viewers (requires edit permissions)
 const newModulesItems = [
-  { title: "محاضر الجلسات", url: "/minutes", icon: FileText },
-  { title: "الاستدعاءات", url: "/summons", icon: Users2 },
+  { title: "ظ…ط­ط§ط¶ط± ط§ظ„ط¬ظ„ط³ط§طھ", url: "/minutes", icon: FileText },
+  { title: "ط§ظ„ط§ط³طھط¯ط¹ط§ط،ط§طھ", url: "/summons", icon: Users2 },
 ];
 
 // Legal archive is visible to all
 const publicModulesItems = [
-  { title: "المراسيم والتعليمات", url: "/legal-archive", icon: Scale },
+  { title: "ط§ظ„ظ…ط±ط§ط³ظٹظ… ظˆط§ظ„طھط¹ظ„ظٹظ…ط§طھ", url: "/legal-archive", icon: Scale },
 ];
 
 // Data Management - hidden from viewers
 const dataManagementItems = [
-  { title: "النسخة الاحتياطية", url: "/backup", icon: DatabaseIcon },
-  { title: "سلة المحذوفات", url: "/recycle-bin", icon: Trash2, adminOnly: true },
+  { title: "ط§ظ„ظ†ط³ط®ط© ط§ظ„ط§ط­طھظٹط§ط·ظٹط©", url: "/backup", icon: DatabaseIcon },
+  { title: "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆظپط§طھ", url: "/recycle-bin", icon: Trash2 },
 ];
 
 const adminMenuItems = [
-  { title: "إدارة المستخدمين", url: "/users", icon: Users },
+  { title: "ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†", url: "/users", icon: Users },
 ];
 
 export function AppSidebar() {
@@ -80,11 +80,11 @@ export function AppSidebar() {
               }}
             />
             <div className="w-10 h-10 rounded-lg items-center justify-center hidden" style={{ backgroundColor: 'rgba(212, 175, 55, 0.2)' }}>
-              <span className="text-lg font-bold" style={{ color: '#D4AF37' }}>م</span>
+              <span className="text-lg font-bold" style={{ color: '#D4AF37' }}>ظ…</span>
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">
-                ديوان حماية وادي ميزاب وترقيته
+                ط¯ظٹظˆط§ظ† ط­ظ…ط§ظٹط© ظˆط§ط¯ظٹ ظ…ظٹط²ط§ط¨ ظˆطھط±ظ‚ظٹطھظ‡
               </h2>
               <p className="text-xs text-sidebar-foreground/70 mt-0.5">
                 OPVM
@@ -95,10 +95,10 @@ export function AppSidebar() {
           <div className="mt-4 flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">
-                {isViewer ? "مشاهد" : user?.email}
+                {isViewer ? "ظ…ط´ط§ظ‡ط¯" : user?.email}
               </p>
               <p className="text-xs text-sidebar-foreground/70">
-                {role === "admin" ? "مدير" : role === "viewer" || isViewer ? "مشاهد" : "موظف"}
+                {role === "admin" ? "ظ…ط¯ظٹط±" : role === "viewer" || isViewer ? "ظ…ط´ط§ظ‡ط¯" : "ظ…ظˆط¸ظپ"}
               </p>
             </div>
             <div className="flex items-center gap-1">
@@ -113,7 +113,7 @@ export function AppSidebar() {
                   }
                 }}
                 className={cn("text-sidebar-foreground hover:bg-sidebar-accent", isAdminMode && "text-[#D4AF37]")}
-                title={isAdminMode ? "إعدادات المسؤول" : "وضع المسؤول"}
+                title={isAdminMode ? "ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ط³ط¤ظˆظ„" : "ظˆط¶ط¹ ط§ظ„ظ…ط³ط¤ظˆظ„"}
               >
                 <ShieldCheck className="h-5 w-5" />
               </Button>
@@ -123,7 +123,7 @@ export function AppSidebar() {
                 size="icon"
                 onClick={signOut}
                 className="text-sidebar-foreground hover:bg-sidebar-accent"
-                title="تسجيل الخروج"
+                title="طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬"
               >
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -134,7 +134,7 @@ export function AppSidebar() {
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel className="text-sidebar-foreground/70">
-              القائمة الرئيسية
+              ط§ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ط±ط¦ظٹط³ظٹط©
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -143,7 +143,7 @@ export function AppSidebar() {
                   .map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
-                        <Link
+                        <NavLink
                           to={item.url}
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
@@ -155,7 +155,7 @@ export function AppSidebar() {
                         >
                           <item.icon className="h-5 w-5" />
                           <span>{item.title}</span>
-                        </Link>
+                        </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
@@ -165,7 +165,7 @@ export function AppSidebar() {
 
           <SidebarGroup>
             <SidebarGroupLabel className="text-sidebar-foreground/70">
-              الوحدات
+              ط§ظ„ظˆط­ط¯ط§طھ
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -173,7 +173,7 @@ export function AppSidebar() {
                 {canEdit && newModulesItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <Link
+                      <NavLink
                         to={item.url}
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
@@ -185,7 +185,7 @@ export function AppSidebar() {
                       >
                         <item.icon className="h-5 w-5" />
                         <span>{item.title}</span>
-                      </Link>
+                      </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -193,7 +193,7 @@ export function AppSidebar() {
                 {publicModulesItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <Link
+                      <NavLink
                         to={item.url}
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
@@ -205,7 +205,7 @@ export function AppSidebar() {
                       >
                         <item.icon className="h-5 w-5" />
                         <span>{item.title}</span>
-                      </Link>
+                      </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -215,7 +215,7 @@ export function AppSidebar() {
                   .map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
-                        <Link
+                        <NavLink
                           to={item.url}
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
@@ -227,7 +227,7 @@ export function AppSidebar() {
                         >
                           <item.icon className="h-5 w-5" />
                           <span>{item.title}</span>
-                        </Link>
+                        </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
@@ -238,14 +238,14 @@ export function AppSidebar() {
           {role === "admin" && (
             <SidebarGroup>
               <SidebarGroupLabel className="text-sidebar-foreground/70">
-                الإدارة
+                ط§ظ„ط¥ط¯ط§ط±ط©
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {adminMenuItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
-                        <Link
+                        <NavLink
                           to={item.url}
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
@@ -257,7 +257,7 @@ export function AppSidebar() {
                         >
                           <item.icon className="h-5 w-5" />
                           <span>{item.title}</span>
-                        </Link>
+                        </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
@@ -278,7 +278,7 @@ export function AppSidebar() {
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
                       >
                         <Settings className="h-5 w-5 text-[#D4AF37]" />
-                        <span>الإعدادات</span>
+                        <span>ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</span>
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -296,3 +296,5 @@ export function AppSidebar() {
     </>
   );
 }
+
+

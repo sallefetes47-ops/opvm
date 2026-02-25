@@ -67,14 +67,7 @@ const App = () => (
                   />
                   <Route path="/backup" element={<Backup />} />
                   <Route path="/urban-map" element={<UrbanMap />} />
-                  <Route
-                    path="/recycle-bin"
-                    element={
-                      <ProtectedRoute requiredRole="admin">
-                        <RecycleBin />
-                      </ProtectedRoute>
-                    }
-                  />
+                  <Route path="/recycle-bin" element={<RecycleBin />} />
                 </Route>
 
                 {/* 404 */}
