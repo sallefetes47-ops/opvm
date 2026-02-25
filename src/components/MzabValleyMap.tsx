@@ -3,6 +3,7 @@ import L from 'leaflet';
 import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import type { GeoJsonObject } from 'geojson';
 import 'leaflet/dist/leaflet.css';
+import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
 
 export type ParcelSelectionData = {
     municipality: string;
@@ -89,8 +90,8 @@ const resolveMunicipalityName = (rawValue: unknown): string => {
 
 const getParcelKey = (props: Record<string, unknown>): string => {
     const municipalityCode = normalizeMunicipalityCode(props.Municipality ?? props.MUNICIPALITY ?? props.COMMUNE ?? '');
-    const section = String(props.Section ?? props.SECTION ?? '');
-    const propertyGroup = String(props.PropertyGroup ?? props.PROPERTYGROUP ?? props.ILOT ?? props.group ?? '');
+    const section = formatSection(props.Section ?? props.SECTION ?? props.section ?? '');
+    const propertyGroup = formatPropertyGroup(props.PropertyGroup ?? props.PROPERTYGROUP ?? props.ILOT ?? props.group ?? '');
     return `${municipalityCode}|${section}|${propertyGroup}`;
 };
 
@@ -116,10 +117,10 @@ const getCommuneCodeFromProps = (props: Record<string, unknown>): string =>
     normalizeMunicipalityCode(props.commune_code ?? props.COMMUNE_CODE ?? props.COMMUNE ?? props.Municipality ?? props.MUNICIPALITY ?? '');
 
 const getSectionFromProps = (props: Record<string, unknown>): string =>
-    String(props.section ?? props.Section ?? props.SECTION ?? '').trim();
+    formatSection(props.section ?? props.Section ?? props.SECTION ?? '');
 
 const getGroupFromProps = (props: Record<string, unknown>): string =>
-    String(props.group ?? props.Group ?? props.ILOT ?? props.PropertyGroup ?? props.PROPERTYGROUP ?? '').trim();
+    formatPropertyGroup(props.group ?? props.Group ?? props.ILOT ?? props.PropertyGroup ?? props.PROPERTYGROUP ?? '');
 
 const MapSearchController = ({
     targetFeature,
@@ -171,8 +172,8 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
     const emitSelection = (props: Record<string, unknown>) => {
         if (!onParcelSelect) return;
         const municipality = resolveMunicipalityName(props.Municipality ?? props.MUNICIPALITY ?? props.COMMUNE ?? props.commune_code ?? '');
-        const section = String(props.Section ?? props.SECTION ?? props.section ?? '');
-        const propertyGroup = String(props.PropertyGroup ?? props.PROPERTYGROUP ?? props.ILOT ?? props.group ?? '');
+        const section = formatSection(props.Section ?? props.SECTION ?? props.section ?? '');
+        const propertyGroup = formatPropertyGroup(props.PropertyGroup ?? props.PROPERTYGROUP ?? props.ILOT ?? props.group ?? '');
         const rawArea = Number(props.Area ?? props.AREA);
         const actualArea = Number.isFinite(rawArea) ? Number(rawArea.toFixed(2)) : null;
         const cadastralArea = actualArea === null ? null : toCadastralArea(actualArea);

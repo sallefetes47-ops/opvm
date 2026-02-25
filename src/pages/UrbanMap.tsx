@@ -6,6 +6,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Grid, Layers, MapPin, Ruler, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdmin } from '@/contexts/AdminContext';
+import { clampPropertyGroupDigits, clampSectionDigits, formatPropertyGroup, formatSection } from '@/lib/cadastre';
+
+const MUNICIPALITY_NAME_TO_CODE: Record<string, string> = {
+    'غرداية': '4701',
+    'العطف': '4707',
+    'بنورة': '4710',
+    'الضاية': '4703',
+    'متليلي': '4705',
+};
 
 type InfoCardProps = {
     label: string;
@@ -51,7 +60,7 @@ const UrbanMap = () => {
         cadastralArea: null,
     });
 
-    const [searchMunicipalityCode, setSearchMunicipalityCode] = useState('');
+    const [searchMunicipality, setSearchMunicipality] = useState('');
     const [searchSection, setSearchSection] = useState('');
     const [searchGroup, setSearchGroup] = useState('');
     const [searchMessage, setSearchMessage] = useState('');
@@ -80,17 +89,18 @@ const UrbanMap = () => {
     };
 
     const handleSmartSearch = () => {
+        const municipalityCode = MUNICIPALITY_NAME_TO_CODE[searchMunicipality] ?? '';
         const payload: ParcelSearchPayload = {
-            municipalityCode: searchMunicipalityCode,
-            section: searchSection,
-            group: searchGroup,
+            municipalityCode,
+            section: formatSection(searchSection),
+            group: formatPropertyGroup(searchGroup),
         };
         const result = mapRef.current?.searchParcel(payload);
         setSearchMessage(result?.message ?? 'الخريطة غير جاهزة بعد.');
     };
 
     const handleClearSearch = () => {
-        setSearchMunicipalityCode('');
+        setSearchMunicipality('');
         setSearchSection('');
         setSearchGroup('');
         setSearchMessage('');
@@ -195,28 +205,36 @@ const UrbanMap = () => {
                             </div>
                             <div className='grid grid-cols-1 gap-2'>
                                 <select
-                                    value={searchMunicipalityCode}
-                                    onChange={(e) => setSearchMunicipalityCode(e.target.value)}
+                                    value={searchMunicipality}
+                                    onChange={(e) => setSearchMunicipality(e.target.value)}
                                     className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm text-slate-700 outline-none focus:border-emerald-400'
                                 >
                                     <option value=''>اختر البلدية</option>
-                                    <option value='4701'>غرداية</option>
-                                    <option value='4707'>العطف</option>
-                                    <option value='4710'>بنورة</option>
-                                    <option value='4703'>الضاية</option>
-                                    <option value='4705'>متليلي</option>
+                                    <option value='غرداية'>غرداية</option>
+                                    <option value='العطف'>العطف</option>
+                                    <option value='بنورة'>بنورة</option>
+                                    <option value='الضاية'>الضاية</option>
+                                    <option value='متليلي'>متليلي</option>
                                 </select>
                                 <input
                                     value={searchSection}
-                                    onChange={(e) => setSearchSection(e.target.value)}
+                                    onChange={(e) => setSearchSection(clampSectionDigits(e.target.value))}
+                                    onBlur={() => setSearchSection(formatSection(searchSection))}
                                     placeholder='رقم القسم'
-                                    className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm text-slate-700 outline-none focus:border-emerald-400'
+                                    inputMode='numeric'
+                                    pattern='[0-9]*'
+                                    maxLength={3}
+                                    className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm font-mono text-slate-700 outline-none focus:border-emerald-400'
                                 />
                                 <input
                                     value={searchGroup}
-                                    onChange={(e) => setSearchGroup(e.target.value)}
+                                    onChange={(e) => setSearchGroup(clampPropertyGroupDigits(e.target.value))}
+                                    onBlur={() => setSearchGroup(formatPropertyGroup(searchGroup))}
                                     placeholder='مجموعة الملكية'
-                                    className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm text-slate-700 outline-none focus:border-emerald-400'
+                                    inputMode='numeric'
+                                    pattern='[0-9]*'
+                                    maxLength={4}
+                                    className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm font-mono text-slate-700 outline-none focus:border-emerald-400'
                                 />
                                 <div className='mt-1 grid grid-cols-2 gap-2'>
                                     <button

@@ -23,6 +23,7 @@ import PermitLocationPicker from "@/components/PermitLocationPicker";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { clampPropertyGroupDigits, clampSectionDigits, formatPropertyGroup, formatSection } from "@/lib/cadastre";
 import type { Database } from "@/integrations/supabase/types";
 
 type Municipality = Database["public"]["Enums"]["municipality"];
@@ -475,10 +476,14 @@ export default function NewFile() {
                     <Input
                       id="section"
                       value={formData.section}
-                      onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, section: clampSectionDigits(e.target.value) })}
+                      onBlur={() => setFormData({ ...formData, section: formatSection(formData.section) })}
                       placeholder="أدخل رقم القسم"
                       required
-                      className="text-right"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={3}
+                      className="text-right font-mono"
                     />
                   </div>
                   <div className="space-y-2">
@@ -486,10 +491,14 @@ export default function NewFile() {
                     <Input
                       id="property_group"
                       value={formData.property_group}
-                      onChange={(e) => setFormData({ ...formData, property_group: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, property_group: clampPropertyGroupDigits(e.target.value) })}
+                      onBlur={() => setFormData({ ...formData, property_group: formatPropertyGroup(formData.property_group) })}
                       placeholder="أدخل رقم مجموعة الملكية"
                       required
-                      className="text-right"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={4}
+                      className="text-right font-mono"
                     />
                   </div>
                 </div>

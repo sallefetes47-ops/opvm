@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { MapPin, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
 
 /* ─── Fix Leaflet default icons ─── */
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -130,8 +131,8 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
 
     const handleFeatureClick = (feature: any) => {
         const props = feature.properties;
-        const section = props?.SECTION || "";
-        const ilot = props?.ILOT || props?.group || "";
+        const section = formatSection(props?.SECTION || "");
+        const ilot = formatPropertyGroup(props?.ILOT || props?.group || "");
         onChange({ section, ilot });
     };
 
@@ -232,13 +233,16 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                                 <GeoJSON
                                     key={value ? `${value.section}-${value.ilot}` : 'unselected'}
                                     data={geoJsonData}
-                                    style={(feature: any) => {
-                                        const p = feature?.properties;
-                                        const isSelected = value && p?.SECTION === value.section && (p?.ILOT === value.ilot || p?.group === value.ilot);
-                                        return {
-                                            color: isSelected ? '#3b82f6' : '#FF0000',
-                                            weight: 2,
-                                            fillColor: isSelected ? '#3b82f6' : '#FF0000',
+                                     style={(feature: any) => {
+                                         const p = feature?.properties;
+                                         const isSelected =
+                                             !!value &&
+                                             formatSection(p?.SECTION || "") === value.section &&
+                                             formatPropertyGroup(p?.ILOT || p?.group || "") === value.ilot;
+                                         return {
+                                             color: isSelected ? '#3b82f6' : '#FF0000',
+                                             weight: 2,
+                                             fillColor: isSelected ? '#3b82f6' : '#FF0000',
                                             fillOpacity: isSelected ? 0.4 : 0.05
                                         };
                                     }}
