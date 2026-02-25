@@ -27,10 +27,10 @@ import { clampPropertyGroupDigits, clampSectionDigits, formatPropertyGroup, form
 import type { Database } from "@/integrations/supabase/types";
 
 type Municipality = Database["public"]["Enums"]["municipality"];
-type OwnershipType = "ط¹ظ‚ط¯ ظ…ظ„ظƒي�©" | "ط¯فت�± ط¹ظ‚ط§ط±ي" | "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©";
-type OwnershipTypeForNonBuilding = "ط¹ظ‚ط¯ ظ…ظ„ظƒي�©" | "ط¯فت�± ط¹ظ‚ط§ط±ي";
+type OwnershipType = "عقد ملكية" | "دفتر عقاري" | "شهادة استفادة";
+type OwnershipTypeForNonBuilding = "عقد ملكية" | "دفتر عقاري";
 type CommitteeOpinion = Database["public"]["Enums"]["committee_opinion"];
-type PermitType = "ط±ط®طµط© ط¨ظ†ط§ء" | "ط±ط®طµط© ت�¬ط²ط¦ط©" | "ط±ط®طµط© ظ‡ط¯ظ…" | "ط´ظ‡ط§ط¯ط© ت�‚ط³ي�…" | "";
+type PermitType = "رخصة بناء" | "رخصة تجزئة" | "رخصة هدم" | "شهادة تقسيم" | "";
 
 interface FileFormData {
   full_name: string;
@@ -72,7 +72,7 @@ export default function NewFile() {
     permit_type: "",
     file_number: "",
     year: currentYear,
-    ownership_type: "ط¹ظ‚ط¯ ظ…ظ„ظƒي�©",
+    ownership_type: "عقد ملكية",
     address: "",
     section: "",
     property_group: "",
@@ -95,7 +95,7 @@ export default function NewFile() {
   // Fetch and Auto-fill Area based on GeoJSON
   useEffect(() => {
     const fetchAreaFromCadastre = async () => {
-      if (formData.ownership_type !== "ط¯فت�± ط¹ظ‚ط§ط±ي") return;
+      if (formData.ownership_type !== "دفتر عقاري") return;
 
       const sectionStr = formData.section.trim();
       const ilotStr = formData.property_group.trim();
@@ -109,12 +109,14 @@ export default function NewFile() {
       if (isNaN(targetSection) || isNaN(targetIlot)) return;
 
       // Map municipality to COMMUNE code
+      // NOTE: display labels must NOT include numeric codes.
+      // Codes are used internally only for matching GeoJSON COMMUNE suffix.
       const COMMUNE_CODES: Record<string, string> = {
-        'غ�±ط¯ط§ي�©': '4701',
-        'ظ…ظ„ي�ƒط©': '4701',
-        'ط¨ظ†ظˆط±ط©': '4710',
-        'ط¨ظ†ي ي�²ظ‚ظ†': '4710',
-        'ط§ظ„ط¹ط·ف': '4707'
+        "غرداية": "4701",
+        "العطف": "4707",
+        "بنورة": "4710",
+        "الضاية": "4703",
+        "متليلي": "4705",
       };
 
       const targetCommune = COMMUNE_CODES[municipalityVal];
@@ -153,7 +155,9 @@ export default function NewFile() {
           const areaVal = matchedFeature.properties.AREA;
           const formattedArea = Number(areaVal).toFixed(2); // Keep 2 decimal places
 
-          console.log(`âœ… ت�… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ظ„ظ‚ط·ط¹ط© في (${municipalityVal} - ظ‚ط³ظ… ${targetSection} - ظ…ط¬ظ…ظˆط¹ط© ${targetIlot})طŒ ط§ظ„ظ…ط³ط§ط­ط©: ${formattedArea} ظ…آ²`);
+          console.log(
+            `✅ تم العثور على القطعة في (${municipalityVal} - قسم ${targetSection} - مجموعة ${targetIlot})، المساحة: ${formattedArea} م²`
+          );
 
           setFormData(prev => ({
             ...prev,
@@ -164,7 +168,7 @@ export default function NewFile() {
         }
 
       } catch (err) {
-        console.warn("ف�´ظ„ في ط¬ظ„ط¨ ط§ظ„ظ…ط³ط§ط­ط© ت�„ظ‚ط§ط¦ي�§ظ‹:", err);
+        console.warn("فشل في جلب المساحة تلقائياً:", err);
       }
     };
 
@@ -174,19 +178,19 @@ export default function NewFile() {
   // Determine available ownership types based on permit type
   // "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©" is only available for "ط±ط®طµط© ط¨ظ†ط§ء"
   const getAvailableOwnershipTypes = () => {
-    if (formData.permit_type === "ط±ط®طµط© ط¨ظ†ط§ء") {
-      return ["ط¹ظ‚ط¯ ظ…ظ„ظƒي�©", "ط¯فت�± ط¹ظ‚ط§ط±ي", "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©"] as const;
+    if (formData.permit_type === "رخصة بناء") {
+      return ["عقد ملكية", "دفتر عقاري", "شهادة استفادة"] as const;
     }
-    return ["ط¹ظ‚ط¯ ظ…ظ„ظƒي�©", "ط¯فت�± ط¹ظ‚ط§ط±ي"] as const;
+    return ["عقد ملكية", "دفتر عقاري"] as const;
   };
 
   const handlePermitTypeChange = (value: PermitType) => {
-    // If switching away from "ط±ط®طµط© ط¨ظ†ط§ء" and currently using "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©", reset to "ط¹ظ‚ط¯ ظ…ظ„ظƒي�©"
-    if (value !== "ط±ط®طµط© ط¨ظ†ط§ء" && formData.ownership_type === "ط´ظ‡ط§ط¯ط© ط¥ط³تف�§ط¯ط©") {
+    // If switching away from "رخصة بناء" and currently using "شهادة استفادة", reset to "عقد ملكية"
+    if (value !== "رخصة بناء" && formData.ownership_type === "شهادة استفادة") {
       setFormData({
         ...formData,
         permit_type: value,
-        ownership_type: "ط¹ظ‚ط¯ ظ…ظ„ظƒي�©",
+        ownership_type: "عقد ملكية",
         lot_number: "",
         subdivision_name: ""
       });
