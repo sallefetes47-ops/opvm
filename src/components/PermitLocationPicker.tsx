@@ -223,7 +223,7 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                             minZoom={12}
                         >
                             <TileLayer
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                attribution=""
                                 url={OSM_URL}
                                 maxZoom={19}
                             />

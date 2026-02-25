@@ -279,7 +279,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 <LayersControl position='topright'>
                     <LayersControl.BaseLayer checked name='خريطة الشارع (OSM)'>
                         <TileLayer
-                            attribution='&copy; OpenStreetMap contributors'
+                            attribution=""
                             url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
                             maxNativeZoom={19}
                             maxZoom={22}
@@ -287,7 +287,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     </LayersControl.BaseLayer>
                     <LayersControl.BaseLayer name='قمر صناعي Esri'>
                         <TileLayer
-                            attribution='Tiles &copy; Esri'
+                            attribution=""
                             url='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
                             maxNativeZoom={19}
                             maxZoom={22}
@@ -296,7 +296,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     {GOOGLE_MAPS_API_KEY && (
                         <LayersControl.BaseLayer name='جوجل مابس - هجين'>
                             <TileLayer
-                                attribution='&copy; Google'
+                                attribution=""
                                 url={`https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}`}
                                 subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
                                 maxNativeZoom={20}

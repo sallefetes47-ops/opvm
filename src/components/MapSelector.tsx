@@ -217,7 +217,7 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                         scrollWheelZoom={true}
                     >
                         <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                            attribution=""
                             url={OSM_URL}
                             maxZoom={19}
                         />

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,9 +10,8 @@ import { DateInput } from "@/components/ui/date-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileText, Plus, Eye, Trash, Search, Trash2, RefreshCcw, BookOpen, Scale, AlertTriangle, ExternalLink, Pencil, Upload, X, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, FileText, Plus, Eye, Trash, Search, Trash2, RefreshCcw, BookOpen, Scale, AlertTriangle, ExternalLink, Pencil, Upload, X, Sparkles, RefreshCw, Scan } from "lucide-react";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { FileImport } from "@/components/FileImport";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,6 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDocumentManager } from "@/hooks/useDocumentManager";
 import { FileDropZone } from "@/components/FileDropZone";
+import { scanFromLocalScanner } from "@/lib/scanner-bridge";
+import { formatPropertyGroup, formatSection } from "@/lib/cadastre";
 
 // --- Constants & Types ---
 const STORAGE_KEY = "opvm_documents";
@@ -35,6 +36,8 @@ interface LegalDocumentFormData {
   content_text: string;
   keywords: string;
   language: string;
+  section?: string;
+  property_group?: string;
 }
 
 // Helper to clean Arabic text
@@ -88,6 +91,7 @@ export default function LegalArchive() {
   const [newFile, setNewFile] = useState<File | null>(null);
   const [newFileUrl, setNewFileUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   const [formData, setFormData] = useState<LegalDocumentFormData>({
     title_ar: "",
@@ -99,6 +103,8 @@ export default function LegalArchive() {
     content_text: "",
     keywords: "",
     language: "ar",
+    section: "",
+    property_group: "",
   });
 
   const [editFormData, setEditFormData] = useState<LegalDocumentFormData>({
@@ -111,13 +117,22 @@ export default function LegalArchive() {
     content_text: "",
     keywords: "",
     language: "ar",
+    section: "",
+    property_group: "",
   });
 
   const canEdit = !isViewer && role !== "viewer";
 
+  const normalizeLinkedParcel = (input: Record<string, any>) => {
+    const section = formatSection(input.section || "");
+    const property_group = formatPropertyGroup(input.property_group || input.ilot || "");
+    return { section, property_group };
+  };
+
   // --- Handlers ---
 
   const handleDataExtracted = (data: Record<string, any>) => {
+    const { section, property_group } = normalizeLinkedParcel(data);
     setFormData({
       title_ar: data.title_ar || "",
       title_fr: data.title_fr || "",
@@ -128,8 +143,30 @@ export default function LegalArchive() {
       content_text: data.content_text || "",
       keywords: Array.isArray(data.keywords) ? data.keywords.join(", ") : (data.keywords || ""),
       language: data.language || "ar",
+      section,
+      property_group,
     });
     setIsAddDialogOpen(true);
+  };
+
+  const handleDirectScan = async () => {
+    setIsScanning(true);
+    try {
+      const scannedFile = await scanFromLocalScanner("Kyocera FS-1035MFP WIA Driver");
+      setNewFile(scannedFile);
+      toast({
+        title: "تم المسح بنجاح",
+        description: "تم إرفاق الملف الممسوح ضوئياً بالوثيقة.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "تعذر المسح الضوئي",
+        description: error?.message || "يرجى التأكد من تشغيل برنامج Scanner Bridge على الكمبيوتر لاستخدام الماسح الضوئي Kyocera",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,6 +189,8 @@ export default function LegalArchive() {
         ...formData,
         document_date: formData.document_date ? format(formData.document_date, "yyyy-MM-dd") : null,
         keywords: formData.keywords.split(",").map(k => k.trim()).filter(Boolean),
+        section: formData.section ? formatSection(formData.section) : null,
+        property_group: formData.property_group ? formatPropertyGroup(formData.property_group) : null,
       };
 
       await addDocument(dataToSave, newFile);
@@ -175,6 +214,8 @@ export default function LegalArchive() {
       content_text: "",
       keywords: "",
       language: "ar",
+      section: "",
+      property_group: "",
     });
     setNewFile(null);
     setNewFileUrl(null);
@@ -194,6 +235,8 @@ export default function LegalArchive() {
       content_text: doc.content_text || "",
       keywords: Array.isArray(doc.keywords) ? doc.keywords.join(", ") : (doc.keywords || ""),
       language: doc.language || "ar",
+      section: formatSection(doc.section || ""),
+      property_group: formatPropertyGroup(doc.property_group || doc.ilot || ""),
     });
     setIsReplacingFile(false);
     setNewFile(null);
@@ -255,6 +298,8 @@ export default function LegalArchive() {
         ...editFormData,
         document_date: editFormData.document_date ? format(editFormData.document_date, "yyyy-MM-dd") : null,
         keywords: editFormData.keywords.split(",").map(k => k.trim()).filter(Boolean),
+        section: editFormData.section ? formatSection(editFormData.section) : null,
+        property_group: editFormData.property_group ? formatPropertyGroup(editFormData.property_group) : null,
       };
 
       await updateDocument(editDocument.id, dataToSave, newFile);
@@ -372,7 +417,7 @@ export default function LegalArchive() {
                           <DateInput
                             value={formData.document_date}
                             onChange={(date) => setFormData({ ...formData, document_date: date })}
-                            placeholder="يوم/شهر/سنة"
+                            placeholder="YYYY/MM/DD"
                             className={autoFillClass("document_date")}
                           />
                         </div>
@@ -427,12 +472,30 @@ export default function LegalArchive() {
 
                       {/* File Drop Zone */}
                       <div className="col-span-2 space-y-2">
-                        <Label className="block text-sm font-medium mb-2">الملف المرفق (PDF/صورة) *</Label>
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <Label className="block text-sm font-medium">الملف المرفق (PDF/صورة) *</Label>
+                          <Button type="button" variant="outline" onClick={handleDirectScan} disabled={isScanning}>
+                            {isScanning ? (
+                              <>
+                                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                                جاري المسح...
+                              </>
+                            ) : (
+                              <>
+                                <Scan className="w-4 h-4 ml-2" />
+                                مسح ضوئي مباشر
+                              </>
+                            )}
+                          </Button>
+                        </div>
                         <FileDropZone
                           onFileSelect={setNewFile}
                           selectedFile={newFile}
                           onClear={() => setNewFile(null)}
                         />
+                        <p className="text-xs text-muted-foreground">
+                          يرجى التأكد من تشغيل برنامج Scanner Bridge على الكمبيوتر لاستخدام الماسح الضوئي Kyocera
+                        </p>
                       </div>
 
                       <div className="flex gap-2 justify-end">
@@ -681,7 +744,7 @@ export default function LegalArchive() {
                 <div>
                   <Label className="text-muted-foreground">التاريخ</Label>
                   <p className="font-medium">
-                    {viewDocument.document_date ? format(new Date(viewDocument.document_date), "d MMMM yyyy", { locale: ar }) : "-"}
+                    {viewDocument.document_date ? format(new Date(viewDocument.document_date), "yyyy/MM/dd") : "-"}
                   </p>
                 </div>
               </div>
@@ -944,6 +1007,7 @@ export default function LegalArchive() {
                     <DateInput
                       value={editFormData.document_date}
                       onChange={(date) => setEditFormData({ ...editFormData, document_date: date })}
+                      placeholder="YYYY/MM/DD"
                       className={autoFillClass("document_date")}
                     />
                   </div>

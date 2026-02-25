@@ -204,7 +204,8 @@ export default function NewFile() {
 
   const openElectronicPermitPicker = () => {
     electronicPermitInputRef.current?.click();
-  };`r`n
+  };
+
   const createFileMutation = useMutation({
     mutationFn: async (data: FileFormData) => {
       const { error } = await supabase.from("files").insert({
