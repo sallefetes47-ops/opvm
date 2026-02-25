@@ -1,5 +1,5 @@
 import * as React from "react";
-import { format, parse, isValid } from "date-fns";
+import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DDMMYYYY_PATTERN, formatDDMMYYYYInput, parseDDMMYYYY } from "@/lib/date";
 
 interface DateInputProps {
   value: Date | undefined;
@@ -19,54 +20,41 @@ interface DateInputProps {
 export function DateInput({
   value,
   onChange,
-  placeholder = "YYYY/MM/DD",
+  placeholder = "DD/MM/YYYY",
   className,
   disabled = false
 }: DateInputProps) {
   const [inputValue, setInputValue] = React.useState(
-    value ? format(value, "yyyy/MM/dd") : ""
+    value ? format(value, DDMMYYYY_PATTERN) : ""
   );
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
 
   // Sync input value when prop changes
   React.useEffect(() => {
     if (value) {
-      setInputValue(format(value, "yyyy/MM/dd"));
+      setInputValue(format(value, DDMMYYYY_PATTERN));
     } else {
       setInputValue("");
     }
   }, [value]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value;
+    const formatted = formatDDMMYYYYInput(e.target.value);
+    setInputValue(formatted);
 
-    // Auto-format: add slashes after year (pos 4) and month (pos 7)
-    if (val.length === 4 && inputValue.length === 3) {
-      val += "/";
-    } else if (val.length === 7 && inputValue.length === 6) {
-      val += "/";
-    }
-
-    // Limit length
-    if (val.length > 10) return;
-
-    setInputValue(val);
-
-    // Try to parse the date
-    if (val.length === 10) {
-      const parsed = parse(val, "yyyy/MM/dd", new Date());
-      if (isValid(parsed)) {
-        onChange(parsed);
-      }
-    } else if (val === "") {
+    if (formatted === "") {
       onChange(undefined);
+      return;
     }
+
+    const parsed = parseDDMMYYYY(formatted);
+    if (parsed) onChange(parsed);
   };
 
   const handleCalendarSelect = (date: Date | undefined) => {
     onChange(date);
     if (date) {
-      setInputValue(format(date, "yyyy/MM/dd"));
+      setInputValue(format(date, DDMMYYYY_PATTERN));
     }
     setIsCalendarOpen(false);
   };
