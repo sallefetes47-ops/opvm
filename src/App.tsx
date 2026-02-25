@@ -22,7 +22,7 @@ import Minutes from "@/pages/Minutes";
 import Summons from "@/pages/Summons";
 import LegalArchive from "@/pages/LegalArchive";
 import Backup from "@/pages/Backup";
-import TrashBin from "@/pages/TrashBin";
+import RecycleBin from "@/pages/RecycleBin";
 import UrbanMap from "@/pages/UrbanMap";
 import NotFound from "@/pages/NotFound";
 

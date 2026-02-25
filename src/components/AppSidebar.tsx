@@ -46,7 +46,7 @@ const publicModulesItems = [
 // Data Management - hidden from viewers
 const dataManagementItems = [
   { title: "النسخة الاحتياطية", url: "/backup", icon: DatabaseIcon },
-  { title: "سلة المحذوفات", url: "/trash", icon: Trash2, adminOnly: true },
+  { title: "سلة المحذوفات", url: "/recycle-bin", icon: Trash2, adminOnly: true },
 ];
 
 const adminMenuItems = [
