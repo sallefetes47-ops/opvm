@@ -68,10 +68,10 @@ const App = () => (
                   <Route path="/backup" element={<Backup />} />
                   <Route path="/urban-map" element={<UrbanMap />} />
                   <Route
-                    path="/trash"
+                    path="/recycle-bin"
                     element={
                       <ProtectedRoute requiredRole="admin">
-                        <TrashBin />
+                        <RecycleBin />
                       </ProtectedRoute>
                     }
                   />
