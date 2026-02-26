@@ -337,15 +337,6 @@ export default function ArchivePage() {
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleView(file); }}>
                               <Eye className="w-3 h-3 text-muted-foreground" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              title="معاينة الملف المحمل من الكمبيوتر"
-                              onClick={(e) => { e.stopPropagation(); openScanDialog(file); }}
-                            >
-                              <FileText className="w-3 h-3 text-emerald-600" />
-                            </Button>
                             {canEdit && (
                               <div className="flex gap-1">
                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleEdit(file); }}>
@@ -525,93 +516,6 @@ export default function ArchivePage() {
       </Dialog>
 
       {/* ── DELETE DIALOG ── */}
-      {/* ── LOCAL SCAN PREVIEW DIALOG ── */}
-      <Dialog
-        open={scanDialogOpen}
-        onOpenChange={(open) => {
-          setScanDialogOpen(open);
-          if (!open) {
-            setScanTargetFile(null);
-            setScanRecord(null);
-            setScanError(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>معاينة الملف المحمل من الكمبيوتر</DialogTitle>
-            <DialogDescription>
-              {scanTargetFile ? `${scanTargetFile.full_name} - ${formatFileNumberWithYear(scanTargetFile.file_number, scanTargetFile.year)}` : ""}
-            </DialogDescription>
-          </DialogHeader>
-
-          {scanLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {scanError && (
-                <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-lg">
-                  {scanError}
-                </div>
-              )}
-
-              {scanTargetFile && (
-                <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between rounded-lg border bg-muted/20 p-3">
-                  <div className="text-sm">
-                    <p className="font-medium">الملف المخزن محلياً على هذا الجهاز</p>
-                    <p className="text-xs text-muted-foreground">
-                      {scanRecord ? `${scanRecord.name} • ${new Date(scanRecord.updatedAt).toLocaleString("en-GB")}` : "لا يوجد ملف محفوظ لهذا السجل بعد."}
-                    </p>
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Input
-                      type="file"
-                      accept=".pdf,image/png,image/jpeg,image/webp"
-                      className="max-w-[260px]"
-                      disabled={!scanTargetFile || scanLoading}
-                      onChange={(e) => handleScanFileChange(scanTargetFile.id, e.target.files?.[0] ?? null)}
-                    />
-                    {scanRecord && (
-                      <Button type="button" variant="outline" disabled={scanLoading} onClick={() => handleDeleteScan(scanTargetFile.id)}>
-                        حذف
-                      </Button>
-                    )}
-                    {scanRecord && scanObjectUrl && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={scanLoading}
-                        onClick={() => window.open(scanObjectUrl, "_blank", "noopener,noreferrer")}
-                      >
-                        فتح
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {scanRecord && scanObjectUrl ? (
-                <div className="h-[70vh] border rounded-lg overflow-hidden bg-background">
-                  {scanRecord.type === "application/pdf" || scanRecord.name.toLowerCase().endsWith(".pdf") ? (
-                    <iframe src={scanObjectUrl} title="PDF Preview" className="w-full h-full border-0" />
-                  ) : (
-                    <div className="w-full h-full overflow-auto p-4 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900">
-                      <img src={scanObjectUrl} alt={scanRecord.name} className="max-w-full max-h-full object-contain shadow-lg" />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground border rounded-lg p-6 bg-muted/10">
-                  اختر ملف PDF/صورة من الكمبيوتر لعرضه هنا وربطه بهذا السجل (يُحفظ محلياً على نفس الجهاز).
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
