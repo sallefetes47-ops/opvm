@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,12 +24,11 @@ import {
 } from "@/components/ui/dialog";
 import {
   Archive, Search, Trash2, Edit, Eye, Loader2, History,
-  Map as MapIcon, List, Upload, Save, X, FileText
+  Map as MapIcon, List, Upload, Save, X
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { formatFileNumberWithYear } from "@/lib/file-number";
-import { deleteFileScan, getFileScan, saveFileScan, type FileScanRecord } from "@/lib/file-scan-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
