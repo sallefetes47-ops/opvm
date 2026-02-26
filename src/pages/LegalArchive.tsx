@@ -396,7 +396,7 @@ export default function LegalArchive() {
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ي�© *</Label>
+                          <Label>العنوان ط¨ط§ظ„ط¹ط±ط¨ي�© *</Label>
                           <Input
                             value={formData.title_ar}
                             onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
@@ -406,7 +406,7 @@ export default function LegalArchive() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ف�±ظ†ط³ي�©</Label>
+                          <Label>العنوان ط¨ط§ظ„ف�±ظ†ط³ي�©</Label>
                           <Input
                             value={formData.title_fr}
                             onChange={(e) => setFormData({ ...formData, title_fr: e.target.value })}
@@ -586,16 +586,16 @@ export default function LegalArchive() {
               <Label className="text-sm shrink-0">النوع:</Label>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="ط§ظ„ظƒظ„" />
+                  <SelectValue placeholder="الكل" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">ط§ظ„ظƒظ„</SelectItem>
-                  <SelectItem value="ظ…ط±ط³ظˆظ…">ظ…ط±ط³ظˆظ…</SelectItem>
-                  <SelectItem value="ظ‚ط±ط§ط±">ظ‚ط±ط§ط±</SelectItem>
+                  <SelectItem value="all">الكل</SelectItem>
+                  <SelectItem value="مرسوم">مرسوم</SelectItem>
+                  <SelectItem value="قرار">قرار</SelectItem>
                   <SelectItem value="ت�¹ظ„ي�…ط©">ت�¹ظ„ي�…ط©</SelectItem>
-                  <SelectItem value="ظ…ظ†ط´ظˆط±">ظ…ظ†ط´ظˆط±</SelectItem>
-                  <SelectItem value="ظ‚ط§ظ†ظˆظ†">ظ‚ط§ظ†ظˆظ†</SelectItem>
-                  <SelectItem value="ط£ظ…ط±">ط£ظ…ط±</SelectItem>
+                  <SelectItem value="منشور">منشور</SelectItem>
+                  <SelectItem value="قانون">قانون</SelectItem>
+                  <SelectItem value="أمر">أمر</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -607,10 +607,10 @@ export default function LegalArchive() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {showRecycleBin ? "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆف�§ت" : "ظ‚ط§ط¦ظ…ط© ط§ظ„ظˆط«ط§ط¦ظ‚"}
+            {showRecycleBin ? "ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆف�§ت" : "قائمة الوثائق"}
           </CardTitle>
           <CardDescription>
-            {showRecycleBin ? `${trashedDocuments.length} ظ…ظ„ف ظ…ط­ط°ظˆف` : `ط¹ط±ط¶ ${filteredDocuments.length} ظˆط«ي�‚ط©`}
+            {showRecycleBin ? `${trashedDocuments.length} ملف محذوف` : `عرض ${filteredDocuments.length} ظˆط«ي�‚ط©`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -623,8 +623,8 @@ export default function LegalArchive() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[10%] text-right py-4 px-6">ط§ظ„ط±ظ‚ظ…</TableHead>
-                  <TableHead className="w-[30%] text-right py-4 px-6">ط§ظ„ط¹ظ†ظˆط§ظ†</TableHead>
-                  <TableHead className="w-[10%] text-center py-4 px-6">ط§ظ„ظ†ظˆط¹</TableHead>
+                  <TableHead className="w-[30%] text-right py-4 px-6">العنوان</TableHead>
+                  <TableHead className="w-[10%] text-center py-4 px-6">النوع</TableHead>
                   <TableHead className="w-[15%] text-right py-4 px-6">ط§ظ„ت�§ط±ي�®</TableHead>
                   <TableHead className="w-[15%] text-right py-4 px-6">ظƒظ„ظ…ط§ت ظ…فتط§ط­ي�©</TableHead>
                   <TableHead className="w-[20%] text-left py-4 px-6">ط§ظ„ط¥ط¬ط±ط§ء�§ت</TableHead>
@@ -703,7 +703,7 @@ export default function LegalArchive() {
                                     <Trash className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent><p>ط­ط°ف ظ†ظ‡ط§ط¦ي</p></TooltipContent>
+                                <TooltipContent><p>حذف نهائي</p></TooltipContent>
                               </Tooltip>
                             </>
                           ) : (
@@ -763,19 +763,19 @@ export default function LegalArchive() {
             <div className="space-y-4 py-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label className="text-muted-foreground">ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ي�©</Label>
+                  <Label className="text-muted-foreground">العنوان ط¨ط§ظ„ط¹ط±ط¨ي�©</Label>
                   <p className="font-medium text-lg">{viewDocument.title_ar}</p>
                 </div>
                 {viewDocument.title_fr && (
                   <div>
-                    <Label className="text-muted-foreground">ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ف�±ظ†ط³ي�©</Label>
+                    <Label className="text-muted-foreground">العنوان ط¨ط§ظ„ف�±ظ†ط³ي�©</Label>
                     <p className="font-medium text-lg" dir="ltr">{viewDocument.title_fr}</p>
                   </div>
                 )}
               </div>
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
-                  <Label className="text-muted-foreground">ط§ظ„ظ†ظˆط¹</Label>
+                  <Label className="text-muted-foreground">النوع</Label>
                   <p className="font-medium">{viewDocument.document_type}</p>
                 </div>
                 <div>
@@ -801,7 +801,7 @@ export default function LegalArchive() {
               )}
               {viewDocument.keywords?.length > 0 && (
                 <div>
-                  <Label className="text-muted-foreground">ط§ظ„ظƒظ„ظ…ط§ت ط§ظ„ظ…فتط§ط­ي�©</Label>
+                  <Label className="text-muted-foreground">الكلظ…ط§ت ط§ظ„ظ…فتط§ط­ي�©</Label>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {viewDocument.keywords.map((keyword: string, index: number) => (
                       <span key={index} className="px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
@@ -999,16 +999,16 @@ export default function LegalArchive() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ي�© *</Label>
+                    <Label>العنوان ط¨ط§ظ„ط¹ط±ط¨ي�© *</Label>
                     <Input
                       value={editFormData.title_ar}
                       onChange={(e) => setEditFormData({ ...editFormData, title_ar: e.target.value })}
-                      placeholder="ط£ط¯ط®ظ„ ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±ط¨ي�©"
+                      placeholder="ط£ط¯ط®ظ„ العنوان ط¨ط§ظ„ط¹ط±ط¨ي�©"
                       className={autoFillClass("title_ar")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ف�±ظ†ط³ي�©</Label>
+                    <Label>العنوان ط¨ط§ظ„ف�±ظ†ط³ي�©</Label>
                     <Input
                       value={editFormData.title_fr}
                       onChange={(e) => setEditFormData({ ...editFormData, title_fr: e.target.value })}
@@ -1026,15 +1026,15 @@ export default function LegalArchive() {
                       onValueChange={(value) => setEditFormData({ ...editFormData, document_type: value })}
                     >
                       <SelectTrigger className={autoFillClass("document_type")}>
-                        <SelectValue placeholder="ط§ط®ت�± ط§ظ„ظ†ظˆط¹" />
+                        <SelectValue placeholder="ط§ط®ت�± النوع" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ظ…ط±ط³ظˆظ…">ظ…ط±ط³ظˆظ…</SelectItem>
-                        <SelectItem value="ظ‚ط±ط§ط±">ظ‚ط±ط§ط±</SelectItem>
+                        <SelectItem value="مرسوم">مرسوم</SelectItem>
+                        <SelectItem value="قرار">قرار</SelectItem>
                         <SelectItem value="ت�¹ظ„ي�…ط©">ت�¹ظ„ي�…ط©</SelectItem>
-                        <SelectItem value="ظ…ظ†ط´ظˆط±">ظ…ظ†ط´ظˆط±</SelectItem>
-                        <SelectItem value="ظ‚ط§ظ†ظˆظ†">ظ‚ط§ظ†ظˆظ†</SelectItem>
-                        <SelectItem value="ط£ظ…ط±">ط£ظ…ط±</SelectItem>
+                        <SelectItem value="منشور">منشور</SelectItem>
+                        <SelectItem value="قانون">قانون</SelectItem>
+                        <SelectItem value="أمر">أمر</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1077,7 +1077,7 @@ export default function LegalArchive() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>ط§ظ„ظƒظ„ظ…ط§ت ط§ظ„ظ…فتط§ط­ي�©</Label>
+                    <Label>الكلظ…ط§ت ط§ظ„ظ…فتط§ط­ي�©</Label>
                     <Input
                       value={editFormData.keywords}
                       onChange={(e) => setEditFormData({ ...editFormData, keywords: e.target.value })}
