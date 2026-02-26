@@ -309,6 +309,8 @@ const CORE_DOCS: CoreLegalDocument[] = [
         <p class="mb-3">Les situations d'inachèvement ou de non-conformité sont traitées par des démarches de mise en conformité : achèvement des travaux, corrections, et validation avant la demande du certificat.</p>
       </div>
     `,
+        official_ar: "https://www.joradp.dz/AR/44/2008",
+        official_fr: "https://www.joradp.dz/FR/44/2008",
     },
     {
         id: "loi-90-29",
