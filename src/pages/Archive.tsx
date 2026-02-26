@@ -78,13 +78,6 @@ export default function ArchivePage() {
   const [editFormData, setEditFormData] = useState<Partial<FileRecord>>({});
   const [isReplacingFile, setIsReplacingFile] = useState(false);
 
-  // Local scanned file preview (stored on this device via IndexedDB)
-  const [scanDialogOpen, setScanDialogOpen] = useState(false);
-  const [scanTargetFile, setScanTargetFile] = useState<FileRecord | null>(null);
-  const [scanRecord, setScanRecord] = useState<FileScanRecord | null>(null);
-  const [scanLoading, setScanLoading] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-
   /* ── Fetch Files ── */
   const { data: files, isLoading } = useQuery({
     queryKey: ["archive-files"],
@@ -216,75 +209,6 @@ export default function ArchivePage() {
       setFileStudies([]);
     } finally {
       setLoadingStudies(false);
-    }
-  };
-
-  const scanObjectUrl = useMemo(() => {
-    if (!scanRecord?.blob) return null;
-    return URL.createObjectURL(scanRecord.blob);
-  }, [scanRecord]);
-
-  useEffect(() => {
-    return () => {
-      if (scanObjectUrl) URL.revokeObjectURL(scanObjectUrl);
-    };
-  }, [scanObjectUrl]);
-
-  const openScanDialog = async (file: FileRecord) => {
-    setScanTargetFile(file);
-    setScanDialogOpen(true);
-    setScanLoading(true);
-    setScanError(null);
-    try {
-      const existing = await getFileScan(file.id);
-      setScanRecord(existing);
-    } catch (e: any) {
-      setScanRecord(null);
-      setScanError(e?.message || "تعذر تحميل الملف من الجهاز.");
-    } finally {
-      setScanLoading(false);
-    }
-  };
-
-  const handleScanFileChange = async (fileId: string, file: File | null) => {
-    if (!file) return;
-    const allowed = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
-    if (!allowed.includes(file.type)) {
-      toast({ title: "مرفوض", description: "الرجاء اختيار PDF أو صورة (PNG/JPG/WEBP).", variant: "destructive" });
-      return;
-    }
-    if (file.size > 25 * 1024 * 1024) {
-      toast({ title: "مرفوض", description: "حجم الملف كبير جداً (الحد 25MB).", variant: "destructive" });
-      return;
-    }
-
-    setScanLoading(true);
-    setScanError(null);
-    try {
-      await saveFileScan(fileId, file);
-      const updated = await getFileScan(fileId);
-      setScanRecord(updated);
-      toast({ title: "تم الحفظ", description: "تم حفظ الملف على هذا الجهاز للمعاينة." });
-    } catch (e: any) {
-      setScanError(e?.message || "تعذر حفظ الملف على الجهاز.");
-      toast({ title: "خطأ", description: "تعذر حفظ الملف على الجهاز.", variant: "destructive" });
-    } finally {
-      setScanLoading(false);
-    }
-  };
-
-  const handleDeleteScan = async (fileId: string) => {
-    setScanLoading(true);
-    setScanError(null);
-    try {
-      await deleteFileScan(fileId);
-      setScanRecord(null);
-      toast({ title: "تم الحذف", description: "تم حذف الملف المحفوظ من هذا الجهاز." });
-    } catch (e: any) {
-      setScanError(e?.message || "تعذر حذف الملف.");
-      toast({ title: "خطأ", description: "تعذر حذف الملف.", variant: "destructive" });
-    } finally {
-      setScanLoading(false);
     }
   };
 
