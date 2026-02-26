@@ -1,67 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-// Map of corrupted text to clean Arabic
-const replacements = {
-  // Common corrupted patterns
-  'ط§ظ„ظƒظ„': 'الكل',
-  'ظ…ط±ط³ظˆظ…': 'مرسوم',
-  'ظ‚ط±ط§ط±': 'قرار',
-  'ظ…ظ†ط´ظˆط±': 'منشور',
-  'ظ‚ط§ظ†ظˆظ†': 'قانون',
-  'ط£ظ…ط±': 'أمر',
-  'ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆف§ت': 'سلة المحذوفات',
-  'ظ‚ط§ط¦ظ…ط© ط§ظ„ظˆط«ط§ط¦ظ‚': 'قائمة الوثائق',
-  'ظ…ظ„ف ظ…ط­ط°ظˆف': 'ملف محذوف',
-  'ظˆط«ي‚ط©': 'وثيقة',
-  'ظ„ط§ تˆط¬ط¯ ظˆط«ط§ط¦ظ‚ ظ…ط·ط§ط¨‚ط©': 'لا توجد وثائق مطابقة',
-  'ط§ظ„ط±‚ظ…': 'الرقم',
-  'ط§ظ„ط¹ظ†ظˆط§ظ†': 'العنوان',
-  'ط§ظ„ظ†ظˆط¹': 'النوع',
-  'ط§ظ„ت§ط±ي®': 'التاريخ',
-  'ظƒظ„ظ…ط§ت ظ…فتط§طي©': 'كلمات مفتاحية',
-  'ط§ظ„ط¥ط¬ط±ط§ء§ط': 'الإجراءات',
-  'ظ…ط¹ط§ي†ط© ط§ظ„ظ…ظ„ف ط§ظ„ط£طµظ„ي': 'معاينة الملف الأصلي',
-  'ظ…ط¹ط§ي†ط© ط§ظ„ظ…ظ„ف': 'معاينة الملف',
-  'ط§ط³ت±ط¬ط§ط¹': 'استرجاع',
-  'ط­ط°ف ظ†ظ‡ط§ط¦ي': 'حذف نهائي',
-  'ت¹ط¯يظ„': 'تعديل',
-  'ط­ط°ف (ظ†‚ظ„ ظ„ظ„ط³ظ„ط©)': 'حذف (نقل للسلة)',
-  'تفط§طµيظ„ ط§ظ„ظˆطي‚ط©': 'تفاصيل الوثيقة',
-  'ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¹ط±طي©': 'العنوان بالعربية',
-  'ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„فط±ظ†ط³ي©': 'العنوان بالفرنسية',
-  'ط³ظ„ط© ط§ظ„ظ…ط­ط°ظˆف§ت ف§ط±غ©': 'سلة المحذوفات فارغة',
-  'ط¹ط±ط¶': 'عرض',
-  'ظˆط«ي‚ط©': 'وثيقة',
-  'ت¹ظ„ي…ط©': 'تعليمة',
-};
-
-const filesToFix = [
-  'src/pages/LegalArchive.tsx',
-];
-
 const srcDir = path.join(__dirname, 'src');
-
-function fixFile(filePath) {
-  try {
-    let content = fs.readFileSync(filePath, 'utf8');
-    let originalContent = content;
-    
-    for (const [corrupted, clean] of Object.entries(replacements)) {
-      content = content.split(corrupted).join(clean);
-    }
-    
-    if (content !== originalContent) {
-      fs.writeFileSync(filePath, content, 'utf8');
-      console.log(`✓ Fixed: ${filePath}`);
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error(`✗ Error fixing ${filePath}:`, error.message);
-    return false;
-  }
-}
+const rootFiles = ['index.html'];
 
 // Find all tsx and ts files
 function findAllFiles(dir, extensions) {
@@ -81,13 +22,34 @@ function findAllFiles(dir, extensions) {
   return results;
 }
 
-console.log('Fixing Arabic text encoding...\n');
+function saveWithBOM(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    // UTF-8 with BOM: EF BB BF
+    const bom = Buffer.from([0xEF, 0xBB, 0xBF]);
+    const contentBuffer = Buffer.from(content, 'utf8');
+    const withBOM = Buffer.concat([bom, contentBuffer]);
+    fs.writeFileSync(filePath, withBOM);
+    console.log(`✓ Saved with BOM: ${filePath}`);
+    return true;
+  } catch (error) {
+    console.error(`✗ Error saving ${filePath}:`, error.message);
+    return false;
+  }
+}
 
-// Fix specific files
-filesToFix.forEach(fixFile);
+console.log('Saving all project files with UTF-8 BOM...\n');
 
-// Also fix all tsx/ts files in src
-const allFiles = findAllFiles(srcDir, ['.tsx', '.ts']);
-allFiles.forEach(fixFile);
+// Fix root files
+rootFiles.forEach(file => {
+  const filePath = path.join(__dirname, file);
+  if (fs.existsSync(filePath)) {
+    saveWithBOM(filePath);
+  }
+});
+
+// Fix all src files
+const allFiles = findAllFiles(srcDir, ['.tsx', '.ts', '.html', '.css', '.json']);
+allFiles.forEach(saveWithBOM);
 
 console.log('\nDone!');

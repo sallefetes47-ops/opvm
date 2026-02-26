@@ -1,4 +1,4 @@
-type ScannerJs = {
+﻿type ScannerJs = {
   scan: (success: (message: unknown) => void, error: (message: unknown) => void, config?: string) => void;
 };
 
