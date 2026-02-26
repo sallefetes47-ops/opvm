@@ -426,23 +426,23 @@ export default function ArchivePage() {
                   </Select>
                 </div>
               </div>
+            </div>
 
-              {/* MAP FULL WIDTH BELOW */}
-              <div className="space-y-2 mt-4">
-                <div className="relative w-full overflow-hidden rounded-xl z-0" style={{ isolation: 'isolate' }}>
-                  <PermitLocationPicker
-                    value={
-                      editFormData.section && editFormData.property_group
-                        ? { section: editFormData.section, ilot: editFormData.property_group }
-                        : null
-                    }
-                    onChange={(data) => setEditFormData({
-                      ...editFormData,
-                      section: data?.section || "",
-                      property_group: data?.ilot || ""
-                    })}
-                  />
-                </div>
+            {/* MAP FULL WIDTH BELOW */}
+            <div className="space-y-2 mt-4">
+              <div className="relative w-full overflow-hidden rounded-xl z-0" style={{ isolation: 'isolate' }}>
+                <PermitLocationPicker
+                  value={
+                    editFormData.section && editFormData.property_group
+                      ? { section: editFormData.section, ilot: editFormData.property_group }
+                      : null
+                  }
+                  onChange={(data) => setEditFormData({
+                    ...editFormData,
+                    section: data?.section || "",
+                    property_group: data?.ilot || ""
+                  })}
+                />
               </div>
             </div>
           </div>
