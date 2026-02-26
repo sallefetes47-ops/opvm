@@ -1,4 +1,4 @@
-﻿﻿﻿import { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { Upload, FileText, X, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

@@ -1,4 +1,4 @@
-﻿﻿﻿export type FileScanRecord = {
+export type FileScanRecord = {
   fileId: string;
   blob: Blob;
   name: string;

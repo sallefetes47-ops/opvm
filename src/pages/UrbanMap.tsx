@@ -1,4 +1,4 @@
-﻿﻿﻿import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import MzabValleyMap, { type MzabValleyMapHandle, type ParcelSearchPayload, type ParcelSelectionData } from '../components/MzabValleyMap';
 import { MapErrorBoundary } from '../components/MapErrorBoundary';
 import { jsPDF } from 'jspdf';

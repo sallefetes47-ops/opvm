@@ -1,4 +1,4 @@
-﻿﻿﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * Overpass API query to extract all buildings in the M'zab Valley.

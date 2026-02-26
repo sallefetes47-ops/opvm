@@ -1,4 +1,4 @@
-﻿﻿﻿import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 
 export interface ViewerPermissions {
   allowSearch: boolean;
