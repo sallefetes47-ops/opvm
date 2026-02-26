@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import MapSelector from "@/components/MapSelector";
 import PermitLocationPicker from "@/components/PermitLocationPicker";
-import DocumentAnalyzer, { AnalysisResult } from "@/components/DocumentAnalyzer";
 
 
 // UI Components
@@ -365,25 +364,9 @@ export default function ArchivePage() {
             </DialogDescription>
           </DialogHeader>
 
-          {isReplacingFile ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
-                <p className="text-sm text-blue-700 flex items-center gap-2">
-                  <Upload className="w-4 h-4" />
-                  قم برفع الملف الجديد ليتم تحليله واستخراج البيانات تلقائياً
-                </p>
-                <Button variant="ghost" size="sm" onClick={() => setIsReplacingFile(false)}>
-                  إلغاء
-                </Button>
-              </div>
-              <div className="h-[500px] border rounded-lg">
-                <DocumentAnalyzer onAnalysisComplete={handleAnalysisComplete} />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* METADATA FORM */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border">
+          <div className="space-y-6">
+            {/* METADATA FORM */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border">
                 <div className="space-y-2">
                   <Label className="text-right block">رقم الملف / السنة</Label>
                   <Input
