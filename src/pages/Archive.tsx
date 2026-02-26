@@ -76,7 +76,6 @@ export default function ArchivePage() {
 
   // Edit Form State
   const [editFormData, setEditFormData] = useState<Partial<FileRecord>>({});
-  const [isReplacingFile, setIsReplacingFile] = useState(false);
 
   /* ── Fetch Files ── */
   const { data: files, isLoading } = useQuery({
@@ -186,7 +185,6 @@ export default function ArchivePage() {
     setSelectedFile(file);
     setEditFormData({ ...file });
     setEditDialogOpen(true);
-    setIsReplacingFile(false);
   };
 
   const handleView = async (file: FileRecord) => {
@@ -478,37 +476,19 @@ export default function ArchivePage() {
                   />
                 </div>
               </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-8 h-8 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">الوثيقة الممسوحة ضوئياً</p>
-                    <p className="text-xs text-muted-foreground">ملف PDF الحالي</p>
-                  </div>
-                </div>
-                <Button variant="outline" onClick={() => setIsReplacingFile(true)}>
-                  <Upload className="w-4 h-4 ml-2" />
-                  استبدال الملف
-                </Button>
-              </div>
             </div>
           )}
 
-          {!isReplacingFile && (
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>إلغاء</Button>
-              <Button
-                onClick={() => selectedFile && updateFileMutation.mutate({ ...editFormData, id: selectedFile.id })}
-                disabled={updateFileMutation.isPending}
-              >
-                {updateFileMutation.isPending ? <Loader2 className="animate-spin w-4 h-4 ml-2" /> : <Save className="w-4 h-4 ml-2" />}
-                حفظ التعديلات
-              </Button>
-            </DialogFooter>
-          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>إلغاء</Button>
+            <Button
+              onClick={() => selectedFile && updateFileMutation.mutate({ ...editFormData, id: selectedFile.id })}
+              disabled={updateFileMutation.isPending}
+            >
+              {updateFileMutation.isPending ? <Loader2 className="animate-spin w-4 h-4 ml-2" /> : <Save className="w-4 h-4 ml-2" />}
+              حفظ التعديلات
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

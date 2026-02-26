@@ -367,6 +367,8 @@ const CORE_DOCS: CoreLegalDocument[] = [
         <p class="mb-3">La loi subordonne l'exécution des travaux à l'obtention d'autorisations et instaure le contrôle de conformité pour lutter contre les constructions illicites.</p>
       </div>
     `,
+        official_ar: "https://www.joradp.dz/AR/52/1990",
+        official_fr: "https://www.joradp.dz/FR/52/1990",
     },
 ];
 
