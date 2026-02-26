@@ -5,8 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Columns2, FileText, Languages, Printer, Search } from "lucide-react";
+import { Columns2, FileText, Languages, Printer, Search, FileSpreadsheet, BrainCircuit } from "lucide-react";
+import { generateSummary, formatSummaryForDisplay } from "@/lib/ai-summarizer";
+import { useToast } from "@/hooks/use-toast";
 
 type PreviewLang = "ar" | "fr";
 
