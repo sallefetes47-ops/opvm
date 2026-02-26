@@ -68,11 +68,11 @@ const getMunicipalityColor = (code: unknown): string => {
 
 const getMunicipalityBorderColor = (code: unknown): string => {
     const normalizedCode = normalizeMunicipalityCode(code);
-    if (normalizedCode === '4701') return '#1e3a8a';
-    if (normalizedCode === '4707') return '#92400e';
-    if (normalizedCode === '4710') return '#a21caf';
-    if (normalizedCode === '4705') return '#78350f';
-    if (normalizedCode === '4703') return '#047857';
+    if (normalizedCode === '4701') return '#1e3a8a';      // غرداية - Dark Blue
+    if (normalizedCode === '4707') return '#dc2626';      // العطف - Bright Red (changed from #92400e)
+    if (normalizedCode === '4710') return '#a21caf';      // بنورة - Purple
+    if (normalizedCode === '4705') return '#ea580c';      // متليلي - Bright Orange (changed from #78350f)
+    if (normalizedCode === '4703') return '#047857';      // الضاية - Green
     return '#64748b';
 };
 
@@ -327,7 +327,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>العطف</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#92400e', boxShadow: '0 0 0 1px #92400e' }} />
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#dc2626', boxShadow: '0 0 0 1px #dc2626' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>بنورة</span>
@@ -335,7 +335,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>متليلي</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#78350f', boxShadow: '0 0 0 1px #78350f' }} />
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#ea580c', boxShadow: '0 0 0 1px #ea580c' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>الضاية</span>
