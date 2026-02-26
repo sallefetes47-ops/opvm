@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -23,6 +23,15 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+/* Bilingual typography */
+.arabic-text {
+  font-family: 'Cairo', sans-serif;
+}
+
+.french-text {
+  font-family: 'Inter', sans-serif;
 }
 
 @layer base {
