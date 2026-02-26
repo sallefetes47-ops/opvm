@@ -29,7 +29,12 @@ interface SidebarItem {
   url: string;
   icon: React.ElementType;
   requiresEdit?: boolean;
-  adminOnly?: boolean;
+}
+
+interface AdminSidebarItem {
+  title: string;
+  url: string;
+  icon: React.ElementType;
 }
 
 const mainMenuItems: SidebarItem[] = [
@@ -217,28 +222,26 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
-                {/* Data Management - hidden from viewers, some items admin only */}
-                {canEdit && dataManagementItems
-                  .filter(item => !item.adminOnly || role === "admin")
-                  .map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild>
-                        <NavLink
-                          to={item.url}
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
-                            isActive(item.url)
-                              ? "text-[#2D2926]"
-                              : "text-sidebar-foreground hover:bg-sidebar-accent"
-                          )}
-                          style={isActive(item.url) ? { backgroundColor: '#D4AF37' } : undefined}
-                        >
-                          <item.icon className="h-5 w-5" />
-                          <span>{item.title}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                {/* Data Management - hidden from viewers */}
+                {canEdit && dataManagementItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
+                          isActive(item.url)
+                            ? "text-[#2D2926]"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent"
+                        )}
+                        style={isActive(item.url) ? { backgroundColor: '#D4AF37' } : undefined}
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
