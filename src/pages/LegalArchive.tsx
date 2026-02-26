@@ -175,6 +175,8 @@ const CORE_DOCS: CoreLegalDocument[] = [
         <p class="mb-3">Le dossier comprend : diagnostic du site, recommandations, plan de réduction du risque et modalités de suivi en phase travaux.</p>
       </div>
     `,
+        official_ar: "https://www.mhatre.dz/Instructions/004-2017.pdf",
+        official_fr: "https://www.mhatre.dz/Instructions/004-2017.pdf",
     },
     {
         id: "decret-15-19",
@@ -247,6 +249,8 @@ const CORE_DOCS: CoreLegalDocument[] = [
         </ul>
       </div>
     `,
+        official_ar: "https://www.joradp.dz/AR/07/2015",
+        official_fr: "https://www.joradp.dz/FR/07/2015",
     },
     {
         id: "loi-08-15",
