@@ -714,6 +714,20 @@ export default function LegalArchive() {
                                             <Printer className="w-4 h-4 ml-2" />
                                             Print
                                         </Button>
+
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
+                                            onClick={() => {
+                                                const url = previewLang === "ar" ? selectedDoc.official_ar : selectedDoc.official_fr;
+                                                window.open(url, "_blank", "noopener,noreferrer");
+                                            }}
+                                            title={previewLang === "ar" ? "تحميل النسخة الرسمية (PDF)" : "Télécharger la version officielle (PDF)"}
+                                        >
+                                            <Download className="w-4 h-4 ml-2" />
+                                            {previewLang === "ar" ? "تحميل النسخة الرسمية" : "Télécharger"}
+                                        </Button>
                                     </div>
                                 </div>
 

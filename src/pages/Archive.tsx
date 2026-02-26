@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Archive, Search, Trash2, Edit, Eye, Loader2, History,
-  Map as MapIcon, List, Upload, Save, X, FileText
+  Map as MapIcon, List, Save, X, FileText
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -205,21 +205,6 @@ export default function ArchivePage() {
     } finally {
       setLoadingStudies(false);
     }
-  };
-
-  const handleAnalysisComplete = (result: AnalysisResult, file: File) => {
-    // Auto-populate form with new analysis
-    setEditFormData(prev => ({
-      ...prev,
-      // Map analysis fields to DB fields
-      submission_date: result.date ? new Date(result.date).toISOString() : prev.submission_date,
-      // We might map other fields if they existed in DB, e.g. reference_number
-    }));
-    toast({
-      title: "تم تحليل الملف الجديد",
-      description: "تم تحديث البيانات في النموذج. اضغط 'حفظ' لتأكيد التغييرات."
-    });
-    setIsReplacingFile(false); // Return to form view
   };
 
   /* ── Helpers ── */
