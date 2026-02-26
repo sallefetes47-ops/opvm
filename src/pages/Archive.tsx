@@ -445,7 +445,7 @@ export default function ArchivePage() {
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>إلغاء</Button>
