@@ -210,14 +210,25 @@ export default function Summons() {
                         />
                       </div>
 
-                      {/* File Drop Zone */}
+                      {/* File Upload */}
                       <div className="col-span-2 space-y-2">
                         <Label className="block text-sm font-medium mb-2">ملف الاستدعاء (PDF/صورة) *</Label>
-                        <FileDropZone
-                          onFileSelect={setNewFile}
-                          selectedFile={newFile}
-                          onClear={() => setNewFile(null)}
+                        <Input
+                          type="file"
+                          accept=".pdf,image/png,image/jpeg,image/webp"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setNewFile(file);
+                            }
+                          }}
+                          disabled={isSubmitting}
                         />
+                        {newFile && (
+                          <p className="text-xs text-muted-foreground">
+                            الملف المحدد: {newFile.name}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex gap-2 justify-end">
