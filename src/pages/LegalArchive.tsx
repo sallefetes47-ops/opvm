@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { Columns2, FileText, Languages, Printer, Search, Download, Sparkles, BookOpen, ClipboardList, Settings } from "lucide-react";
+import { Columns2, FileText, Languages, Printer, Search, Download, Sparkles, BookOpen, ClipboardList, Settings, Loader2 } from "lucide-react";
 
 type PreviewLang = "ar" | "fr";
 
@@ -30,8 +30,7 @@ interface CoreLegalDocument {
   keywords: string[];
   html_ar: string;
   html_fr: string;
-  official_url_ar: string;
-  official_url_fr: string;
+  pdfPath: string; // Internal PDF path
 }
 
 function escapeRegExp(input: string) {
@@ -644,7 +643,6 @@ export default function LegalArchive() {
       @page { margin: 16mm; }
       html, body { height: 100%; }
       body { margin: 0; padding: 0; color: #111827; }
-      /* Font fallbacks if web fonts are unavailable */
       .ar { font-family: Cairo, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
       .fr { font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
       .container { padding: 16px; }
@@ -669,6 +667,46 @@ export default function LegalArchive() {
     w.document.close();
   };
 
+  // Handle smart search - instantly filter by decree number
+  const handleSmartSearch = (value: string) => {
+    setSmartSearchQuery(value);
+    const normalizedValue = value.trim().replace(/\s+/g, '');
+    
+    if (!normalizedValue) return;
+    
+    // Search for matching decree by number
+    const found = CORE_DOCS.find((d) => {
+      const normalizedNumber = d.number.replace(/\s+/g, '').replace(/\//g, '').replace(/-/g, '');
+      const searchNormalized = normalizedValue.replace(/\//g, '').replace(/-/g, '');
+      return normalizedNumber.includes(searchNormalized) || searchNormalized.includes(normalizedNumber);
+    });
+    
+    if (found) {
+      setSelectedId(found.id);
+    }
+  };
+
+  // Generate AI Summary
+  const handleGenerateSummary = () => {
+    setIsGeneratingSummary(true);
+    setShowSummary(true);
+    
+    // Simulate AI processing delay
+    setTimeout(() => {
+      const summary = generateDecreeSummary(selectedDoc, previewLang);
+      setGeneratedSummary(summary);
+      setIsGeneratingSummary(false);
+    }, 800);
+  };
+
+  // Update summary when document or language changes
+  useMemo(() => {
+    if (showSummary) {
+      const summary = generateDecreeSummary(selectedDoc, previewLang);
+      setGeneratedSummary(summary);
+    }
+  }, [selectedDoc, previewLang, showSummary]);
+
   return (
     <div className="space-y-4">
       {/* Module Header */}
@@ -685,11 +723,27 @@ export default function LegalArchive() {
       </div>
 
       <div className="grid grid-cols-12 gap-4 min-h-[650px]">
-        {/* LEFT (25%) — List */}
+        {/* LEFT (25%) — List with Smart Search */}
         <div className="col-span-12 lg:col-span-3">
           <Card className="h-full">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-bold font-cairo">القائمة</CardTitle>
+              {/* Smart Search Input - Top Priority */}
+              <div className="space-y-2">
+                <CardTitle className="text-base font-bold font-cairo">البحث الذكي</CardTitle>
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    value={smartSearchQuery}
+                    onChange={(e) => handleSmartSearch(e.target.value)}
+                    placeholder="البحث برقم المرسوم أو التعليمة"
+                    className="pr-10 font-cairo text-sm"
+                    dir="rtl"
+                  />
+                </div>
+                <Separator className="my-2" />
+              </div>
+              
+              {/* Regular List Search */}
               <div className="relative mt-2">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -756,10 +810,30 @@ export default function LegalArchive() {
             <CardHeader className="pb-2">
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                  <CardTitle className="text-base font-bold font-cairo">Preview</CardTitle>
+                  <CardTitle className="text-base font-bold font-cairo">معاينة المرسوم</CardTitle>
 
-                  {/* Permanent Language toggle + Side-by-side */}
+                  {/* Action Buttons */}
                   <div className="flex flex-wrap items-center gap-2">
+                    {/* AI Summary Button - Primary Action */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8 text-xs font-cairo bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                      onClick={handleGenerateSummary}
+                      disabled={isGeneratingSummary}
+                      title="توليد ملخص آلي للنص"
+                    >
+                      {isGeneratingSummary ? (
+                        <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 ml-2" />
+                      )}
+                      توليد ملخص آلي
+                    </Button>
+
+                    <Separator orientation="vertical" className="hidden lg:block h-6" />
+
+                    {/* Language Toggle */}
                     <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
                       <Button
                         type="button"
