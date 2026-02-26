@@ -335,8 +335,8 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 </div>
             )}
 
-            <div className='pointer-events-none absolute right-4 top-[17.5rem] z-[500] w-52 rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
-                <p className='mb-2 text-xs font-semibold text-slate-700'>دليل الألوان</p>
+            <div className='pointer-events-none absolute right-4 top-[17.5rem] z-[500] w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
+                <p className='mb-2 text-xs font-semibold text-slate-700 sticky top-0 bg-white/90 p-1'>دليل الألوان - بلديات ولاية غرداية</p>
                 <div className='space-y-1.5 text-xs text-slate-700'>
                     <div className='flex items-center justify-between gap-2'>
                         <span>غرداية</span>
@@ -357,6 +357,38 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     <div className='flex items-center justify-between gap-2'>
                         <span>الضاية</span>
                         <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#047857', boxShadow: '0 0 0 1px #047857' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>بريان</span>
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#0891b2', boxShadow: '0 0 0 1px #0891b2' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>قارة</span>
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#7c3aed', boxShadow: '0 0 0 1px #7c3aed' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>المنصورة</span>
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#be185d', boxShadow: '0 0 0 1px #be185d' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>سبسب</span>
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#059669', boxShadow: '0 0 0 1px #059669' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>حاسي الفحل</span>
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#d97706', boxShadow: '0 0 0 1px #d97706' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>حاسي قارة</span>
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#4f46e5', boxShadow: '0 0 0 1px #4f46e5' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>زلفانة</span>
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#9333ea', boxShadow: '0 0 0 1px #9333ea' }} />
+                    </div>
+                    <div className='flex items-center justify-between gap-2'>
+                        <span>القيارة</span>
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#c2410c', boxShadow: '0 0 0 1px #c2410c' }} />
                     </div>
                 </div>
             </div>

@@ -16,6 +16,14 @@ const MUNICIPALITY_NAME_TO_CODE: Record<string, string> = {
     'بنورة': '4710',
     'الضاية': '4703',
     'متليلي': '4705',
+    'بريان': '4702',
+    'قارة': '4704',
+    'المنصورة': '4706',
+    'سبسب': '4708',
+    'حاسي الفحل': '4709',
+    'حاسي قارة': '4711',
+    'زلفانة': '4712',
+    'القيارة': '4713',
 };
 
 type InfoCardProps = {
@@ -248,6 +256,14 @@ const UrbanMap = () => {
                                     <option value='بنورة'>بنورة</option>
                                     <option value='الضاية'>الضاية</option>
                                     <option value='متليلي'>متليلي</option>
+                                    <option value='بريان'>بريان</option>
+                                    <option value='قارة'>قارة</option>
+                                    <option value='المنصورة'>المنصورة</option>
+                                    <option value='سبسب'>سبسب</option>
+                                    <option value='حاسي الفحل'>حاسي الفحل</option>
+                                    <option value='حاسي قارة'>حاسي قارة</option>
+                                    <option value='زلفانة'>زلفانة</option>
+                                    <option value='القيارة'>القيارة</option>
                                 </select>
                                 <input
                                     value={searchSection}
