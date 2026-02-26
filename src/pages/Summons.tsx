@@ -16,7 +16,6 @@ import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { FileImport } from "@/components/FileImport";
 import { useDocumentManager } from "@/hooks/useDocumentManager";
-import { FileDropZone } from "@/components/FileDropZone";
 
 interface SummonsFormData {
   summons_date: Date | undefined;
