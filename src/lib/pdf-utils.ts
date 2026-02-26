@@ -1,4 +1,4 @@
-﻿import ArabicReshaper from "arabic-reshaper";
+﻿﻿import ArabicReshaper from "arabic-reshaper";
 
 /**
  * Fixes Arabic text for PDF rendering by:

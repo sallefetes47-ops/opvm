@@ -1,4 +1,4 @@
-﻿const normalizeText = (value: unknown): string => String(value ?? "").trim();
+﻿﻿const normalizeText = (value: unknown): string => String(value ?? "").trim();
 
 export function formatFileNumberDisplay(fileNumber: unknown): string {
   const text = normalizeText(fileNumber);
