@@ -323,23 +323,23 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 <div className='space-y-1.5 text-xs text-slate-700'>
                     <div className='flex items-center justify-between gap-2'>
                         <span>غرداية</span>
-                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#1e40af' }} />
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#1e3a8a', boxShadow: '0 0 0 1px #1e3a8a' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>العطف</span>
-                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#d97706' }} />
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#92400e', boxShadow: '0 0 0 1px #92400e' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>بنورة</span>
-                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#d946ef' }} />
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#a21caf', boxShadow: '0 0 0 1px #a21caf' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>متليلي</span>
-                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#a85507' }} />
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#78350f', boxShadow: '0 0 0 1px #78350f' }} />
                     </div>
                     <div className='flex items-center justify-between gap-2'>
                         <span>الضاية</span>
-                        <span className='h-3 w-3 rounded-sm' style={{ backgroundColor: '#10b981' }} />
+                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#047857', boxShadow: '0 0 0 1px #047857' }} />
                     </div>
                 </div>
             </div>

@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MzabValleyMap, { type MzabValleyMapHandle, type ParcelSearchPayload, type ParcelSelectionData } from '../components/MzabValleyMap';
 import { MapErrorBoundary } from '../components/MapErrorBoundary';
 import { jsPDF } from 'jspdf';
 import { Card, CardContent } from '@/components/ui/card';
-import { Grid, Layers, MapPin, Ruler, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Grid, Layers, MapPin, Ruler, Search, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdmin } from '@/contexts/AdminContext';
 import { clampPropertyGroupDigits, clampSectionDigits, formatPropertyGroup, formatSection } from '@/lib/cadastre';
@@ -25,12 +27,12 @@ type InfoCardProps = {
 };
 
 const InfoCard = ({ label, value, icon: Icon, className = '', iconClassName = '' }: InfoCardProps) => (
-    <Card className={`border shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${className}`}>
+    <Card className={`font-cairo border shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${className}`}>
         <CardContent className='p-4'>
             <div className='flex items-start justify-between gap-3'>
                 <div className='text-right'>
-                    <p className='mb-1 text-[11px] font-semibold tracking-wide text-slate-500'>{label}</p>
-                    <p className='text-lg font-bold leading-tight text-slate-900'>{value || '---'}</p>
+                    <p className='mb-1 text-[11px] font-semibold tracking-wide text-slate-500 font-cairo'>{label}</p>
+                    <p className='text-lg font-bold leading-tight text-slate-900 font-cairo'>{value || '---'}</p>
                 </div>
                 <div className={`rounded-xl p-2.5 shadow-sm ${iconClassName}`}>
                     <Icon className='h-4 w-4' />
@@ -41,6 +43,7 @@ const InfoCard = ({ label, value, icon: Icon, className = '', iconClassName = ''
 );
 
 const UrbanMap = () => {
+    const navigate = useNavigate();
     const mapRef = useRef<MzabValleyMapHandle>(null);
     const { isViewer, role } = useAuth();
     const { isAdminMode, viewerPermissions } = useAdmin();
@@ -78,14 +81,24 @@ const UrbanMap = () => {
 
     const exportToPDF = () => {
         const doc = new jsPDF();
+        
+        // Get current date in YYYY/MM/DD format
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const formattedDate = `${year}/${month}/${day}`;
+        
+        doc.setFont('customFont', 'normal');
         doc.text('ديوان حماية وادي ميزاب', 105, 20, { align: 'center' });
         doc.text('استمارة طلب تسوية (المرسوم 15-19)', 105, 30, { align: 'center' });
-        doc.text(`البلدية: ${parcelData.municipality}`, 20, 50);
-        doc.text(`القسم العقاري: ${parcelData.section}`, 20, 60);
-        doc.text(`رقم مجموعة الملكية: ${parcelData.propertyGroup}`, 20, 70);
-        doc.text(`المساحة الحقيقية: ${formatActualArea(parcelData.actualArea)}`, 20, 80);
-        doc.text(`مساحة المسح: ${formatCadastralArea(parcelData.cadastralArea)}`, 20, 90);
-        doc.save(`urban_contract_${parcelData.section}.pdf`);
+        doc.text(`التاريخ: ${formattedDate}`, 105, 40, { align: 'center' });
+        doc.text(`البلدية: ${parcelData.municipality}`, 20, 60);
+        doc.text(`القسم العقاري: ${parcelData.section}`, 20, 70);
+        doc.text(`رقم مجموعة الملكية: ${parcelData.propertyGroup}`, 20, 80);
+        doc.text(`المساحة الحقيقية: ${formatActualArea(parcelData.actualArea)}`, 20, 90);
+        doc.text(`مساحة المسح: ${formatCadastralArea(parcelData.cadastralArea)}`, 20, 100);
+        doc.save(`urban_contract_${parcelData.section}_${formattedDate.replace(/\//g, '-')}.pdf`);
     };
 
     const handleSmartSearch = () => {
@@ -107,6 +120,18 @@ const UrbanMap = () => {
         mapRef.current?.clearSearch();
     };
 
+    const handleOpenDocumentPreviewer = () => {
+        if (!parcelData.section) return;
+        
+        // Determine relevant decree based on section or user context
+        // For now, default to 15-19 (urban planning permits)
+        // In production, this could be smarter based on parcel data
+        const targetDocId = 'decret-15-19';
+        
+        // Navigate to LegalArchive with the document pre-selected
+        navigate(`/legal-archive?doc=${targetDocId}&section=${parcelData.section}&group=${parcelData.propertyGroup}`);
+    };
+
     return (
         <div className='grid h-[90vh] grid-cols-1 gap-5 p-5 lg:grid-cols-3'>
             <div className='overflow-hidden rounded-2xl border border-slate-200 lg:col-span-2'>
@@ -117,11 +142,11 @@ const UrbanMap = () => {
 
             <div className='flex h-full flex-col gap-4'>
                 {/* معلومات المسح العقاري - Info Card (always at top) */}
-                <Card className='rounded-2xl border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-100/80'>
+                <Card className='font-cairo rounded-2xl border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-100/80'>
                     <CardContent className='p-5 text-right'>
                         <div className='mb-5 rounded-xl border border-rose-100 bg-white/80 p-3 shadow-sm'>
                             <div className='mb-3 h-1 w-16 rounded-full bg-[#7b1e1e]' />
-                            <h2 className='text-xl font-bold text-[#7b1e1e]'>معلومات المسح العقاري</h2>
+                            <h2 className='text-xl font-bold font-cairo text-[#7b1e1e]'>معلومات المسح العقاري</h2>
                         </div>
 
                         <div className='grid grid-cols-2 gap-3'>
@@ -183,31 +208,39 @@ const UrbanMap = () => {
                             )}
                         </div>
 
-                        <div className='mt-5'>
+                        <div className='mt-5 space-y-2'>
                             <button
                                 onClick={exportToPDF}
                                 disabled={!parcelData.section}
-                                className='w-full rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60'
+                                className='font-cairo w-full rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60'
                             >
                                 طباعة عقد التعمير (PDF)
                             </button>
+                            <Button
+                                onClick={handleOpenDocumentPreviewer}
+                                disabled={!parcelData.section}
+                                className='font-cairo w-full bg-[#D4AF37] text-white hover:bg-[#b8962e] disabled:cursor-not-allowed disabled:opacity-60'
+                            >
+                                <FileText className='ml-2 h-4 w-4' />
+                                عرض النصوص القانونية (AI)
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
 
                 {/* البحث الذكي - Search Bar (conditional on showSearch) */}
                 {showSearch && (
-                    <Card className='rounded-2xl border-slate-200 bg-white/95'>
+                    <Card className='font-cairo rounded-2xl border-slate-200 bg-white/95'>
                         <CardContent className='p-5 text-right'>
                             <div className='mb-3 flex items-center justify-between'>
-                                <h3 className='text-base font-bold text-slate-800'>نافذة البحث الذكي</h3>
+                                <h3 className='text-base font-bold font-cairo text-slate-800'>نافذة البحث الذكي</h3>
                                 <Search className='h-4 w-4 text-slate-500' />
                             </div>
                             <div className='grid grid-cols-1 gap-2'>
                                 <select
                                     value={searchMunicipality}
                                     onChange={(e) => setSearchMunicipality(e.target.value)}
-                                    className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm text-slate-700 outline-none focus:border-emerald-400'
+                                    className='font-cairo rounded-md border border-slate-200 px-3 py-2 text-right text-sm text-slate-700 outline-none focus:border-emerald-400'
                                 >
                                     <option value=''>اختر البلدية</option>
                                     <option value='غرداية'>غرداية</option>
@@ -220,40 +253,40 @@ const UrbanMap = () => {
                                     value={searchSection}
                                     onChange={(e) => setSearchSection(clampSectionDigits(e.target.value))}
                                     onBlur={() => setSearchSection(formatSection(searchSection))}
-                                    placeholder='رقم القسم'
+                                    placeholder='رقم القسم (3 أرقام)'
                                     inputMode='numeric'
                                     pattern='[0-9]*'
                                     maxLength={3}
-                                    className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm font-mono text-slate-700 outline-none focus:border-emerald-400'
+                                    className='font-cairo rounded-md border border-slate-200 px-3 py-2 text-right text-sm font-mono text-slate-700 outline-none focus:border-emerald-400'
                                 />
                                 <input
                                     value={searchGroup}
                                     onChange={(e) => setSearchGroup(clampPropertyGroupDigits(e.target.value))}
                                     onBlur={() => setSearchGroup(formatPropertyGroup(searchGroup))}
-                                    placeholder='مجموعة الملكية'
+                                    placeholder='مجموعة الملكية (4 أرقام)'
                                     inputMode='numeric'
                                     pattern='[0-9]*'
                                     maxLength={4}
-                                    className='rounded-md border border-slate-200 px-3 py-2 text-right text-sm font-mono text-slate-700 outline-none focus:border-emerald-400'
+                                    className='font-cairo rounded-md border border-slate-200 px-3 py-2 text-right text-sm font-mono text-slate-700 outline-none focus:border-emerald-400'
                                 />
                                 <div className='mt-1 grid grid-cols-2 gap-2'>
                                     <button
                                         type='button'
                                         onClick={handleSmartSearch}
-                                        className='rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700'
+                                        className='font-cairo rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700'
                                     >
                                         بحث
                                     </button>
                                     <button
                                         type='button'
                                         onClick={handleClearSearch}
-                                        className='rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50'
+                                        className='font-cairo rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50'
                                     >
                                         مسح
                                     </button>
                                 </div>
                             </div>
-                            {searchMessage && <p className='mt-3 text-xs text-slate-600'>{searchMessage}</p>}
+                            {searchMessage && <p className='font-cairo mt-3 text-xs text-slate-600'>{searchMessage}</p>}
                         </CardContent>
                     </Card>
                 )}

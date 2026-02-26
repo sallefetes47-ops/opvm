@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -388,6 +389,7 @@ function DocHtml({ html, lang, className }: { html: string; lang: PreviewLang; c
 
 export default function LegalArchive() {
     const { toast } = useToast();
+    const [searchParams] = useSearchParams();
     const [listQuery, setListQuery] = useState("");
     const [selectedId, setSelectedId] = useState<CoreDocId>("loi-90-29");
     const [previewLang, setPreviewLang] = useState<PreviewLang>("ar");
@@ -395,6 +397,16 @@ export default function LegalArchive() {
     const [textQuery, setTextQuery] = useState("");
     const [summaryOpen, setSummaryOpen] = useState(false);
     const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+
+    // Handle URL parameters for pre-selecting document from Urban Map
+    useEffect(() => {
+        const docParam = searchParams.get('doc');
+        if (docParam && ['instruction-004-2017', 'decret-15-19', 'loi-08-15', 'loi-90-29'].includes(docParam)) {
+            setSelectedId(docParam as CoreDocId);
+            // Open summary automatically when navigating from map
+            setTimeout(() => setSummaryOpen(true), 500);
+        }
+    }, [searchParams]);
 
     const selectedDoc = useMemo(() => CORE_DOCS.find((d) => d.id === selectedId)!, [selectedId]);
 
