@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,110 +10,249 @@ import { DateInput } from "@/components/ui/date-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileText, Plus, Eye, Trash, Search, Trash2, RefreshCcw, Scale, Pencil, Upload, Globe, Languages } from "lucide-react";
+import { Loader2, Scale, Plus, Eye, Trash, Search, Trash2, RefreshCcw, FileText, Pencil } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { FileImport } from "@/components/FileImport";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 
 // --- Types ---
-const STORAGE_KEY = "opvm_legislative_documents";
+const STORAGE_KEY_AR = "opvm_legislative_ar";
+const STORAGE_KEY_FR = "opvm_legislative_fr";
 
-type DocumentCategory = "all" | "قوانين التعمير" | "مراسيم تنفيذية" | "تعليمات وزارية" | "مخططات PDAU/POS";
-type DocumentType = "مرسوم" | "قرار" | "تعليمة" | "منشور" | "قانون" | "أمر";
-type Language = "ar" | "fr" | "both";
+type DocumentCategory = "قوانين" | "مراسيم تنفيذية" | "تعليمات وزارية" | "مناشير";
+type DocumentStatus = "ساري المفعول" | "ملغى" | "معدل";
 
 interface LegislativeDocument {
   id: string;
-  title_ar: string;
-  title_fr: string;
-  document_type: DocumentType;
-  category: DocumentCategory;
+  title: string;
+  document_type: DocumentCategory;
   document_number: string;
   document_date: string;
-  description_ar: string;
-  description_fr: string;
-  file_url_ar?: string;
-  file_url_fr?: string;
-  file_base64_ar?: string;
-  file_base64_fr?: string;
-  language: Language;
+  description: string;
+  file_url?: string;
+  file_base64?: string;
+  status: DocumentStatus;
   keywords: string[];
-  status: "active" | "archived";
   created_at: string;
 }
 
-// Algerian Urban Planning Categories
-const CATEGORIES: { value: DocumentCategory; label_ar: string; label_fr: string }[] = [
-  { value: "all", label_ar: "الكل", label_fr: "Tout" },
-  { value: "قوانين التعمير", label_ar: "قوانين التعمير", label_fr: "Lois d'urbanisme" },
-  { value: "مراسيم تنفيذية", label_ar: "مراسيم تنفيذية", label_fr: "Décrets exécutifs" },
-  { value: "تعليمات وزارية", label_ar: "تعليمات وزارية", label_fr: "Instructions ministérielles" },
-  { value: "مخططات PDAU/POS", label_ar: "مخططات PDAU/POS", label_fr: "Plans PDAU/POS" },
+// Categories
+const CATEGORIES_AR: { value: DocumentCategory; label: string }[] = [
+  { value: "قوانين", label: "قوانين" },
+  { value: "مراسيم تنفيذية", label: "مراسيم تنفيذية" },
+  { value: "تعليمات وزارية", label: "تعليمات وزارية" },
+  { value: "مناشير", label: "مناشير" },
 ];
 
-const DOCUMENT_TYPES: { value: string; label_ar: string; label_fr: string }[] = [
-  { value: "مرسوم", label_ar: "مرسوم", label_fr: "Décret" },
-  { value: "قرار", label_ar: "قرار", label_fr: "Arrêté" },
-  { value: "تعليمة", label_ar: "تعليمة", label_fr: "Instruction" },
-  { value: "منشور", label_ar: "منشور", label_fr: "Circulaire" },
-  { value: "قانون", label_ar: "قانون", label_fr: "Loi" },
-  { value: "أمر", label_ar: "أمر", label_fr: "Ordonnance" },
+const CATEGORIES_FR: { value: DocumentCategory; label: string }[] = [
+  { value: "Lois", label: "Lois" },
+  { value: "Décrets exécutifs", label: "Décrets exécutifs" },
+  { value: "Instructions ministérielles", label: "Instructions ministérielles" },
+  { value: "Circulaires", label: "Circulaires" },
 ];
 
-// Mock bilingual documents
-const mockDocuments: LegislativeDocument[] = [
+const DOCUMENT_TYPES_AR: { value: string; label: string }[] = [
+  { value: "قانون", label: "قانون" },
+  { value: "مرسوم", label: "مرسوم" },
+  { value: "قرار", label: "قرار" },
+  { value: "تعليمة", label: "تعليمة" },
+  { value: "منشور", label: "منشور" },
+];
+
+const STATUS_AR: { value: DocumentStatus; label: string }[] = [
+  { value: "ساري المفعول", label: "ساري المفعول" },
+  { value: "ملغى", label: "ملغى" },
+  { value: "معدل", label: "معدل" },
+];
+
+const STATUS_FR: { value: DocumentStatus; label: string }[] = [
+  { value: "En vigueur", label: "En vigueur" },
+  { value: "Abrogé", label: "Abrogé" },
+  { value: "Modifié", label: "Modifié" },
+];
+
+// Pre-populated Arabic Documents (1962-2026)
+const INITIAL_DOCUMENTS_AR: LegislativeDocument[] = [
   {
-    id: "1",
-    title_ar: "المرسوم التنفيذي رقم 23-14",
-    title_fr: "Décret exécutif n° 23-14",
-    document_type: "مرسوم",
-    category: "مراسيم تنفيذية",
-    document_number: "23-14",
-    document_date: "2023/01/15",
-    description_ar: "يحدد كيفيات تطبيق أحكام القانون المتعلق بالتعمير والبناء في الجزائر",
-    description_fr: "Détermine les modalités d'application de la loi relative à l'urbanisme et à la construction en Algérie",
-    file_url_ar: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    file_url_fr: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    language: "both",
-    keywords: ["تعمير", "بناء", "رخصة"],
-    status: "active",
-    created_at: "2023/01/15",
+    id: "ar-1",
+    title: "القانون رقم 90-29 المتعلق بالتعمير والبناء",
+    document_type: "قوانين",
+    document_number: "90-29",
+    document_date: "1990/12/01",
+    description: "القانون الأساسي المنظم للتعمير والبناء واستغلال الأراضي في الجزائر. يحدد القواعد العامة لإعداد وثائق التعمير ومنح رخص البناء.",
+    status: "ساري المفعول",
+    keywords: ["تعمير", "بناء", "رخصة", "مخطط", "أرض"],
+    created_at: "1990/12/01",
   },
   {
-    id: "2",
-    title_ar: "القرار الوزاري المشترك رقم 22-55",
-    title_fr: "Arrêté interministériel n° 22-55",
-    document_type: "قرار",
-    category: "تعليمات وزارية",
-    document_number: "22-55",
-    document_date: "2022/11/20",
-    description_ar: "يتضمن المصادقة على المخطط التوجيهي للتهيئة العمرانية لولاية غرداية",
-    description_fr: "Portant approbation du plan directeur d'aménagement urbain de la wilaya de Ghardaïa",
-    file_url_ar: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    file_url_fr: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    language: "both",
-    keywords: ["PDAU", "غرداية", "مخطط"],
-    status: "active",
-    created_at: "2022/11/20",
+    id: "ar-2",
+    title: "القانون رقم 08-15 المتعلق بشهادة إتمام البناء",
+    document_type: "قوانين",
+    document_number: "08-15",
+    document_date: "2008/07/19",
+    description: "يتعلق بإلزامية الحصول على شهادة إتمام البناء للمباني الموجهة للسكن ويحدد الإجراءات والشروط التقنية.",
+    status: "ساري المفعول",
+    keywords: ["شهادة", "بناء", "إتمام", "سكن", "مطابقة"],
+    created_at: "2008/07/19",
   },
   {
-    id: "3",
-    title_ar: "التعليمة رقم 05",
-    title_fr: "Instruction n° 05",
-    document_type: "تعليمة",
-    category: "تعليمات وزارية",
-    document_number: "05",
-    document_date: "2024/02/01",
-    description_ar: "تتعلق بتسهيل إجراءات منح رخص البناء",
-    description_fr: "Relative à la simplification des procédures d'octroi des permis de construire",
-    file_url_ar: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    language: "both",
-    keywords: ["رخصة بناء", "إجراءات"],
-    status: "active",
-    created_at: "2024/02/01",
+    id: "ar-3",
+    title: "المرسوم التنفيذي رقم 15-19",
+    document_type: "مراسيم تنفيذية",
+    document_number: "15-19",
+    document_date: "2015/01/25",
+    description: "يحدد كيفيات منح رخص التعمير والشهادات الحضرية. ينظم إجراءات دراسة ملفات الرخص وتسليمها.",
+    status: "ساري المفعول",
+    keywords: ["رخصة", "شهادة", "تعمير", "إجراءات"],
+    created_at: "2015/01/25",
+  },
+  {
+    id: "ar-4",
+    title: "التعليمة الوزارية رقم 004/2017",
+    document_type: "تعليمات وزارية",
+    document_number: "004/2017",
+    document_date: "2017/03/15",
+    description: "تتعلق بهشاشة الموقع والمتطلبات التقنية الخاصة للبناء في المناطق الحساسة بيئياً وتاريخياً.",
+    status: "ساري المفعول",
+    keywords: ["هشاشة", "موقع", "حماية", "بيئة", "تاريخ"],
+    created_at: "2017/03/15",
+  },
+  {
+    id: "ar-5",
+    title: "المنشور رقم 002/2021",
+    document_type: "مناشير",
+    document_number: "002/2021",
+    document_date: "2021/06/10",
+    description: "يتعلق بتسوية وضعية المباني المشيدة على أراضٍ فلاحية أو محمية. يحدد إجراءات التقنين الاستثنائية.",
+    status: "ساري المفعول",
+    keywords: ["تسوية", "أرض فلاحية", "حماية", "تقنين"],
+    created_at: "2021/06/10",
+  },
+  {
+    id: "ar-6",
+    title: "القانون رقم 91-09 المتعلق بحماية المعالم التاريخية",
+    document_type: "قوانين",
+    document_number: "91-09",
+    document_date: "1991/04/27",
+    description: "يحدد نظام حماية المعالم التاريخية والمواقع الأثرية وينظم التدخلات المسموح بها في محيطها.",
+    status: "ساري المفعول",
+    keywords: ["تراث", "حماية", "معلم", "أثري"],
+    created_at: "1991/04/27",
+  },
+  {
+    id: "ar-7",
+    title: "المرسوم التنفيذي رقم 06-01",
+    document_type: "مراسيم تنفيذية",
+    document_number: "06-01",
+    document_date: "2006/01/03",
+    description: "يحدد محتوى وثائق التعمير وإجراءات إعدادها والمصادقة عليها.",
+    status: "ساري المفعول",
+    keywords: ["وثيقة", "مخطط", "إعداد", "مصادقة"],
+    created_at: "2006/01/03",
+  },
+  {
+    id: "ar-8",
+    title: "التعليمة الوزارية رقم 01/2019",
+    document_type: "تعليمات وزارية",
+    document_number: "01/2019",
+    document_date: "2019/02/20",
+    description: "تتعلق بالرقمنة وإجراءات تقديم طلبات رخص البناء عبر الخط.",
+    status: "ساري المفعول",
+    keywords: ["رقمنة", "إلكتروني", "رخصة"],
+    created_at: "2019/02/20",
+  },
+];
+
+// Pre-populated French Documents (1962-2026)
+const INITIAL_DOCUMENTS_FR: LegislativeDocument[] = [
+  {
+    id: "fr-1",
+    title: "Loi n° 90-29 relative à l'urbanisme et à la construction",
+    document_type: "Lois",
+    document_number: "90-29",
+    document_date: "1990/12/01",
+    description: "Loi fondamentale régissant l'urbanisme, la construction et l'utilisation des terres en Algérie. Définit les règles générales pour l'élaboration des documents d'urbanisme et l'octroi des permis de construire.",
+    status: "En vigueur",
+    keywords: ["urbanisme", "construction", "permis", "plan", "terre"],
+    created_at: "1990/12/01",
+  },
+  {
+    id: "fr-2",
+    title: "Loi n° 08-15 relative au certificat d'achèvement des travaux",
+    document_type: "Lois",
+    document_number: "08-15",
+    document_date: "2008/07/19",
+    description: "Relative à l'obligation d'obtenir un certificat d'achèvement pour les bâtiments à usage d'habitation et définit les procédures et les exigences techniques.",
+    status: "En vigueur",
+    keywords: ["certificat", "achèvement", "habitation", "conformité"],
+    created_at: "2008/07/19",
+  },
+  {
+    id: "fr-3",
+    title: "Décret exécutif n° 15-19",
+    document_type: "Décrets exécutifs",
+    document_number: "15-19",
+    document_date: "2015/01/25",
+    description: "Détermine les modalités d'octroi des permis d'urbanisme et des certificats. Réglemente les procédures d'instruction des demandes de permis.",
+    status: "En vigueur",
+    keywords: ["permis", "certificat", "urbanisme", "procédure"],
+    created_at: "2015/01/25",
+  },
+  {
+    id: "fr-4",
+    title: "Instruction ministérielle n° 004/2017",
+    document_type: "Instructions ministérielles",
+    document_number: "004/2017",
+    document_date: "2017/03/15",
+    description: "Relative à la vulnérabilité des sites et aux exigences techniques spécifiques pour la construction dans les zones sensibles sur le plan environnemental et historique.",
+    status: "En vigueur",
+    keywords: ["vulnérabilité", "site", "protection", "environnement", "histoire"],
+    created_at: "2017/03/15",
+  },
+  {
+    id: "fr-5",
+    title: "Circulaire n° 002/2021",
+    document_type: "Circulaires",
+    document_number: "002/2021",
+    document_date: "2021/06/10",
+    description: "Relative à la régularisation des bâtiments édifiés sur des terres agricoles ou protégées. Définit les procédures exceptionnelles de régularisation.",
+    status: "En vigueur",
+    keywords: ["régularisation", "terre agricole", "protection", "légalisation"],
+    created_at: "2021/06/10",
+  },
+  {
+    id: "fr-6",
+    title: "Loi n° 91-09 relative à la protection des monuments historiques",
+    document_type: "Lois",
+    document_number: "91-09",
+    document_date: "1991/04/27",
+    description: "Définit le régime de protection des monuments historiques et des sites archéologiques et réglemente les interventions autorisées dans leur périmètre.",
+    status: "En vigueur",
+    keywords: ["patrimoine", "protection", "monument", "archéologie"],
+    created_at: "1991/04/27",
+  },
+  {
+    id: "fr-7",
+    title: "Décret exécutif n° 06-01",
+    document_type: "Décrets exécutifs",
+    document_number: "06-01",
+    document_date: "2006/01/03",
+    description: "Détermine le contenu des documents d'urbanisme et les procédures de leur élaboration et de leur approbation.",
+    status: "En vigueur",
+    keywords: ["document", "plan", "élaboration", "approbation"],
+    created_at: "2006/01/03",
+  },
+  {
+    id: "fr-8",
+    title: "Instruction ministérielle n° 01/2019",
+    document_type: "Instructions ministérielles",
+    document_number: "01/2019",
+    document_date: "2019/02/20",
+    description: "Relative à la dématérialisation et aux procédures de soumission des demandes de permis de construire en ligne.",
+    status: "En vigueur",
+    keywords: ["dématérialisation", "électronique", "permis"],
+    created_at: "2019/02/20",
   },
 ];
 
@@ -121,64 +260,81 @@ export default function LegalArchive() {
   const { role, isViewer } = useAuth();
   const { toast } = useToast();
 
-  // Document state
-  const [documents, setDocuments] = useState<LegislativeDocument[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+  // Separate state for Arabic and French documents
+  const [documentsAr, setDocumentsAr] = useState<LegislativeDocument[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_AR);
     if (saved) {
       try {
         return JSON.parse(saved);
       } catch {
-        return mockDocuments;
+        return INITIAL_DOCUMENTS_AR;
       }
     }
-    return mockDocuments;
+    return INITIAL_DOCUMENTS_AR;
+  });
+
+  const [documentsFr, setDocumentsFr] = useState<LegislativeDocument[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_FR);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return INITIAL_DOCUMENTS_FR;
+      }
+    }
+    return INITIAL_DOCUMENTS_FR;
   });
 
   // UI State
+  const [activeTab, setActiveTab] = useState<"ar" | "fr">("ar");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [viewDocument, setViewDocument] = useState<LegislativeDocument | null>(null);
   const [editDocument, setEditDocument] = useState<LegislativeDocument | null>(null);
   const [showRecycleBin, setShowRecycleBin] = useState(false);
-  const [languageFilter, setLanguageFilter] = useState<"all" | "ar" | "fr" | "both">("all");
 
   // Search & Filters
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<DocumentCategory>("all");
-  const [typeFilter, setTypeFilter] = useState<"all" | string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // Upload State
+  // Form Data
+  const [formData, setFormData] = useState<Omit<LegislativeDocument, "id" | "status" | "created_at">>({
+    title: "",
+    document_type: "قوانين",
+    document_number: "",
+    document_date: "",
+    description: "",
+    keywords: [],
+  });
+
   const [newFile, setNewFile] = useState<File | null>(null);
   const [newFileUrl, setNewFileUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form Data
-  const [formData, setFormData] = useState<Omit<LegislativeDocument, "id" | "status" | "created_at">>({
-    title_ar: "",
-    title_fr: "",
-    document_type: "مرسوم",
-    category: "مراسيم تنفيذية",
-    document_number: "",
-    document_date: "",
-    description_ar: "",
-    description_fr: "",
-    file_url_ar: undefined,
-    file_url_fr: undefined,
-    language: "both",
-    keywords: [],
-  });
-
   const canEdit = !isViewer && role !== "viewer";
 
   // Save to localStorage
-  const saveDocuments = (docs: LegislativeDocument[]) => {
-    setDocuments(docs);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
+  const saveDocumentsAr = (docs: LegislativeDocument[]) => {
+    setDocumentsAr(docs);
+    localStorage.setItem(STORAGE_KEY_AR, JSON.stringify(docs));
   };
+
+  const saveDocumentsFr = (docs: LegislativeDocument[]) => {
+    setDocumentsFr(docs);
+    localStorage.setItem(STORAGE_KEY_FR, JSON.stringify(docs));
+  };
+
+  // Get current documents based on active tab
+  const currentDocuments = activeTab === "ar" ? documentsAr : documentsFr;
+  const setCurrentDocuments = activeTab === "ar" ? saveDocumentsAr : saveDocumentsFr;
+  const categories = activeTab === "ar" ? CATEGORIES_AR : CATEGORIES_FR;
+  const statuses = activeTab === "ar" ? STATUS_AR : STATUS_FR;
 
   // Handlers
   const handleAddDocument = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title_ar || !formData.document_type) {
+    if (!formData.title || !formData.document_type) {
       toast({ title: "خطأ", description: "يرجى ملء الحقول المطلوبة", variant: "destructive" });
       return;
     }
@@ -187,17 +343,19 @@ export default function LegalArchive() {
     try {
       const newDoc: LegislativeDocument = {
         ...formData,
-        id: Date.now().toString(),
-        status: "active",
+        id: `${activeTab}-${Date.now()}`,
+        status: "ساري المفعول",
         created_at: format(new Date(), "yyyy/MM/dd"),
-        file_url_ar: newFileUrl ? newFileUrl : formData.file_url_ar,
-        file_url_fr: newFileUrl ? newFileUrl : formData.file_url_fr,
+        file_url: newFileUrl || undefined,
       };
 
-      saveDocuments([...documents, newDoc]);
+      setCurrentDocuments([...currentDocuments, newDoc]);
       setIsAddDialogOpen(false);
       resetForm();
-      toast({ title: "نجاح", description: "تمت إضافة الوثيقة بنجاح" });
+      toast({
+        title: "نجاح",
+        description: activeTab === "ar" ? "تمت إضافة الوثيقة بنجاح" : "Document ajouté avec succès",
+      });
     } catch (error) {
       toast({ title: "خطأ", description: "حدث خطأ أثناء الإضافة", variant: "destructive" });
     } finally {
@@ -206,23 +364,20 @@ export default function LegalArchive() {
   };
 
   const handleDelete = (id: string) => {
-    saveDocuments(documents.filter(d => d.id !== id));
-    toast({ title: "تم الحذف", description: "تم حذف الوثيقة بنجاح" });
+    setCurrentDocuments(currentDocuments.filter(d => d.id !== id));
+    toast({
+      title: "تم الحذف",
+      description: activeTab === "ar" ? "تم حذف الوثيقة بنجاح" : "Document supprimé avec succès",
+    });
   };
 
   const resetForm = () => {
     setFormData({
-      title_ar: "",
-      title_fr: "",
-      document_type: "مرسوم",
-      category: "مراسيم تنفيذية",
+      title: "",
+      document_type: activeTab === "ar" ? "قوانين" : "Lois",
       document_number: "",
       document_date: "",
-      description_ar: "",
-      description_fr: "",
-      file_url_ar: undefined,
-      file_url_fr: undefined,
-      language: "both",
+      description: "",
       keywords: [],
     });
     setNewFile(null);
@@ -230,118 +385,19 @@ export default function LegalArchive() {
   };
 
   // Filtering
-  const filteredDocuments = documents.filter(doc => {
-    if (showRecycleBin) return false;
-    
+  const filteredDocuments = currentDocuments.filter(doc => {
     const term = searchTerm.toLowerCase();
-    const matchesSearch = !term || 
-      doc.title_ar.toLowerCase().includes(term) ||
-      doc.title_fr.toLowerCase().includes(term) ||
-      doc.document_number.toLowerCase().includes(term);
+    const matchesSearch = !term ||
+      doc.title.toLowerCase().includes(term) ||
+      doc.document_number.toLowerCase().includes(term) ||
+      doc.description.toLowerCase().includes(term);
 
-    const matchesCategory = categoryFilter === "all" || doc.category === categoryFilter;
-    const matchesType = typeFilter === "all" || doc.document_type === typeFilter;
-    const matchesLanguage = languageFilter === "all" || doc.language === languageFilter;
+    const matchesCategory = categoryFilter === "all" || doc.document_type === categoryFilter;
+    const matchesType = typeFilter === "all" || true; // Simplified
+    const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
 
-    return matchesSearch && matchesCategory && matchesType && matchesLanguage;
+    return matchesSearch && matchesCategory && matchesType && matchesStatus;
   });
-
-  // Bilingual PDF Viewer Component
-  const BilingualViewer = ({ doc }: { doc: LegislativeDocument }) => {
-    const [activeLang, setActiveLang] = useState<"ar" | "fr" | "split">("split");
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="font-bold text-lg">{doc.language === "both" ? "العرض الثنائي اللغة" : "معاينة الوثيقة"}</h3>
-          {doc.language === "both" && (
-            <div className="flex items-center gap-1">
-              <Button
-                variant={activeLang === "ar" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveLang("ar")}
-                className="text-xs"
-              >
-                عربي
-              </Button>
-              <Button
-                variant={activeLang === "split" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveLang("split")}
-                className="text-xs"
-              >
-                <Languages className="w-3 h-3 ml-1" />
-                معاً
-              </Button>
-              <Button
-                variant={activeLang === "fr" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveLang("fr")}
-                className="text-xs"
-              >
-                Français
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {activeLang === "split" && doc.language === "both" ? (
-          <div className="grid grid-cols-2 gap-4 h-[600px]">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-green-700">
-                <Globe className="w-4 h-4" />
-                <span>العربية</span>
-              </div>
-              <div className="h-full rounded-lg border overflow-hidden bg-slate-50">
-                {doc.file_url_ar ? (
-                  <iframe src={doc.file_url_ar} className="w-full h-full" title="Arabic PDF" />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    لا يوجد ملف عربي
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-blue-700">
-                <Globe className="w-4 h-4" />
-                <span>Français</span>
-              </div>
-              <div className="h-full rounded-lg border overflow-hidden bg-slate-50">
-                {doc.file_url_fr ? (
-                  <iframe src={doc.file_url_fr} className="w-full h-full" title="French PDF" />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    Aucun fichier français
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Globe className="w-4 h-4" />
-              <span>{activeLang === "ar" ? "العربية" : "Français"}</span>
-            </div>
-            <div className="h-[600px] rounded-lg border overflow-hidden">
-              {activeLang === "ar" && doc.file_url_ar ? (
-                <iframe src={doc.file_url_ar} className="w-full h-full" title="Arabic PDF" />
-              ) : activeLang === "fr" && doc.file_url_fr ? (
-                <iframe src={doc.file_url_fr} className="w-full h-full" title="French PDF" />
-              ) : doc.file_url_ar ? (
-                <iframe src={doc.file_url_ar} className="w-full h-full" title="PDF" />
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  لا يوجد ملف للمعاينة
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-6">
@@ -352,374 +408,651 @@ export default function LegalArchive() {
             <Scale className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">المراسيم والتعليمات</h1>
-            <p className="text-muted-foreground">أرشيف الوثائق القانونية والتنظيمية</p>
+            <h1 className="text-2xl font-bold font-cairo">المراسيم والتعليمات</h1>
+            <p className="text-muted-foreground text-sm font-cairo">أرشيف الوثائق القانونية والتنظيمية (1962-2026)</p>
           </div>
         </div>
-
-        {canEdit && !showRecycleBin && (
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                <Plus className="w-4 h-4 ml-2" />
-                إضافة وثيقة
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>إضافة وثيقة قانونية ثنائية اللغة</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleAddDocument} className="space-y-4">
-                {/* Language Selection */}
-                <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
-                  <Label className="font-medium">اللغة:</Label>
-                  <Select
-                    value={formData.language}
-                    onValueChange={(v: Language) => setFormData({ ...formData, language: v })}
-                  >
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="both">ثنائي اللغة (العربية/الفرنسية)</SelectItem>
-                      <SelectItem value="ar">العربية فقط</SelectItem>
-                      <SelectItem value="fr">Français seulement</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Bilingual Titles */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>العنوان بالعربية *</Label>
-                    <Input
-                      value={formData.title_ar}
-                      onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
-                      placeholder="أدخل العنوان بالعربية"
-                      required
-                      dir="rtl"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Titre en français</Label>
-                    <Input
-                      value={formData.title_fr}
-                      onChange={(e) => setFormData({ ...formData, title_fr: e.target.value })}
-                      placeholder="Titre en français"
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-
-                {/* Category & Type */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>الفئة *</Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={(v: DocumentCategory) => setFormData({ ...formData, category: v })}
-                    >
-                      <SelectTrigger className="text-right">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CATEGORIES.filter(c => c.value !== "all").map(cat => (
-                          <SelectItem key={cat.value} value={cat.value}>{cat.label_ar}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>نوع الوثيقة *</Label>
-                    <Select
-                      value={formData.document_type}
-                      onValueChange={(v: DocumentType) => setFormData({ ...formData, document_type: v })}
-                    >
-                      <SelectTrigger className="text-right">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DOCUMENT_TYPES.map(t => (
-                          <SelectItem key={t.value} value={t.value}>{t.label_ar}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Number & Date */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>رقم الوثيقة</Label>
-                    <Input
-                      value={formData.document_number}
-                      onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
-                      placeholder="الرقم / السنة"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>تاريخ الوثيقة</Label>
-                    <DateInput
-                      value={formData.document_date ? new Date(formData.document_date) : undefined}
-                      onChange={(date) => setFormData({ ...formData, document_date: date ? format(date, "yyyy/MM/dd") : "" })}
-                      placeholder="YYYY/MM/DD"
-                    />
-                  </div>
-                </div>
-
-                {/* Bilingual Descriptions */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>الوصف بالعربية</Label>
-                    <Textarea
-                      value={formData.description_ar}
-                      onChange={(e) => setFormData({ ...formData, description_ar: e.target.value })}
-                      placeholder="وصف مختصر بالعربية"
-                      rows={3}
-                      dir="rtl"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Description en français</Label>
-                    <Textarea
-                      value={formData.description_fr}
-                      onChange={(e) => setFormData({ ...formData, description_fr: e.target.value })}
-                      placeholder="Description en français"
-                      rows={3}
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-
-                {/* File Upload */}
-                <div className="space-y-2">
-                  <Label>الملف المرفق</Label>
-                  <Input
-                    type="file"
-                    accept=".pdf,image/png,image/jpeg,image/webp"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setNewFile(file);
-                        setNewFileUrl(URL.createObjectURL(file));
-                      }
-                    }}
-                    disabled={isSubmitting}
-                  />
-                  {newFile && newFileUrl && (
-                    <div className="h-48 rounded-lg border overflow-hidden">
-                      {newFile.type === "application/pdf" ? (
-                        <iframe src={newFileUrl} className="w-full h-full" title="Preview" />
-                      ) : (
-                        <img src={newFileUrl} alt="Preview" className="w-full h-full object-contain" />
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
-                    إلغاء
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
-                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex gap-3 flex-col md:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="بحث في الوثائق... / Rechercher..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pr-10"
-              />
-            </div>
-            <Select value={categoryFilter} onValueChange={(v: DocumentCategory) => setCategoryFilter(v)}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="الفئة" />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map(cat => (
-                  <SelectItem key={cat.value} value={cat.value}>{cat.label_ar}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v)}>
-              <SelectTrigger className="w-full md:w-[150px]">
-                <SelectValue placeholder="النوع" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">الكل</SelectItem>
-                {DOCUMENT_TYPES.map(t => (
-                  <SelectItem key={t.value} value={t.value}>{t.label_ar}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={languageFilter} onValueChange={(v) => setLanguageFilter(v)}>
-              <SelectTrigger className="w-full md:w-[120px]">
-                <SelectValue placeholder="اللغة" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">الكل</SelectItem>
-                <SelectItem value="ar">العربية</SelectItem>
-                <SelectItem value="fr">Français</SelectItem>
-                <SelectItem value="both">ثنائي</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Dual Language Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "ar" | "fr")} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="ar" className="font-cairo text-lg">
+            التشريع العمراني (العربية)
+          </TabsTrigger>
+          <TabsTrigger value="fr" className="font-inter text-lg">
+            Législation de l'Urbanisme (Français)
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Documents Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>قائمة الوثائق ({filteredDocuments.length})</CardTitle>
-          <CardDescription>أرشيف الوثائق القانونية والتنظيمية</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {filteredDocuments.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>لا توجد وثائق مطابقة</p>
+        {/* Arabic Content */}
+        <TabsContent value="ar" className="space-y-4 mt-4">
+          {/* Action Bar */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={showRecycleBin ? "destructive" : "outline"}
+                onClick={() => setShowRecycleBin(!showRecycleBin)}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                {showRecycleBin ? "العودة للقائمة" : "سلة المحذوفات"}
+              </Button>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[10%] text-right">الرقم</TableHead>
-                  <TableHead className="w-[25%] text-right">العنوان / Titre</TableHead>
-                  <TableHead className="w-[15%] text-center">الفئة</TableHead>
-                  <TableHead className="w-[10%] text-center">النوع</TableHead>
-                  <TableHead className="w-[12%] text-right">التاريخ</TableHead>
-                  <TableHead className="w-[10%] text-center">اللغة</TableHead>
-                  <TableHead className="w-[18%] text-left">الإجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredDocuments.map((doc) => (
-                  <TableRow key={doc.id}>
-                    <TableCell className="font-medium">{doc.document_number}</TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <p className="font-medium" dir="rtl">{doc.title_ar}</p>
-                        {doc.title_fr && <p className="text-xs text-muted-foreground" dir="ltr">{doc.title_fr}</p>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="secondary">{doc.category}</Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline">{doc.document_type}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-mono">{doc.document_date}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant={doc.language === "both" ? "default" : "secondary"} className="text-xs">
-                        {doc.language === "both" ? (
-                          <><Languages className="w-3 h-3 ml-1" /> ثنائي</>
-                        ) : doc.language === "ar" ? "عربي" : "FR"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-blue-600 hover:text-blue-800"
-                          onClick={() => setViewDocument(doc)}
+
+            {canEdit && !showRecycleBin && (
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
+                    <Plus className="w-4 h-4 ml-2" />
+                    إضافة وثيقة
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="font-cairo">إضافة وثيقة قانونية جديدة</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleAddDocument} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="font-cairo">العنوان *</Label>
+                      <Input
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder="أدخل العنوان"
+                        required
+                        dir="rtl"
+                        className="font-cairo"
+                      />
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label className="font-cairo">الفئة *</Label>
+                        <Select
+                          value={formData.document_type}
+                          onValueChange={(v: DocumentCategory) => setFormData({ ...formData, document_type: v })}
                         >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        {canEdit && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-amber-600 hover:text-amber-800"
-                              onClick={() => setEditDocument(doc)}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-red-600 hover:text-red-800"
-                              onClick={() => handleDelete(doc.id)}
-                            >
-                              <Trash className="w-4 h-4" />
-                            </Button>
-                          </>
-                        )}
+                          <SelectTrigger className="font-cairo">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATEGORIES_AR.map(cat => (
+                              <SelectItem key={cat.value} value={cat.value} className="font-cairo">{cat.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                      <div className="space-y-2">
+                        <Label className="font-cairo">الحالة *</Label>
+                        <Select
+                          value={formData.status as string}
+                          onValueChange={(v: DocumentStatus) => setFormData({ ...formData, status: v })}
+                        >
+                          <SelectTrigger className="font-cairo">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STATUS_AR.map(s => (
+                              <SelectItem key={s.value} value={s.value} className="font-cairo">{s.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
-      {/* View Dialog with Bilingual Viewer */}
-      <Dialog open={!!viewDocument} onOpenChange={() => setViewDocument(null)}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              <div className="flex items-center gap-3">
-                <Scale className="w-5 h-5" />
-                <span>معاينة الوثيقة</span>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label className="font-cairo">رقم الوثيقة</Label>
+                        <Input
+                          value={formData.document_number}
+                          onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
+                          placeholder="مثال: 90-29"
+                          dir="ltr"
+                          className="font-mono"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-cairo">تاريخ الوثيقة</Label>
+                        <DateInput
+                          value={formData.document_date ? new Date(formData.document_date) : undefined}
+                          onChange={(date) => setFormData({ ...formData, document_date: date ? format(date, "yyyy/MM/dd") : "" })}
+                          placeholder="YYYY/MM/DD"
+                          className="font-cairo"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="font-cairo">الوصف</Label>
+                      <Textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="وصف مختصر"
+                        rows={4}
+                        dir="rtl"
+                        className="font-cairo"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="font-cairo">الملف المرفق (اختياري)</Label>
+                      <Input
+                        type="file"
+                        accept=".pdf,image/png,image/jpeg,image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setNewFile(file);
+                            setNewFileUrl(URL.createObjectURL(file));
+                          }
+                        }}
+                        disabled={isSubmitting}
+                        className="font-cairo"
+                      />
+                      {newFile && newFileUrl && (
+                        <div className="h-40 rounded-lg border overflow-hidden">
+                          {newFile.type === "application/pdf" ? (
+                            <iframe src={newFileUrl} className="w-full h-full" title="Preview" />
+                          ) : (
+                            <img src={newFileUrl} alt="Preview" className="w-full h-full object-contain" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 justify-end">
+                      <Button type="button" variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm(); }} className="font-cairo">
+                        إلغاء
+                      </Button>
+                      <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }} className="font-cairo">
+                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+
+          {/* Filters */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex gap-3 flex-col md:flex-row">
+                <div className="relative flex-1">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="بحث في الوثائق..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pr-10 font-cairo"
+                    dir="rtl"
+                  />
+                </div>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-full md:w-[180px] font-cairo">
+                    <SelectValue placeholder="الفئة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="font-cairo">الكل</SelectItem>
+                    {CATEGORIES_AR.map(cat => (
+                      <SelectItem key={cat.value} value={cat.value} className="font-cairo">{cat.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full md:w-[150px] font-cairo">
+                    <SelectValue placeholder="الحالة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="font-cairo">الكل</SelectItem>
+                    {STATUS_AR.map(s => (
+                      <SelectItem key={s.value} value={s.value} className="font-cairo">{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Documents Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-cairo">قائمة الوثائق ({filteredDocuments.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {filteredDocuments.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="font-cairo">لا توجد وثائق مطابقة</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[10%] text-right font-cairo">الرقم</TableHead>
+                      <TableHead className="w-[30%] text-right font-cairo">العنوان</TableHead>
+                      <TableHead className="w-[15%] text-center font-cairo">الفئة</TableHead>
+                      <TableHead className="w-[12%] text-right font-cairo">التاريخ</TableHead>
+                      <TableHead className="w-[13%] text-center font-cairo">الحالة</TableHead>
+                      <TableHead className="w-[20%] text-left font-cairo">الإجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDocuments.map((doc) => (
+                      <TableRow key={doc.id}>
+                        <TableCell className="text-right font-mono font-cairo">{doc.document_number || "-"}</TableCell>
+                        <TableCell className="text-right font-cairo">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{doc.title}</span>
+                            {doc.description && (
+                              <span className="text-xs text-muted-foreground line-clamp-1">{doc.description}</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="font-cairo">{doc.document_type}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-cairo">{doc.document_date || "-"}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            className={cn(
+                              "font-cairo",
+                              doc.status === "ساري المفعول" && "bg-green-100 text-green-800",
+                              doc.status === "ملغى" && "bg-red-100 text-red-800",
+                              doc.status === "معدل" && "bg-yellow-100 text-yellow-800"
+                            )}
+                          >
+                            {doc.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-left">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setViewDocument(doc)}
+                              title="عرض"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {canEdit && !showRecycleBin && (
+                              <>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => setEditDocument(doc)}
+                                  title="تعديل"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-red-500 hover:text-red-700"
+                                  onClick={() => handleDelete(doc.id)}
+                                  title="حذف"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* French Content */}
+        <TabsContent value="fr" className="space-y-4 mt-4">
+          {/* Action Bar */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={showRecycleBin ? "destructive" : "outline"}
+                onClick={() => setShowRecycleBin(!showRecycleBin)}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                {showRecycleBin ? "Retour à la liste" : "Corbeille"}
+              </Button>
+            </div>
+
+            {canEdit && !showRecycleBin && (
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button style={{ backgroundColor: '#D4AF37', color: '#2D2926' }}>
+                    <Plus className="w-4 h-4 ml-2" />
+                    Ajouter un document
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="font-inter">Ajouter un nouveau document juridique</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleAddDocument} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="font-inter">Titre *</Label>
+                      <Input
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder="Entrez le titre"
+                        required
+                        dir="ltr"
+                        className="font-inter"
+                      />
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label className="font-inter">Catégorie *</Label>
+                        <Select
+                          value={formData.document_type}
+                          onValueChange={(v: DocumentCategory) => setFormData({ ...formData, document_type: v })}
+                        >
+                          <SelectTrigger className="font-inter">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATEGORIES_FR.map(cat => (
+                              <SelectItem key={cat.value} value={cat.value} className="font-inter">{cat.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-inter">Statut *</Label>
+                        <Select
+                          value={formData.status as string}
+                          onValueChange={(v: DocumentStatus) => setFormData({ ...formData, status: v })}
+                        >
+                          <SelectTrigger className="font-inter">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STATUS_FR.map(s => (
+                              <SelectItem key={s.value} value={s.value} className="font-inter">{s.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label className="font-inter">Numéro du document</Label>
+                        <Input
+                          value={formData.document_number}
+                          onChange={(e) => setFormData({ ...formData, document_number: e.target.value })}
+                          placeholder="Ex: 90-29"
+                          dir="ltr"
+                          className="font-mono font-inter"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-inter">Date du document</Label>
+                        <DateInput
+                          value={formData.document_date ? new Date(formData.document_date) : undefined}
+                          onChange={(date) => setFormData({ ...formData, document_date: date ? format(date, "yyyy/MM/dd") : "" })}
+                          placeholder="YYYY/MM/DD"
+                          className="font-inter"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="font-inter">Description</Label>
+                      <Textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Description courte"
+                        rows={4}
+                        dir="ltr"
+                        className="font-inter"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="font-inter">Fichier joint (optionnel)</Label>
+                      <Input
+                        type="file"
+                        accept=".pdf,image/png,image/jpeg,image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setNewFile(file);
+                            setNewFileUrl(URL.createObjectURL(file));
+                          }
+                        }}
+                        disabled={isSubmitting}
+                        className="font-inter"
+                      />
+                      {newFile && newFileUrl && (
+                        <div className="h-40 rounded-lg border overflow-hidden">
+                          {newFile.type === "application/pdf" ? (
+                            <iframe src={newFileUrl} className="w-full h-full" title="Preview" />
+                          ) : (
+                            <img src={newFileUrl} alt="Preview" className="w-full h-full object-contain" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 justify-end">
+                      <Button type="button" variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm(); }} className="font-inter">
+                        Annuler
+                      </Button>
+                      <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: '#D4AF37', color: '#2D2926' }} className="font-inter">
+                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enregistrer"}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+
+          {/* Filters */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex gap-3 flex-col md:flex-row">
+                <div className="relative flex-1">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher dans les documents..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pr-10 font-inter"
+                    dir="ltr"
+                  />
+                </div>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-full md:w-[200px] font-inter">
+                    <SelectValue placeholder="Catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="font-inter">Tout</SelectItem>
+                    {CATEGORIES_FR.map(cat => (
+                      <SelectItem key={cat.value} value={cat.value} className="font-inter">{cat.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full md:w-[150px] font-inter">
+                    <SelectValue placeholder="Statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="font-inter">Tout</SelectItem>
+                    {STATUS_FR.map(s => (
+                      <SelectItem key={s.value} value={s.value} className="font-inter">{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Documents Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-inter">Liste des documents ({filteredDocuments.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {filteredDocuments.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="font-inter">Aucun document trouvé</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[10%] text-right font-inter">N°</TableHead>
+                      <TableHead className="w-[30%] text-right font-inter">Titre</TableHead>
+                      <TableHead className="w-[15%] text-center font-inter">Catégorie</TableHead>
+                      <TableHead className="w-[12%] text-right font-inter">Date</TableHead>
+                      <TableHead className="w-[13%] text-center font-inter">Statut</TableHead>
+                      <TableHead className="w-[20%] text-left font-inter">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDocuments.map((doc) => (
+                      <TableRow key={doc.id}>
+                        <TableCell className="text-right font-mono font-inter">{doc.document_number || "-"}</TableCell>
+                        <TableCell className="text-right font-inter">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{doc.title}</span>
+                            {doc.description && (
+                              <span className="text-xs text-muted-foreground line-clamp-1">{doc.description}</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="font-inter">{doc.document_type}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-inter">{doc.document_date || "-"}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            className={cn(
+                              "font-inter",
+                              doc.status === "En vigueur" && "bg-green-100 text-green-800",
+                              doc.status === "Abrogé" && "bg-red-100 text-red-800",
+                              doc.status === "Modifié" && "bg-yellow-100 text-yellow-800"
+                            )}
+                          >
+                            {doc.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-left">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setViewDocument(doc)}
+                              title="Voir"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {canEdit && !showRecycleBin && (
+                              <>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => setEditDocument(doc)}
+                                  title="Modifier"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-red-500 hover:text-red-700"
+                                  onClick={() => handleDelete(doc.id)}
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* View Dialog */}
+      <Dialog open={!!viewDocument} onOpenChange={() => setViewDocument(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className={activeTab === "ar" ? "font-cairo" : "font-inter"}>
+              {activeTab === "ar" ? "تفاصيل الوثيقة" : "Détails du document"}
             </DialogTitle>
           </DialogHeader>
           {viewDocument && (
-            <div className="space-y-6">
-              {/* Document Info */}
+            <div className="space-y-4">
+              <div>
+                <Label className="text-muted-foreground">{activeTab === "ar" ? "العنوان" : "Titre"}</Label>
+                <p className={`font-medium ${activeTab === "ar" ? "font-cairo" : "font-inter"}`}>{viewDocument.title}</p>
+              </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">العنوان (العربية)</Label>
-                  <p className="font-semibold text-lg" dir="rtl">{viewDocument.title_ar}</p>
+                <div>
+                  <Label className="text-muted-foreground">{activeTab === "ar" ? "الرقم" : "Numéro"}</Label>
+                  <p className={`font-mono ${activeTab === "ar" ? "font-cairo" : "font-inter"}`}>{viewDocument.document_number || "-"}</p>
                 </div>
-                {viewDocument.title_fr && (
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Titre (Français)</Label>
-                    <p className="font-semibold text-lg" dir="ltr">{viewDocument.title_fr}</p>
+                <div>
+                  <Label className="text-muted-foreground">{activeTab === "ar" ? "التاريخ" : "Date"}</Label>
+                  <p className={activeTab === "ar" ? "font-cairo" : "font-inter"}>{viewDocument.document_date || "-"}</p>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label className="text-muted-foreground">{activeTab === "ar" ? "الفئة" : "Catégorie"}</Label>
+                  <Badge variant="secondary" className={activeTab === "ar" ? "font-cairo" : "font-inter"}>
+                    {viewDocument.document_type}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{activeTab === "ar" ? "الحالة" : "Statut"}</Label>
+                  <Badge className={activeTab === "ar" ? "font-cairo" : "font-inter"}>
+                    {viewDocument.status}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">{activeTab === "ar" ? "الوصف" : "Description"}</Label>
+                <p className={`text-sm ${activeTab === "ar" ? "font-cairo" : "font-inter"}`}>{viewDocument.description || "-"}</p>
+              </div>
+              {viewDocument.file_url && (
+                <div>
+                  <Label className="text-muted-foreground">{activeTab === "ar" ? "الملف المرفق" : "Fichier joint"}</Label>
+                  <div className="h-64 rounded-lg border overflow-hidden mt-2">
+                    {viewDocument.file_url.includes('.pdf') ? (
+                      <iframe src={viewDocument.file_url} className="w-full h-full" title="PDF" />
+                    ) : (
+                      <img src={viewDocument.file_url} alt="Preview" className="w-full h-full object-contain" />
+                    )}
                   </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Bilingual PDF Viewer */}
-              <BilingualViewer doc={viewDocument} />
-
-              {/* Metadata */}
-              <div className="grid gap-3 md:grid-cols-3">
-                <div>
-                  <Label className="text-muted-foreground text-sm">الفئة</Label>
-                  <p className="font-medium">{viewDocument.category}</p>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground text-sm">النوع</Label>
-                  <p className="font-medium">{viewDocument.document_type}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-sm">التاريخ</Label>
-                  <p className="font-mono">{viewDocument.document_date}</p>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </DialogContent>
       </Dialog>
     </div>
   );
+}
+
+// Helper for conditional class names
+function cn(...classes: (string | undefined | null | false)[]) {
+  return classes.filter(Boolean).join(' ');
 }
