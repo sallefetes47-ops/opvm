@@ -24,7 +24,15 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminLoginModal } from "@/components/AdminLoginModal";
 import { ViewerSettingsPanel } from "@/components/ViewerSettingsPanel";
 
-const mainMenuItems = [
+interface SidebarItem {
+  title: string;
+  url: string;
+  icon: React.ElementType;
+  requiresEdit?: boolean;
+  adminOnly?: boolean;
+}
+
+const mainMenuItems: SidebarItem[] = [
   { title: "لوحة التحكم", url: "/", icon: LayoutDashboard },
   { title: "ملف جديد", url: "/new-file", icon: FilePlus, requiresEdit: true },
   { title: "إعادة الدراسة", url: "/restudy", icon: RefreshCw, requiresEdit: true },
@@ -33,18 +41,18 @@ const mainMenuItems = [
 ];
 
 // These modules are hidden from viewers (requires edit permissions)
-const newModulesItems = [
+const newModulesItems: SidebarItem[] = [
   { title: "محاضر الجلسات", url: "/minutes", icon: FileText },
   { title: "الاستدعاءات", url: "/summons", icon: Users2 },
 ];
 
 // Legal archive is visible to all
-const publicModulesItems = [
+const publicModulesItems: SidebarItem[] = [
   { title: "المراسيم والتعليمات", url: "/legal-archive", icon: Scale },
 ];
 
 // Data Management - hidden from viewers
-const dataManagementItems = [
+const dataManagementItems: SidebarItem[] = [
   { title: "النسخة الاحتياطية", url: "/backup", icon: DatabaseIcon },
   { title: "سلة المحذوفات", url: "/recycle-bin", icon: Trash2 },
 ];
