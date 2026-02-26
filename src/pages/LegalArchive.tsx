@@ -541,6 +541,14 @@ export default function LegalArchive() {
   const [previewLang, setPreviewLang] = useState<PreviewLang>("ar");
   const [sideBySide, setSideBySide] = useState(false);
   const [textQuery, setTextQuery] = useState("");
+  
+  // Smart search state for decree number search
+  const [smartSearchQuery, setSmartSearchQuery] = useState("");
+  
+  // AI Summary state
+  const [showSummary, setShowSummary] = useState(false);
+  const [generatedSummary, setGeneratedSummary] = useState<DecreeSummary | null>(null);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   const selectedDoc = useMemo(() => CORE_DOCS.find((d) => d.id === selectedId)!, [selectedId]);
 
