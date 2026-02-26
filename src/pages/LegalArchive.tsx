@@ -10,12 +10,10 @@ import { DateInput } from "@/components/ui/date-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileText, Plus, Eye, Trash, Search, Trash2, RefreshCcw, Scale, Pencil, Upload, Scan, Globe, Languages } from "lucide-react";
+import { Loader2, FileText, Plus, Eye, Trash, Search, Trash2, RefreshCcw, Scale, Pencil, Upload, Globe, Languages } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { FileImport } from "@/components/FileImport";
-import { FileDropZone } from "@/components/FileDropZone";
-import { scanFromLocalScanner } from "@/lib/scanner-bridge";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -152,8 +150,6 @@ export default function LegalArchive() {
   const [newFile, setNewFile] = useState<File | null>(null);
   const [newFileUrl, setNewFileUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanLanguage, setScanLanguage] = useState<"ar" | "fr">("ar");
 
   // Form Data
   const [formData, setFormData] = useState<Omit<LegislativeDocument, "id" | "status" | "created_at">>({
@@ -194,8 +190,8 @@ export default function LegalArchive() {
         id: Date.now().toString(),
         status: "active",
         created_at: format(new Date(), "yyyy/MM/dd"),
-        file_url_ar: newFileUrl && scanLanguage === "ar" ? newFileUrl : formData.file_url_ar,
-        file_url_fr: newFileUrl && scanLanguage === "fr" ? newFileUrl : formData.file_url_fr,
+        file_url_ar: newFileUrl ? newFileUrl : formData.file_url_ar,
+        file_url_fr: newFileUrl ? newFileUrl : formData.file_url_fr,
       };
 
       saveDocuments([...documents, newDoc]);
@@ -212,27 +208,6 @@ export default function LegalArchive() {
   const handleDelete = (id: string) => {
     saveDocuments(documents.filter(d => d.id !== id));
     toast({ title: "تم الحذف", description: "تم حذف الوثيقة بنجاح" });
-  };
-
-  const handleDirectScan = async () => {
-    setIsScanning(true);
-    try {
-      const scannedFile = await scanFromLocalScanner("Kyocera FS-1035MFP WIA Driver");
-      setNewFile(scannedFile);
-      setNewFileUrl(URL.createObjectURL(scannedFile));
-      toast({
-        title: "تم المسح بنجاح",
-        description: `تم مسح الوثيقة باللغة ${scanLanguage === "ar" ? "العربية" : "الفرنسية"}`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "خطأ",
-        description: "يرجى التأكد من تشغيل تطبيق Scanner Bridge",
-        variant: "destructive",
-      });
-    } finally {
-      setIsScanning(false);
-    }
   };
 
   const resetForm = () => {
@@ -516,44 +491,20 @@ export default function LegalArchive() {
                   </div>
                 </div>
 
-                {/* File Upload with Scanner */}
+                {/* File Upload */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>الملف المرفق</Label>
-                    {formData.language === "both" && (
-                      <div className="flex items-center gap-2">
-                        <Label className="text-sm">لغة المسح:</Label>
-                        <Select value={scanLanguage} onValueChange={(v: "ar" | "fr") => setScanLanguage(v)}>
-                          <SelectTrigger className="w-[120px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ar">العربية</SelectItem>
-                            <SelectItem value="fr">Français</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={handleDirectScan} disabled={isScanning} className="flex-1">
-                      {isScanning ? (
-                        <><Loader2 className="w-4 h-4 ml-2 animate-spin" /> جاري المسح...</>
-                      ) : (
-                        <><Scan className="w-4 h-4 ml-2" /> مسح ضوئي</>
-                      )}
-                    </Button>
-                  </div>
-                  <FileDropZone
-                    onFileSelect={(file) => {
-                      setNewFile(file);
-                      setNewFileUrl(URL.createObjectURL(file));
+                  <Label>الملف المرفق</Label>
+                  <Input
+                    type="file"
+                    accept=".pdf,image/png,image/jpeg,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setNewFile(file);
+                        setNewFileUrl(URL.createObjectURL(file));
+                      }
                     }}
-                    selectedFile={newFile}
-                    onClear={() => {
-                      setNewFile(null);
-                      setNewFileUrl(null);
-                    }}
+                    disabled={isSubmitting}
                   />
                   {newFile && newFileUrl && (
                     <div className="h-48 rounded-lg border overflow-hidden">
