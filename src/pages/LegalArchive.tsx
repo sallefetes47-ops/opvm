@@ -197,7 +197,7 @@ export default function LegalArchive() {
         description: "تم سحب الوثيقة بنجاح من الماسح الضوئي",
       });
     } catch (error: any) {
-      const guidance = "يرجى التأكد من تشغيل تطبيق Scanner Bridge على جهازك";
+      const guidance = "يرجى التأكد من تشغيل تطبيق Scanner Bridge";
       toast({
         title: "خطأ",
         description: `${error?.message || guidance} — ${guidance}`,
@@ -527,7 +527,7 @@ export default function LegalArchive() {
                           onClear={() => setNewFileWithPreview(null)}
                         />
                         <p className="text-xs text-muted-foreground">
-                          يرجى التأكد من تشغيل برنامج Scanner Bridge على الكمبيوتر لاستخدام الماسح الضوئي Kyocera
+                          يرجى التأكد من تشغيل تطبيق Scanner Bridge
                         </p>
                         {newFile && newFileUrl && (
                           <div className="space-y-2 pt-2">
