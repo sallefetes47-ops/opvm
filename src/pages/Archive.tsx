@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Archive, Search, Trash2, Edit, Eye, Loader2, History,
-  Map as MapIcon, List, Upload, Save, X
+  Map as MapIcon, List, Upload, Save, X, FileText
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -149,10 +149,7 @@ export default function ArchivePage() {
         .from("files")
         // PostgREST returns updated rows by default; when soft-deleting, the row may no longer
         // match the SELECT policy (is_deleted=false). Avoid requiring SELECT on the updated row.
-        .update(
-          { is_deleted: true, deleted_at: new Date().toISOString() },
-          { returning: "minimal" }
-        )
+        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
         .eq("id", fileId);
       if (error) throw error;
     },
@@ -170,7 +167,7 @@ export default function ArchivePage() {
       // No need for returned row payload; keep responses small.
       const { error } = await supabase
         .from("files")
-        .update(data, { returning: "minimal" })
+        .update(data)
         .eq("id", data.id);
       if (error) throw error;
     },
