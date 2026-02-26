@@ -790,6 +790,105 @@ export default function LegalArchive() {
                     </Card>
                 </div>
             </div>
+
+            {/* AI Summary Dialog */}
+            <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="font-cairo text-xl">
+                            <BrainCircuit className="w-5 h-5 inline ml-2" />
+                            الملخص الذكي - {selectedDoc.number}
+                        </DialogTitle>
+                        <DialogDescription className="font-cairo">
+                            {selectedDoc.title_ar}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6 mt-4">
+                        {/* Objectif */}
+                        <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <h3 className="font-cairo font-bold text-lg mb-3 text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                                <span className="text-2xl">📋</span>
+                                الهدف (Objectif)
+                            </h3>
+                            <ul className="space-y-2 mr-6">
+                                {summary.objectif.map((item, i) => (
+                                    <li key={i} className="font-cairo text-sm text-foreground">
+                                        <span className="text-blue-600 dark:text-blue-400 ml-2">•</span>
+                                        {item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Conditions */}
+                        <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                            <h3 className="font-cairo font-bold text-lg mb-3 text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                                <span className="text-2xl">⚠️</span>
+                                الشروط (Conditions)
+                            </h3>
+                            <ul className="space-y-2 mr-6">
+                                {summary.conditions.map((item, i) => (
+                                    <li key={i} className="font-cairo text-sm text-foreground">
+                                        <span className="text-amber-600 dark:text-amber-400 ml-2">•</span>
+                                        {item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Procedures */}
+                        <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                            <h3 className="font-cairo font-bold text-lg mb-3 text-green-800 dark:text-green-300 flex items-center gap-2">
+                                <span className="text-2xl">✅</span>
+                                الإجراءات (Procedures)
+                            </h3>
+                            <ul className="space-y-2 mr-6">
+                                {summary.procedures.map((item, i) => (
+                                    <li key={i} className="font-cairo text-sm text-foreground">
+                                        <span className="text-green-600 dark:text-green-400 ml-2">•</span>
+                                        {item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Raw text for copying */}
+                        <div className="bg-muted p-3 rounded-lg border">
+                            <p className="font-cairo text-xs text-muted-foreground mb-2">نسخ الملخص:</p>
+                            <pre className="font-cairo text-sm whitespace-pre-wrap" dir="rtl">
+                                {formattedSummary}
+                            </pre>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* PDF Preview Dialog */}
+            <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
+                    <DialogHeader className="p-4 border-b">
+                        <DialogTitle className="font-cairo">
+                            معاينة PDF - {selectedDoc.number}
+                        </DialogTitle>
+                        <DialogDescription className="font-cairo">
+                            {selectedDoc.title_ar}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="p-4">
+                        <div className="border rounded-lg overflow-hidden" style={{ height: '70vh' }}>
+                            <iframe
+                                src={getPdfPath(selectedDoc.id)}
+                                className="w-full h-full"
+                                title={`PDF Preview - ${selectedDoc.number}`}
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 font-cairo">
+                            ملاحظة: إذا لم يظهر PDF، تأكد من وجود الملف في: {getPdfPath(selectedDoc.id)}
+                        </p>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
