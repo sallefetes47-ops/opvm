@@ -242,17 +242,19 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 style={(feature) => {
                     const props = (feature?.properties || {}) as Record<string, unknown>;
                     const municipalityCode = props.Municipality ?? props.MUNICIPALITY ?? props.COMMUNE ?? '';
-                    const fillColor = getMunicipalityColor(municipalityCode);
-                    const borderColor = getMunicipalityBorderColor(municipalityCode);
+                    const strokeColor = getMunicipalityBorderColor(municipalityCode);
                     const parcelKey = getParcelKey(props);
                     const isHovered = hoveredParcelKey === parcelKey;
                     const isSelected = selectedParcelKey === parcelKey;
                     const isFound = foundParcelKey === parcelKey;
+                    
+                    // Outlines only styling - NO FILL
                     return {
-                        fillColor,
-                        fillOpacity: 0.5,
-                        color: isFound ? '#eaff00' : isHovered || isSelected ? borderColor : '#ffffff',
-                        weight: isFound ? 4 : isSelected ? 3 : isHovered ? 2.5 : 1.1,
+                        fillColor: 'transparent',
+                        fillOpacity: 0,
+                        color: isFound ? '#fbbf24' : isHovered || isSelected ? strokeColor : strokeColor,
+                        weight: isFound ? 4 : isSelected ? 4 : isHovered ? 3.5 : 2,
+                        opacity: 1,
                     };
                 }}
                 eventHandlers={{
