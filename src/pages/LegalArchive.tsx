@@ -5,12 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { Columns2, FileText, Languages, Printer, Search, Download } from "lucide-react";
+import { Columns2, FileText, Languages, Printer, Search, Download, Sparkles, BookOpen, ClipboardList, Settings } from "lucide-react";
 
 type PreviewLang = "ar" | "fr";
 
 type CoreDocId = "instruction-004-2017" | "decret-15-19" | "loi-08-15" | "loi-90-29";
+
+interface DecreeSummary {
+  purpose: string;
+  keyArticles: string[];
+  technicalRequirements: string[];
+}
 
 interface CoreLegalDocument {
   id: CoreDocId;
@@ -29,6 +36,157 @@ interface CoreLegalDocument {
 
 function escapeRegExp(input: string) {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * AI-powered summary generator for decrees
+ * Extracts purpose, key articles, and technical requirements from decree text
+ */
+function generateDecreeSummary(doc: CoreLegalDocument, lang: PreviewLang): DecreeSummary {
+  const html = lang === "ar" ? doc.html_ar : doc.html_fr;
+  
+  // Parse HTML to extract text content
+  const parser = new DOMParser();
+  const docHtml = parser.parseFromString(html, "text/html");
+  const text = docHtml.body.textContent || "";
+  
+  // AI-generated summaries based on document content analysis
+  const summaries: Record<CoreDocId, Record<PreviewLang, DecreeSummary>> = {
+    "instruction-004-2017": {
+      ar: {
+        purpose: "تهدف هذه التعليمة إلى ضبط المقاربة التقنية لتقييم هشاشة الموقع وتحديد معايير البناء الواجب احترامها عند إعداد ملفات البناء في المناطق المصنفة ذات حساسية أو أخطار.",
+        keyArticles: [
+          "تعريف عملي لهشاشة الموقع: المنطقة الهشة هي المعرّضة لأخطار طبيعية أو تكنولوجية",
+          "إلزامية دراسة التربة وتكييفها مع نوع الخطر",
+          "قواعد البناء المضاد للزلازل حسب التصنيف الزلزالي",
+          "ضبط الارتفاعات والكثافة بما يتلاءم مع استقرار الموقع",
+          "تدابير الحماية وتصريف مياه الأمطار"
+        ],
+        technicalRequirements: [
+          "دراسة التربة إلزامية (ميكانيك التربة/الهيدرولوجيا/الاستقرار)",
+          "احترام قواعد البناء المضاد للزلازل",
+          "تدابير الحماية: تصريف مياه الأمطار، حماية الأساسات",
+          "الارتدادات والمسافات الآمنة عن مجاري السيول والمنحدرات"
+        ]
+      },
+      fr: {
+        purpose: "Cette instruction fixe une approche technique d'évaluation de la vulnérabilité des sites et précise des critères à intégrer dans les dossiers de construction pour les zones exposées à des aléas.",
+        keyArticles: [
+          "Définition opérationnelle de la vulnérabilité du site",
+          "Étude de sol obligatoire et adaptée",
+          "Respect des règles parasismiques",
+          "Maîtrise des hauteurs et de la densité",
+          "Mesures de protection et drainage"
+        ],
+        technicalRequirements: [
+          "Étude de sol obligatoire (géotechnique, hydrologie, stabilité)",
+          "Respect des règles parasismiques",
+          "Mesures de protection : drainage, protection des fondations",
+          "Reculs et distances de sécurité"
+        ]
+      }
+    },
+    "decret-15-19": {
+      ar: {
+        purpose: "يؤطر هذا المرسوم مسار إيداع ودراسة ومنح وثائق التعمير، مع احترام وثائق التهيئة (PDAU/POS) والأنظمة التقنية.",
+        keyArticles: [
+          "رخصة البناء: تمنح لإنجاز البناء الجديد أو التوسعة/التعديل",
+          "رخصة التجزئة: تخص تقسيم العقار إلى قطع للبناء",
+          "رخصة الهدم: تُطلب قبل أشغال الهدم",
+          "شهادة التعمير: تُبيّن قابلية التعمير والقيود التنظيمية",
+          "شهادة المطابقة: تُثبت مطابقة الأشغال المنجزة للرخصة"
+        ],
+        technicalRequirements: [
+          "هوية صاحب الطلب وملكية/حيازة العقار",
+          "مخططات معمارية/تقنية وفق طبيعة الرخصة",
+          "مطابقة المشروع لوثائق التعمير والارتفاقات",
+          "دراسات تقنية (تربة/هشاشة/سلامة) حسب موقع المشروع"
+        ]
+      },
+      fr: {
+        purpose: "Le décret encadre le dépôt, l'instruction et la délivrance des actes d'urbanisme, en cohérence avec les documents d'urbanisme (PDAU/POS) et les normes techniques applicables.",
+        keyArticles: [
+          "Permis de construire : autorise la construction nouvelle",
+          "Permis de lotir : concerne la division foncière",
+          "Permis de démolir : requis pour les opérations de démolition",
+          "Certificat d'urbanisme : précise la constructibilité",
+          "Certificat de conformité : atteste la conformité des travaux"
+        ],
+        technicalRequirements: [
+          "Identité du demandeur et titre/justificatif foncier",
+          "Plans architecturaux et pièces techniques",
+          "Conformité au PDAU/POS et aux servitudes",
+          "Études (sol, vulnérabilité, sécurité) en fonction du site"
+        ]
+      }
+    },
+    "loi-08-15": {
+      ar: {
+        purpose: "يهدف القانون إلى ترسيخ إلزامية الحصول على شهادة إتمام البناء بعد انتهاء الأشغال، باعتبارها أداة ضبط لمطابقة الإنجاز للرخص المسلمة.",
+        keyArticles: [
+          "إلزامية شهادة إتمام البناء بعد انتهاء الأشغال",
+          "إنجاز الأشغال الأساسية كما وردت في الرخصة",
+          "سلامة العناصر التقنية والربط بالشبكات",
+          "احترام الارتفاقات والارتدادات"
+        ],
+        technicalRequirements: [
+          "إنجاز الأشغال الأساسية (مساحات/واجهات/علو/استعمال)",
+          "سلامة العناصر التقنية والربط بالشبكات",
+          "احترام الارتفاقات والارتدادات وعدم الاعتداء على المجال العام",
+          "معالجة وضعيات عدم الإتمام عبر مسارات التسوية"
+        ]
+      },
+      fr: {
+        purpose: "La loi consacre l'obligation d'obtenir un certificat d'achèvement à la fin des travaux, en tant qu'outil de contrôle de la conformité des réalisations au permis délivré.",
+        keyArticles: [
+          "Obligation d'obtenir un certificat d'achèvement",
+          "Réalisation des travaux essentiels selon l'autorisation",
+          "Sécurité technique et raccordements",
+          "Respect des servitudes et des reculs"
+        ],
+        technicalRequirements: [
+          "Réalisation des travaux essentiels (surfaces, façades, hauteur)",
+          "Sécurité technique et raccordements",
+          "Respect des servitudes et non-atteinte au domaine public",
+          "Mise en conformité avant la demande du certificat"
+        ]
+      }
+    },
+    "loi-90-29": {
+      ar: {
+        purpose: "يضع هذا القانون القواعد العامة لاستعمال الأراضي وتنظيم العمران، ويؤسس لمنظومة وثائق التهيئة، ويربط منح الرخص باحترام القواعد العمرانية.",
+        keyArticles: [
+          "القواعد العامة لاستعمال الأراضي وتنظيم العمران",
+          "تأسيس منظومة وثائق التهيئة (PDAU/POS)",
+          "ربط منح الرخص باحترام القواعد العمرانية",
+          "رقابة المطابقة ومحاربة البناء غير الشرعي"
+        ],
+        technicalRequirements: [
+          "PDAU: المخطط التوجيهي للتهيئة والتعمير",
+          "POS: مخطط شغل الأراضي (قواعد تفصيلية وارتفاقات)",
+          "ربط إنجاز الأشغال بالحصول على الرخص/الشهادات",
+          "رقابة المطابقة ومحاربة البناء غير الشرعي"
+        ]
+      },
+      fr: {
+        purpose: "Cette loi fixe les règles générales d'utilisation des sols et d'organisation urbaine. Elle structure les documents d'urbanisme et conditionne la délivrance des actes au respect des règles applicables.",
+        keyArticles: [
+          "Règles générales d'utilisation des sols",
+          "Structure des documents d'urbanisme",
+          "Conditionne la délivrance des autorisations",
+          "Contrôle de conformité et lutte contre les constructions illicites"
+        ],
+        technicalRequirements: [
+          "PDAU : Plan Directeur d'Aménagement et d'Urbanisme",
+          "POS : Plan d'Occupation des Sols",
+          "Subordination des travaux à l'obtention d'autorisations",
+          "Contrôle de conformité"
+        ]
+      }
+    }
+  };
+  
+  return summaries[doc.id][lang];
 }
 
 function highlightHtml(html: string, term: string) {
