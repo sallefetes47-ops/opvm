@@ -377,11 +377,14 @@ function DocHtml({ html, lang, className }: { html: string; lang: PreviewLang; c
 }
 
 export default function LegalArchive() {
+    const { toast } = useToast();
     const [listQuery, setListQuery] = useState("");
     const [selectedId, setSelectedId] = useState<CoreDocId>("loi-90-29");
     const [previewLang, setPreviewLang] = useState<PreviewLang>("ar");
     const [sideBySide, setSideBySide] = useState(false);
     const [textQuery, setTextQuery] = useState("");
+    const [summaryOpen, setSummaryOpen] = useState(false);
+    const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
     const selectedDoc = useMemo(() => CORE_DOCS.find((d) => d.id === selectedId)!, [selectedId]);
 
@@ -500,6 +503,28 @@ export default function LegalArchive() {
   </body>
 </html>`);
         w.document.close();
+    };
+
+    const handleOpenSummary = () => {
+        setSummaryOpen(true);
+    };
+
+    const handleOpenPdfPreview = () => {
+        setPdfPreviewOpen(true);
+    };
+
+    const summary = useMemo(() => generateSummary(selectedDoc.id, selectedDoc.html_ar), [selectedDoc]);
+    const formattedSummary = useMemo(() => formatSummaryForDisplay(summary), [summary]);
+
+    // Get PDF path for local preview
+    const getPdfPath = (docId: string) => {
+        const pdfMap: Record<string, string> = {
+            "instruction-004-2017": "/documents/legislations/instruction-004-2017.pdf",
+            "decret-15-19": "/documents/legislations/decret-15-19.pdf",
+            "loi-08-15": "/documents/legislations/loi-08-15.pdf",
+            "loi-90-29": "/documents/legislations/loi-90-29.pdf",
+        };
+        return pdfMap[docId] || "";
     };
 
     return (
