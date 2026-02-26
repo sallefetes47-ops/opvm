@@ -13,7 +13,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Columns2, FileText, Languages, Printer, Search, FileSpreadsheet, BrainCircuit } from "lucide-react";
+import { Columns2, FileText, Languages, Printer, Search, FileSpreadsheet, BrainCircuit, Download } from "lucide-react";
 import { generateSummary, formatSummaryForDisplay } from "@/lib/ai-summarizer";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,6 +32,8 @@ interface CoreLegalDocument {
     keywords: string[];
     html_ar: string;
     html_fr: string;
+    official_ar: string;
+    official_fr: string;
 }
 
 function escapeRegExp(input: string) {
@@ -530,15 +532,50 @@ export default function LegalArchive() {
     return (
         <div className="space-y-4">
             {/* Module Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <FileText className="w-5 h-5 text-primary" />
+            <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold font-cairo">مستعرض النصوص القانونية</h1>
+                            <p className="text-muted-foreground text-sm font-cairo">Document Previewer (1962 - 2026)</p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-bold font-cairo">مستعرض النصوص القانونية</h1>
-                        <p className="text-muted-foreground text-sm font-cairo">Document Previewer (1962 - 2026)</p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="font-cairo"
+                            onClick={handleOpenPdfPreview}
+                        >
+                            <FileSpreadsheet className="w-4 h-4 ml-2" />
+                            معاينة PDF
+                        </Button>
+                        <Button
+                            variant="default"
+                            size="sm"
+                            className="font-cairo"
+                            onClick={handleOpenSummary}
+                        >
+                            <BrainCircuit className="w-4 h-4 ml-2" />
+                            ملخص ذكي
+                        </Button>
                     </div>
+                </div>
+
+                {/* Search by Number Bar */}
+                <div className="flex items-center gap-3 bg-muted/30 p-3 rounded-lg border">
+                    <Search className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-cairo text-sm font-semibold">البحث برقم النص:</span>
+                    <Input
+                        value={listQuery}
+                        onChange={(e) => setListQuery(e.target.value)}
+                        placeholder="مثال: 15-19، 22-55، 004/2017، 08-15، 90-29"
+                        className="flex-1 font-cairo font-mono"
+                        dir="ltr"
+                    />
                 </div>
             </div>
 
