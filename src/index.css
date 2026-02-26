@@ -114,6 +114,7 @@
 @layer base {
   * {
     @apply border-border;
+    font-family: 'Cairo', sans-serif !important;
   }
 
   html {
@@ -122,6 +123,12 @@
 
   body {
     @apply bg-background text-foreground font-cairo antialiased;
+    font-family: 'Cairo', sans-serif !important;
+  }
+
+  /* Force Cairo font on all text elements */
+  h1, h2, h3, h4, h5, h6, p, span, div, label, button, input, select, textarea {
+    font-family: 'Cairo', sans-serif !important;
   }
 }
 
