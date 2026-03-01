@@ -1,9 +1,9 @@
 /**
  * Government Domain Search Engine
  * Restricts legal queries to official Algerian government domains
- * using Google Custom Search API via Vite dev proxy.
+ * using Google Custom Search API.
  * 
- * FORCED API FIX: Clean reconnect implementation with debug logging
+ * FORCED ARCHITECTURAL FIX: Clean fetch implementation with strict key validation
  */
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -13,15 +13,15 @@ export interface GovSearchResult {
     link: string;
     snippet: string;
     displayLink: string;
-    fileFormat?: string; // e.g. "PDF"
+    fileFormat?: string;
     sourceBadge: SourceBadge;
 }
 
 export interface SourceBadge {
     label: string;
-    color: string;       // tailwind bg class
-    textColor: string;   // tailwind text class
-    borderColor: string; // tailwind border class
+    color: string;
+    textColor: string;
+    borderColor: string;
 }
 
 export interface GovSearchResponse {
@@ -81,18 +81,11 @@ const DEFAULT_BADGE: SourceBadge = {
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/**
- * Build the search query with domain restriction.
- * Appends OR-combined site: filters so results come only from the 4 gov domains.
- */
 export function buildGovSearchQuery(userQuery: string): string {
     const siteFilter = GOV_DOMAINS.map((d) => `site:${d.domain}`).join(" OR ");
     return `${userQuery.trim()} (${siteFilter})`;
 }
 
-/**
- * Parse a result URL and return the matching source badge.
- */
 export function getSourceBadge(url: string): SourceBadge {
     const lower = url.toLowerCase();
     for (const d of GOV_DOMAINS) {
@@ -108,16 +101,10 @@ export function getSourceBadge(url: string): SourceBadge {
     return DEFAULT_BADGE;
 }
 
-/**
- * Check if a URL points to a PDF file.
- */
 export function isPdfUrl(url: string): boolean {
     return url.toLowerCase().endsWith(".pdf");
 }
 
-/**
- * Check if the required env vars are configured.
- */
 export function isSearchConfigured(): boolean {
     const key = import.meta.env.VITE_GOOGLE_SEARCH_API_KEY;
     const cx = import.meta.env.VITE_GOOGLE_SEARCH_CX;
@@ -127,8 +114,7 @@ export function isSearchConfigured(): boolean {
 // ── API Call ─────────────────────────────────────────────────────────
 
 /**
- * Search Algerian government domains via the Vite proxy.
- * FORCED API FIX: Clean reconnect with debug logging
+ * FORCED ARCHITECTURAL FIX: Clean fetch with strict key validation
  */
 export async function searchGovDomains(
     query: string,
@@ -138,28 +124,41 @@ export async function searchGovDomains(
         return { results: [], totalResults: 0, searchTime: 0 };
     }
 
-    // Explicitly re-read environment variables (fresh read on each call)
+    // Strict key validation - check for undefined/null/empty
     const apiKey = import.meta.env.VITE_GOOGLE_SEARCH_API_KEY;
     const cx = import.meta.env.VITE_GOOGLE_SEARCH_CX;
 
-    console.log("[Google Search API] Environment check:");
-    console.log("[Google Search API] API Key configured:", apiKey ? "Yes (length: " + apiKey.length + ")" : "No");
-    console.log("[Google Search API] CX configured:", cx ? "Yes (length: " + cx.length + ")" : "No");
+    console.log("[GOOGLE API] Key check:", {
+        hasKey: apiKey !== undefined && apiKey !== null && apiKey.length > 0,
+        hasCx: cx !== undefined && cx !== null && cx.length > 0,
+        keyLength: apiKey?.length || 0,
+        cxLength: cx?.length || 0,
+    });
 
-    if (!apiKey || !cx) {
-        console.error("[Google Search API] Missing configuration!");
+    if (apiKey === undefined || apiKey === null || apiKey.length === 0) {
+        console.error("[GOOGLE API] API KEY IS UNDEFINED OR EMPTY");
         return {
             results: [],
             totalResults: 0,
             searchTime: 0,
-            error: "مفاتيح البحث غير مُعدّة. يرجى إضافة VITE_GOOGLE_SEARCH_API_KEY و VITE_GOOGLE_SEARCH_CX في ملف .env",
+            error: "مفتاح API غير مُعد. يرجى إضافة VITE_GOOGLE_SEARCH_API_KEY في ملف .env",
+        };
+    }
+
+    if (cx === undefined || cx === null || cx.length === 0) {
+        console.error("[GOOGLE API] CX IS UNDEFINED OR EMPTY");
+        return {
+            results: [],
+            totalResults: 0,
+            searchTime: 0,
+            error: "معرف محرك البحث غير مُعد. يرجى إضافة VITE_GOOGLE_SEARCH_CX في ملف .env",
         };
     }
 
     const fullQuery = buildGovSearchQuery(query);
     const startTime = performance.now();
 
-    // Build the exact fetch URL
+    // Clean fetch URL construction
     const baseUrl = "https://www.googleapis.com/customsearch/v1";
     const params = new URLSearchParams({
         key: apiKey,
@@ -170,33 +169,23 @@ export async function searchGovDomains(
         lr: "lang_ar|lang_fr",
     });
 
-    const fetchUrl = `${baseUrl}?${params.toString()}`;
-    
-    console.log("[Google Search API] Fetch URL:", baseUrl + "?key=***REDACTED***&cx=" + cx + "&q=" + encodeURIComponent(fullQuery));
-    console.log("[Google Search API] Sending request...");
+    const url = `${baseUrl}?${params.toString()}`;
+    console.log("[GOOGLE API] Fetching:", url.replace(apiKey, "***REDACTED***"));
 
     try {
-        const response = await fetch(fetchUrl);
+        const response = await fetch(url);
+        const data = await response.json();
 
-        console.log("[Google Search API] Response status:", response.status, response.statusText);
-
-        // Clone response for debugging (in case we need to read it twice)
-        const responseClone = response.clone();
-        
-        // Read response body for debug logging
-        const responseBody = await responseClone.json().catch(() => null);
-        
-        console.log("[Google Search API] Full response object:", JSON.stringify(responseBody, null, 2));
+        // Debug: Log full response for error diagnosis
+        console.log("[GOOGLE API] Full Response:", data);
 
         if (!response.ok) {
-            const errorData = responseBody;
-            const errorMsg = errorData?.error?.message || `خطأ في الخادم: ${response.status}`;
+            console.error("[GOOGLE API] Request failed:", response.status, response.statusText);
+            console.error("[GOOGLE API] Error response:", data);
             
-            console.error("[Google Search API] Error details:", {
-                status: response.status,
-                statusText: response.statusText,
-                error: errorData,
-            });
+            const errorMsg = data?.error?.message || 
+                            data?.error?.errors?.[0]?.message || 
+                            `خطأ في الخادم: ${response.status}`;
             
             return {
                 results: [],
@@ -206,10 +195,8 @@ export async function searchGovDomains(
             };
         }
 
-        const data = responseBody;
         const elapsed = Math.round(performance.now() - startTime);
-
-        console.log("[Google Search API] Success! Found", data.searchInformation?.totalResults || 0, "results in", elapsed, "ms");
+        console.log("[GOOGLE API] Success:", data.searchInformation?.totalResults || 0, "results in", elapsed, "ms");
 
         const results: GovSearchResult[] = (data.items || []).map(
             (item: Record<string, unknown>) => ({
@@ -228,12 +215,12 @@ export async function searchGovDomains(
             searchTime: elapsed,
         };
     } catch (err) {
-        console.error("[Google Search API] Network error:", err);
+        console.error("[GOOGLE API] Network error:", err);
         return {
             results: [],
             totalResults: 0,
             searchTime: 0,
-            error: err instanceof Error ? err.message : "خطأ غير متوقع في الاتصال",
+            error: err instanceof Error ? err.message : "خطأ في الاتصال بالخادم",
         };
     }
 }

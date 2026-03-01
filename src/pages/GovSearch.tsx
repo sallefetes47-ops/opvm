@@ -50,16 +50,25 @@ export default function GovSearch() {
             e?.preventDefault();
             if (!query.trim() || loading) return;
 
+            // HARD RESET: Clear all previous states before new search
             setLoading(true);
             setError(null);
+            setResults([]);
+            setTotalResults(0);
+            setSearchTime(0);
             setHasSearched(true);
+
+            console.log("[UI] Starting fresh search, all states reset");
 
             const response = await searchGovDomains(query);
 
             setResults(response.results);
             setTotalResults(response.totalResults);
             setSearchTime(response.searchTime);
-            if (response.error) setError(response.error);
+            if (response.error) {
+                setError(response.error);
+                console.error("[UI] Search error:", response.error);
+            }
 
             setLoading(false);
         },
@@ -236,37 +245,37 @@ export default function GovSearch() {
                 </div>
             )}
 
-            {/* Error */}
-            {error && (
-                <Card className="border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/20">
-                    <CardContent className="pt-6">
-                        <div className="flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-                            <div className="font-cairo">
-                                <p className="text-sm text-red-700 dark:text-red-400">
-                                    {error}
-                                </p>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="mt-3 font-cairo"
-                                    onClick={() => handleSearch()}
-                                >
-                                    إعادة المحاولة
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Loading */}
+            {/* Loading State - Clean Spinner */}
             {loading && (
                 <div className="flex flex-col items-center justify-center py-16 gap-4">
-                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                    <p className="font-cairo text-muted-foreground">
+                    <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                    <p className="font-cairo text-lg text-foreground font-semibold">
                         جارٍ البحث في النطاقات الحكومية...
                     </p>
+                    <p className="font-cairo text-sm text-muted-foreground">
+                        يرجى الانتظار
+                    </p>
+                </div>
+            )}
+
+            {/* Error State - Inline with results area */}
+            {error && !loading && (
+                <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
+                    <AlertCircle className="w-12 h-12 text-amber-500" />
+                    <div className="font-cairo max-w-md">
+                        <p className="text-sm text-muted-foreground mb-4" dir="rtl">
+                            {error}
+                        </p>
+                        <Button
+                            variant="default"
+                            size="sm"
+                            className="font-cairo"
+                            onClick={() => handleSearch()}
+                        >
+                            <Search className="w-4 h-4 ml-2" />
+                            إعادة المحاولة
+                        </Button>
+                    </div>
                 </div>
             )}
 
