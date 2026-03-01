@@ -24,6 +24,7 @@ import LegalArchive from "@/pages/LegalArchive";
 import Backup from "@/pages/Backup";
 import RecycleBin from "@/pages/RecycleBin";
 import UrbanMap from "@/pages/UrbanMap";
+import GovSearch from "@/pages/GovSearch";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -68,6 +69,7 @@ const App = () => (
                   <Route path="/backup" element={<Backup />} />
                   <Route path="/urban-map" element={<UrbanMap />} />
                   <Route path="/recycle-bin" element={<RecycleBin />} />
+                  <Route path="/gov-search" element={<GovSearch />} />
                 </Route>
 
                 {/* 404 */}
