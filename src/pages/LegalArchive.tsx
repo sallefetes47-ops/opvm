@@ -398,13 +398,28 @@ export default function LegalArchive() {
     const [summaryOpen, setSummaryOpen] = useState(false);
     const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
+    // Cadastral info from Urban Map selection
+    const [cadastralSection, setCadastralSection] = useState("");
+    const [cadastralGroup, setCadastralGroup] = useState("");
+
     // Handle URL parameters for pre-selecting document from Urban Map
     useEffect(() => {
         const docParam = searchParams.get('doc');
+        const sectionParam = searchParams.get('section');
+        const groupParam = searchParams.get('group');
+
         if (docParam && ['instruction-004-2017', 'decret-15-19', 'loi-08-15', 'loi-90-29'].includes(docParam)) {
             setSelectedId(docParam as CoreDocId);
             // Open summary automatically when navigating from map
             setTimeout(() => setSummaryOpen(true), 500);
+        }
+
+        // Store cadastral info for AI summary context
+        if (sectionParam) {
+            setCadastralSection(sectionParam);
+        }
+        if (groupParam) {
+            setCadastralGroup(groupParam);
         }
     }, [searchParams]);
 
@@ -837,6 +852,35 @@ export default function LegalArchive() {
                             {selectedDoc.title_ar}
                         </DialogDescription>
                     </DialogHeader>
+
+                    {/* Cadastral Info Banner - Display Section & Group from map selection */}
+                    {(cadastralSection || cadastralGroup) && (
+                        <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border-2 border-red-300 dark:border-red-700 mt-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <FileText className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                <h3 className="font-cairo font-bold text-sm text-red-800 dark:text-red-300">
+                                    المعلومات العقارية المحددة
+                                </h3>
+                            </div>
+                            <div className="flex gap-4 font-cairo text-sm">
+                                {cadastralSection && (
+                                    <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-md border border-red-200 dark:border-red-800">
+                                        <span className="text-red-600 dark:text-red-400 font-semibold">القسم:</span>
+                                        <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{cadastralSection}</span>
+                                    </div>
+                                )}
+                                {cadastralGroup && (
+                                    <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-md border border-red-200 dark:border-red-800">
+                                        <span className="text-red-600 dark:text-red-400 font-semibold">المجموعة:</span>
+                                        <span className="font-mono font-bold text-slate-900 dark:text-slate-100">{cadastralGroup}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <p className="font-cairo text-xs text-red-700 dark:text-red-400 mt-3">
+                                تم ربط هذا الملخص بالقطعة العقارية المحددة في الخريطة
+                            </p>
+                        </div>
+                    )}
 
                     <div className="space-y-6 mt-4">
                         {/* Objectif */}

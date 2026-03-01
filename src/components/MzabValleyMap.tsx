@@ -1,9 +1,10 @@
-import React, { useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import React, { useEffect, useImperativeHandle, useMemo, useState, useRef } from 'react';
 import L from 'leaflet';
 import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import type { GeoJsonObject } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
+import { extractCadastralMetadata, generateTooltipContent, type CadastralFeature } from '@/lib/fadaa-dzair';
 
 export type ParcelSelectionData = {
     municipality: string;
@@ -27,6 +28,34 @@ export type MzabValleyMapHandle = {
 interface MzabValleyMapProps {
     onParcelSelect?: (data: ParcelSelectionData) => void;
 }
+
+/**
+ * Cadastral layer styling - RED LINES ONLY (no fill)
+ * Following strict GIS integration rules:
+ * - color: '#FF0000' (Solid Red)
+ * - weight: 2px
+ * - fillOpacity: 0 (Transparent fill, lines only)
+ */
+const CADASTRAL_LINE_STYLE = {
+    color: '#FF0000',
+    weight: 2,
+    fillOpacity: 0,
+    opacity: 1,
+} as const;
+
+const CADASTRAL_HOVER_STYLE = {
+    color: '#FF0000',
+    weight: 3.5,
+    fillOpacity: 0,
+    opacity: 1,
+} as const;
+
+const CADASTRAL_SELECTED_STYLE = {
+    color: '#FF0000',
+    weight: 4,
+    fillOpacity: 0,
+    opacity: 1,
+} as const;
 
 type GeoJsonFeatureCollectionLike = {
     type: 'FeatureCollection';
@@ -236,35 +265,70 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
         if (!geojsonData || !geojsonData.features) return null;
         if (geojsonData.features.length === 0) return null;
 
+        // Store for tooltip references
+        const tooltipRefs: Record<string, L.Popup> = {};
+
         return (
             <GeoJSON
                 data={geojsonData as unknown as GeoJsonObject}
                 style={(feature) => {
                     const props = (feature?.properties || {}) as Record<string, unknown>;
-                    const municipalityCode = props.Municipality ?? props.MUNICIPALITY ?? props.COMMUNE ?? '';
-                    const strokeColor = getMunicipalityBorderColor(municipalityCode);
                     const parcelKey = getParcelKey(props);
                     const isHovered = hoveredParcelKey === parcelKey;
                     const isSelected = selectedParcelKey === parcelKey;
                     const isFound = foundParcelKey === parcelKey;
 
-                    // Outlines only styling - NO FILL
-                    return {
-                        fillColor: 'transparent',
-                        fillOpacity: 0,
-                        color: isFound ? '#fbbf24' : isHovered || isSelected ? strokeColor : strokeColor,
-                        weight: isFound ? 4 : isSelected ? 4 : isHovered ? 3.5 : 2,
-                        opacity: 1,
-                    };
+                    // RED CADASTRAL LINES styling (STRICT GIS rules)
+                    // color: '#FF0000' (Solid Red)
+                    // weight: 2px (or more for hover/selected)
+                    // fillOpacity: 0 (Transparent fill, lines only)
+                    if (isFound) {
+                        return {
+                            ...CADASTRAL_SELECTED_STYLE,
+                            color: '#F59E0B', // Amber for found/searched parcel
+                        };
+                    }
+                    if (isSelected) {
+                        return CADASTRAL_SELECTED_STYLE;
+                    }
+                    if (isHovered) {
+                        return CADASTRAL_HOVER_STYLE;
+                    }
+                    return CADASTRAL_LINE_STYLE;
                 }}
                 eventHandlers={{
                     mouseover: (e) => {
-                        const props = e?.propagatedFrom?.feature?.properties || {};
-                        setHoveredParcelKey(getParcelKey(props));
+                        const feature = e?.propagatedFrom?.feature;
+                        const props = feature?.properties || {};
+                        const parcelKey = getParcelKey(props);
+                        setHoveredParcelKey(parcelKey);
+
+                        // Extract metadata and show tooltip with Cairo font
+                        const metadata = extractCadastralMetadata(feature as CadastralFeature);
+                        const tooltipContent = generateTooltipContent(metadata);
+
+                        if (tooltipContent && e.target) {
+                            const tooltip = L.tooltip({
+                                className: 'cadastral-tooltip font-cairo',
+                                direction: 'top',
+                                offset: L.point(0, -10),
+                                sticky: true,
+                            }).setContent(`<div style="font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 600; white-space: nowrap;">${tooltipContent}</div>`);
+                            
+                            (e.target as L.Layer).bindTooltip(tooltip);
+                            (e.target as L.Layer).openTooltip();
+                        }
                     },
-                    mouseout: () => setHoveredParcelKey(''),
+                    mouseout: (e) => {
+                        setHoveredParcelKey('');
+                        if (e.target) {
+                            (e.target as L.Layer).closeTooltip();
+                            (e.target as L.Layer).unbindTooltip();
+                        }
+                    },
                     click: (e) => {
-                        const props = e?.propagatedFrom?.feature?.properties || {};
+                        const feature = e?.propagatedFrom?.feature;
+                        const props = feature?.properties || {};
                         const clickedKey = getParcelKey(props);
                         setSelectedParcelKey(clickedKey);
                         setFoundParcelKey(clickedKey);
