@@ -45,14 +45,6 @@ const MUNICIPALITY_CODE_TO_NAME: Record<string, string> = {
     '4710': 'بنورة',
     '4705': 'متليلي',
     '4703': 'الضاية',
-    '4702': 'بريان',
-    '4704': 'قارة',
-    '4706': 'المنصورة',
-    '4708': 'سبسب',
-    '4709': 'حاسي الفحل',
-    '4711': 'حاسي قارة',
-    '4712': 'زلفانة',
-    '4713': 'القيارة',
 };
 
 const normalizeMunicipalityCode = (rawValue: unknown): string => {
@@ -76,20 +68,11 @@ const getMunicipalityColor = (code: unknown): string => {
 
 const getMunicipalityBorderColor = (code: unknown): string => {
     const normalizedCode = normalizeMunicipalityCode(code);
-    // Distinct colors for all 13 municipalities of Ghardaïa (Wilaya 47)
     if (normalizedCode === '4701') return '#1e3a8a';      // غرداية - Dark Blue
     if (normalizedCode === '4707') return '#dc2626';      // العطف - Bright Red
     if (normalizedCode === '4710') return '#a21caf';      // بنورة - Purple
     if (normalizedCode === '4705') return '#ea580c';      // متليلي - Bright Orange
     if (normalizedCode === '4703') return '#047857';      // الضاية - Green
-    if (normalizedCode === '4702') return '#0891b2';      // بريان - Cyan
-    if (normalizedCode === '4704') return '#7c3aed';      // قارة - Violet
-    if (normalizedCode === '4706') return '#be185d';      // المنصورة - Pink
-    if (normalizedCode === '4708') return '#059669';      // سبسب - Emerald
-    if (normalizedCode === '4709') return '#d97706';      // حاسي الفحل - Amber
-    if (normalizedCode === '4711') return '#4f46e5';      // حاسي قارة - Indigo
-    if (normalizedCode === '4712') return '#9333ea';      // زلفانة - Purple
-    if (normalizedCode === '4713') return '#c2410c';      // القيارة - Orange
     return '#64748b';
 };
 
