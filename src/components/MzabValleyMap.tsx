@@ -1,10 +1,20 @@
 import React, { useEffect, useImperativeHandle, useMemo, useState, useRef } from 'react';
 import L from 'leaflet';
-import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap, WMSTileLayer } from 'react-leaflet';
 import type { GeoJsonObject } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
 import { extractCadastralMetadata, generateTooltipContent, type CadastralFeature } from '@/lib/fadaa-dzair';
+import {
+    WILAYA_47_CODE,
+    CADASTRAL_LAYERS,
+    createWMSLayerConfig,
+    buildGetFeatureInfoUrl,
+    extractFeatureInfo,
+    fetchOfficialCadastralData,
+    type CadastralFeatureInfo,
+    type WFSFeatureCollection,
+} from '@/lib/fadaa-el-djazair';
 
 export type ParcelSelectionData = {
     municipality: string;
@@ -56,6 +66,16 @@ const CADASTRAL_SELECTED_STYLE = {
     fillOpacity: 0,
     opacity: 1,
 } as const;
+
+/**
+ * Official Fadaa El Djazair WMS layer configuration
+ * Transparent overlay with red cadastral boundaries
+ */
+const FADAA_WMS_CONFIG = createWMSLayerConfig(CADASTRAL_LAYERS.SECTIONS, {
+    format: 'image/png',
+    transparent: true,
+    attribution: '© Fadaa El Djazair - وزارة المالية',
+});
 
 type GeoJsonFeatureCollectionLike = {
     type: 'FeatureCollection';
@@ -184,7 +204,13 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
     const [foundParcelKey, setFoundParcelKey] = useState('');
     const [searchedFeature, setSearchedFeature] = useState<GeoJsonFeatureCollectionLike['features'][number] | null>(null);
     const [resetSignal, setResetSignal] = useState(0);
+    
+    // Official Fadaa El Djazair layer state
+    const [fadaaLayerLoaded, setFadaaLayerLoaded] = useState(false);
+    const [fadaaData, setFadaaData] = useState<WFSFeatureCollection | null>(null);
+    const mapRef = useRef<L.Map | null>(null);
 
+    // Load local cadastral data
     useEffect(() => {
         fetch('/mzab_cadastre_map.geojson')
             .then((res) => {
@@ -196,6 +222,22 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 console.error('خطأ في تحميل بيانات القطع:', err);
                 setGeojsonData({ type: 'FeatureCollection', features: [] });
             });
+    }, []);
+
+    // Load official Fadaa El Djazair data on mount
+    useEffect(() => {
+        const loadFadaaData = async () => {
+            try {
+                const data = await fetchOfficialCadastralData(WILAYA_47_CODE, undefined, true);
+                setFadaaData(data);
+                setFadaaLayerLoaded(true);
+                console.log('[Fadaa El Djazair] Data loaded:', data.features.length, 'features');
+            } catch (error) {
+                console.error('[Fadaa El Djazair] Failed to load data:', error);
+                setFadaaLayerLoaded(false);
+            }
+        };
+        loadFadaaData();
     }, []);
 
     const emitSelection = (props: Record<string, unknown>) => {
