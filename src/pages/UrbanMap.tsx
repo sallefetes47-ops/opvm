@@ -81,14 +81,14 @@ const UrbanMap = () => {
 
     const exportToPDF = () => {
         const doc = new jsPDF();
-        
+
         // Get current date in YYYY/MM/DD format
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
         const formattedDate = `${year}/${month}/${day}`;
-        
+
         doc.setFont('customFont', 'normal');
         doc.text('ديوان حماية وادي ميزاب', 105, 20, { align: 'center' });
         doc.text('استمارة طلب تسوية (المرسوم 15-19)', 105, 30, { align: 'center' });
@@ -122,12 +122,12 @@ const UrbanMap = () => {
 
     const handleOpenDocumentPreviewer = () => {
         if (!parcelData.section) return;
-        
+
         // Determine relevant decree based on section or user context
         // For now, default to 15-19 (urban planning permits)
         // In production, this could be smarter based on parcel data
         const targetDocId = 'decret-15-19';
-        
+
         // Navigate to LegalArchive with the document pre-selected
         navigate(`/legal-archive?doc=${targetDocId}&section=${parcelData.section}&group=${parcelData.propertyGroup}`);
     };
