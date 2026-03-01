@@ -12,6 +12,7 @@ import {
     buildGetFeatureInfoUrl,
     extractFeatureInfo,
     fetchOfficialCadastralData,
+    parseArabicProperties,
     type CadastralFeatureInfo,
     type WFSFeatureCollection,
 } from '@/lib/fadaa-el-djazair';
@@ -383,7 +384,13 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
     return (
         <div className='relative' style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
-            <MapContainer center={[32.49, 3.67]} zoom={11} maxZoom={22} style={{ height: '100%', width: '100%' }}>
+            <MapContainer 
+                center={[32.49, 3.67]} 
+                zoom={11} 
+                maxZoom={22} 
+                style={{ height: '100%', width: '100%' }}
+                ref={mapRef}
+            >
                 <LayersControl position='topright'>
                     <LayersControl.BaseLayer checked name='خريطة الشارع (OSM)'>
                         <TileLayer
@@ -412,9 +419,99 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                             />
                         </LayersControl.BaseLayer>
                     )}
+                    
+                    {/* Official Fadaa El Djazair WMS Layer - Transparent Cadastral Overlay */}
+                    <LayersControl.Overlay checked name='الطبقة العقارية الرسمية (فداء الجزائر)'>
+                        <WMSTileLayer
+                            url={FADAA_WMS_CONFIG.url}
+                            layers={FADAA_WMS_CONFIG.layers}
+                            format={FADAA_WMS_CONFIG.format}
+                            transparent={FADAA_WMS_CONFIG.transparent}
+                            attribution={FADAA_WMS_CONFIG.attribution}
+                            version='1.3.0'
+                            crs='EPSG:3857'
+                            zIndex={100}
+                            eventHandlers={{
+                                tileload: (e) => {
+                                    console.log('[Fadaa WMS] Tile loaded');
+                                },
+                                tileerror: (e) => {
+                                    console.warn('[Fadaa WMS] Tile error:', e);
+                                },
+                            }}
+                        />
+                    </LayersControl.Overlay>
                 </LayersControl>
 
+                {/* Local GeoJSON cadastral data */}
                 {geoJsonLayer}
+                
+                {/* Official Fadaa El Djazair vector data overlay (when available) */}
+                {fadaaData && fadaaData.features.length > 0 && (
+                    <GeoJSON
+                        data={fadaaData as unknown as GeoJsonObject}
+                        style={() => CADASTRAL_LINE_STYLE}
+                        eventHandlers={{
+                            mouseover: (e) => {
+                                const feature = e?.propagatedFrom?.feature;
+                                const props = (feature as any)?.properties || {};
+                                
+                                // Extract official cadastral info
+                                const info = extractFeatureInfo(props as Record<string, unknown>);
+                                const tooltipContent = generateTooltipContent({
+                                    section: info.section,
+                                    propertyGroup: info.propertyGroup,
+                                    municipality: info.municipality,
+                                    area: info.area,
+                                });
+
+                                if (tooltipContent && e.target) {
+                                    const tooltip = L.tooltip({
+                                        className: 'cadastral-tooltip font-cairo',
+                                        direction: 'top',
+                                        offset: L.point(0, -10),
+                                        sticky: true,
+                                    }).setContent(`<div style="font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 600; white-space: nowrap;">${tooltipContent}</div>`);
+                                    
+                                    (e.target as L.Layer).bindTooltip(tooltip);
+                                    (e.target as L.Layer).openTooltip();
+                                }
+                            },
+                            mouseout: (e) => {
+                                if (e.target) {
+                                    (e.target as L.Layer).closeTooltip();
+                                    (e.target as L.Layer).unbindTooltip();
+                                }
+                            },
+                            click: (e) => {
+                                const feature = e?.propagatedFrom?.feature;
+                                const props = (feature as any)?.properties || {};
+                                
+                                // Extract official cadastral metadata with strict formatting
+                                const info = extractFeatureInfo(props as Record<string, unknown>);
+                                
+                                // Parse Arabic properties for complete metadata
+                                const arabicProps = parseArabicProperties(props as Record<string, unknown>);
+                                
+                                // Emit selection with official data
+                                if (onParcelSelect) {
+                                    const rawArea = typeof info.area === 'number' ? info.area : Number(props.Area ?? props.AREA ?? NaN);
+                                    const actualArea = Number.isFinite(rawArea) ? Number(rawArea.toFixed(2)) : null;
+                                    const cadastralArea = actualArea === null ? null : toCadastralArea(actualArea);
+                                    
+                                    onParcelSelect({
+                                        municipality: info.municipality || resolveMunicipalityName(props.commune_code ?? props.COMMUNE ?? ''),
+                                        section: info.section || formatSection(props.Section ?? props.SECTION ?? ''),
+                                        propertyGroup: info.propertyGroup || formatPropertyGroup(props.PropertyGroup ?? props.ILOT ?? ''),
+                                        actualArea,
+                                        cadastralArea,
+                                    });
+                                }
+                            },
+                        }}
+                    />
+                )}
+                
                 <MapSearchController targetFeature={searchedFeature} resetSignal={resetSignal} />
             </MapContainer>
 
