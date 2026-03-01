@@ -2,6 +2,8 @@
  * Government Domain Search Engine
  * Restricts legal queries to official Algerian government domains
  * using Google Custom Search API via Vite dev proxy.
+ * 
+ * FORCED API FIX: Clean reconnect implementation with debug logging
  */
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -126,6 +128,7 @@ export function isSearchConfigured(): boolean {
 
 /**
  * Search Algerian government domains via the Vite proxy.
+ * FORCED API FIX: Clean reconnect with debug logging
  */
 export async function searchGovDomains(
     query: string,
@@ -135,10 +138,16 @@ export async function searchGovDomains(
         return { results: [], totalResults: 0, searchTime: 0 };
     }
 
+    // Explicitly re-read environment variables (fresh read on each call)
     const apiKey = import.meta.env.VITE_GOOGLE_SEARCH_API_KEY;
     const cx = import.meta.env.VITE_GOOGLE_SEARCH_CX;
 
+    console.log("[Google Search API] Environment check:");
+    console.log("[Google Search API] API Key configured:", apiKey ? "Yes (length: " + apiKey.length + ")" : "No");
+    console.log("[Google Search API] CX configured:", cx ? "Yes (length: " + cx.length + ")" : "No");
+
     if (!apiKey || !cx) {
+        console.error("[Google Search API] Missing configuration!");
         return {
             results: [],
             totalResults: 0,
@@ -150,24 +159,45 @@ export async function searchGovDomains(
     const fullQuery = buildGovSearchQuery(query);
     const startTime = performance.now();
 
-    try {
-        const params = new URLSearchParams({
-            key: apiKey,
-            cx: cx,
-            q: fullQuery,
-            start: String(start),
-            num: "10",
-            lr: "lang_ar|lang_fr",
-        });
+    // Build the exact fetch URL
+    const baseUrl = "https://www.googleapis.com/customsearch/v1";
+    const params = new URLSearchParams({
+        key: apiKey,
+        cx: cx,
+        q: fullQuery,
+        start: String(start),
+        num: "10",
+        lr: "lang_ar|lang_fr",
+    });
 
-        const response = await fetch(
-            `https://www.googleapis.com/customsearch/v1?${params.toString()}`
-        );
+    const fetchUrl = `${baseUrl}?${params.toString()}`;
+    
+    console.log("[Google Search API] Fetch URL:", baseUrl + "?key=***REDACTED***&cx=" + cx + "&q=" + encodeURIComponent(fullQuery));
+    console.log("[Google Search API] Sending request...");
+
+    try {
+        const response = await fetch(fetchUrl);
+
+        console.log("[Google Search API] Response status:", response.status, response.statusText);
+
+        // Clone response for debugging (in case we need to read it twice)
+        const responseClone = response.clone();
+        
+        // Read response body for debug logging
+        const responseBody = await responseClone.json().catch(() => null);
+        
+        console.log("[Google Search API] Full response object:", JSON.stringify(responseBody, null, 2));
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            const errorMsg =
-                errorData?.error?.message || `خطأ في الخادم: ${response.status}`;
+            const errorData = responseBody;
+            const errorMsg = errorData?.error?.message || `خطأ في الخادم: ${response.status}`;
+            
+            console.error("[Google Search API] Error details:", {
+                status: response.status,
+                statusText: response.statusText,
+                error: errorData,
+            });
+            
             return {
                 results: [],
                 totalResults: 0,
@@ -176,8 +206,10 @@ export async function searchGovDomains(
             };
         }
 
-        const data = await response.json();
+        const data = responseBody;
         const elapsed = Math.round(performance.now() - startTime);
+
+        console.log("[Google Search API] Success! Found", data.searchInformation?.totalResults || 0, "results in", elapsed, "ms");
 
         const results: GovSearchResult[] = (data.items || []).map(
             (item: Record<string, unknown>) => ({
@@ -196,6 +228,7 @@ export async function searchGovDomains(
             searchTime: elapsed,
         };
     } catch (err) {
+        console.error("[Google Search API] Network error:", err);
         return {
             results: [],
             totalResults: 0,
