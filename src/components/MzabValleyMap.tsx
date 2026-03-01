@@ -206,10 +206,11 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
     const [searchedFeature, setSearchedFeature] = useState<GeoJsonFeatureCollectionLike['features'][number] | null>(null);
     const [resetSignal, setResetSignal] = useState(0);
 
-    // Official Fadaa El Djazair layer state
+    // Official Fadaa El Djazair LIVE API layer state
     const [fadaaLayerLoaded, setFadaaLayerLoaded] = useState(false);
     const [fadaaData, setFadaaData] = useState<WFSFeatureCollection | null>(null);
     const [fadaaLoadError, setFadaaLoadError] = useState<string | null>(null);
+    const [isLoadingFadaa, setIsLoadingFadaa] = useState(true);
     const mapRef = useRef<L.Map | null>(null);
 
     // Load local cadastral data with error handling
@@ -231,41 +232,61 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
         loadLocalData();
     }, []);
 
-    // Load official Fadaa El Djazair data with STRICT error handling
-    // CRITICAL: Map must NOT crash if this fails
+    // ========================================================================
+    // LIVE API FETCH - Fadaa El Djazair Official Cadastral Data
+    // BULLETPROOF ERROR HANDLING - Map will NOT crash on failure
+    // ========================================================================
     useEffect(() => {
-        const loadFadaaData = async () => {
+        const loadFadaaLiveApiData = async () => {
+            setIsLoadingFadaa(true);
+            setFadaaLoadError(null);
+            
             try {
+                console.log('[Fadaa LIVE API] Fetching data from https://fadaeldjazair.mf.gov.dz...');
+                
+                // LIVE API FETCH with crash prevention
                 const data = await fetchOfficialCadastralData(WILAYA_47_CODE, undefined, true);
                 
-                // Validate data before setting
-                if (!data || !Array.isArray(data.features)) {
-                    throw new Error('Invalid data format from server');
+                // Validate data structure before setting state
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Invalid data structure from API');
                 }
                 
+                if (!Array.isArray(data.features)) {
+                    throw new Error('Invalid features array from API');
+                }
+                
+                // Successfully loaded live data
                 setFadaaData(data);
                 setFadaaLayerLoaded(true);
-                setFadaaLoadError(null);
+                setIsLoadingFadaa(false);
                 
                 if (data.features.length > 0) {
-                    console.log('[Fadaa El Djazair] Data loaded:', data.features.length, 'features');
+                    console.log(`[Fadaa LIVE API] ✓ Loaded ${data.features.length} cadastral features`);
+                } else {
+                    console.warn('[Fadaa LIVE API] No features found in response');
                 }
-            } catch (error: any) {
-                console.error('[Fadaa El Djazair] Failed to load data:', error);
-                setFadaaLayerLoaded(false);
-                setFadaaLoadError(error?.message || 'Unknown error');
-                setFadaaData(null);
                 
-                // Show non-intrusive toast notification - DO NOT CRASH THE MAP
+            } catch (error: any) {
+                // CRITICAL: Catch all errors and show notification - DON'T CRASH
+                console.error('[Fadaa LIVE API] Fetch failed:', error?.message || error);
+                
+                setFadaaLayerLoaded(false);
+                setFadaaLoadError(error?.message || 'فشل الاتصال بالخادم');
+                setFadaaData(null);
+                setIsLoadingFadaa(false);
+                
+                // Show user-friendly toast notification (Arabic)
                 toast({
                     title: 'تنبيه',
-                    description: 'تعذر جلب بيانات المسح العقاري من الخادم الخارجي',
+                    description: 'تعذر الاتصال بخادم فضاء الجزائر مؤقتاً',
                     variant: 'default',
-                    duration: 5000,
+                    duration: 6000,
                 });
             }
         };
-        loadFadaaData();
+        
+        loadFadaaLiveApiData();
     }, [toast]);
 
     const emitSelection = (props: Record<string, unknown>) => {

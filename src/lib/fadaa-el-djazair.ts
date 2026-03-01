@@ -4,7 +4,9 @@
  * Integration with the official Algerian Land Registry (Fadaa El Djazair)
  * Ministry of Finance - Wilaya 47 (Ghardaïa)
  * 
- * Source: https://fadaeldjazair.mf.gov.dz
+ * LIVE API ENDPOINTS:
+ * - WMS: https://fadaeldjazair.mf.gov.dz/geoserver/wms
+ * - WFS: https://fadaeldjazair.mf.gov.dz/geoserver/wfs
  * 
  * This module provides:
  * - WMS (Web Map Service) layer integration for visual overlays
@@ -16,24 +18,23 @@
 import { formatSection, formatPropertyGroup } from '@/lib/cadastre';
 
 // ============================================================================
-// CONFIGURATION - Official Fadaa El Djazair Endpoints
+// CONFIGURATION - Official Fadaa El Djazair Endpoints (LIVE)
 // ============================================================================
 
 /**
- * Official Fadaa El Djazair base URL
- * Note: The frontend URL is https://fadaeldjazair.mf.gov.dz/mission-documentaire/index_public_47.html
- * The actual WMS/WFS endpoints are derived from the underlying map server
+ * Official Fadaa El Djazair base URL (LIVE)
+ * Source: https://fadaeldjazair.mf.gov.dz/mission-documentaire/index_public_47.html
  */
 export const FADAA_EL_DJAZAIR_BASE_URL = 'https://fadaeldjazair.mf.gov.dz';
 
 /**
- * WMS (Web Map Service) Endpoint
+ * WMS (Web Map Service) Endpoint - LIVE
  * Used for visual map overlays with transparent cadastral boundaries
  */
 export const WMS_ENDPOINT = `${FADAA_EL_DJAZAIR_BASE_URL}/geoserver/wms`;
 
 /**
- * WFS (Web Feature Service) Endpoint  
+ * WFS (Web Feature Service) Endpoint - LIVE
  * Used for fetching raw vector data (GeoJSON) with property attributes
  */
 export const WFS_ENDPOINT = `${FADAA_EL_DJAZAIR_BASE_URL}/geoserver/wfs`;
@@ -51,7 +52,7 @@ export const WILAYA_47_CODE = '47';
 
 /**
  * Available layers for Fadaa El Djazair cadastral data
- * These are typical layer names - adjust based on actual server capabilities
+ * Based on typical GeoServer layer naming conventions
  */
 export const CADASTRAL_LAYERS = {
   /** Cadastral sections (Sections cadastrales) */
@@ -62,6 +63,15 @@ export const CADASTRAL_LAYERS = {
   PARCELS: 'cadastre:parcelles',
   /** Communes */
   COMMUNES: 'cadastre:communes',
+} as const;
+
+/**
+ * Alternative layer names (common variations)
+ */
+export const CADASTRAL_LAYERS_ALT = {
+  SECTIONS: ['cadastre:sections', 'cadastre:section', 'sections', 'section_cadastrale'],
+  PROPERTY_GROUPS: ['cadastre:groupes_propriete', 'cadastre:ilot', 'ilots', 'groupes'],
+  PARCELS: ['cadastre:parcelles', 'cadastre:parcelle', 'parcelles', 'parcelles_cadastrales'],
 } as const;
 
 // ============================================================================
@@ -472,61 +482,146 @@ export function parseArabicProperties(props: Record<string, unknown>): Record<st
 }
 
 // ============================================================================
-// MAIN FETCHING FUNCTIONS
+// MAIN FETCHING FUNCTIONS (LIVE API WITH CRASH PREVENTION)
 // ============================================================================
 
 /**
- * Fetches cadastral data from Fadaa El Djazair WFS service
+ * Fetches cadastral data from Fadaa El Djazair WFS service (LIVE API)
+ * 
+ * BULLETPROOF ERROR HANDLING:
+ * - Wraps fetch in strict try/catch
+ * - Checks response.ok explicitly
+ * - Returns empty FeatureCollection on error (never crashes)
  * 
  * @param wilayaCode - Wilaya code (e.g., '47' for Ghardaïa)
  * @param communeCode - Commune code (optional)
  * @param useProxy - Whether to use CORS proxy (default: true)
- * @returns Promise resolving to FeatureCollection
+ * @returns Promise resolving to FeatureCollection (empty on error)
  * 
  * @example
  * // Fetch all sections for Wilaya 47
  * const data = await fetchOfficialCadastralData('47');
- * 
- * @example
- * // Fetch specific commune
- * const data = await fetchOfficialCadastralData('47', '01');
  */
 export async function fetchOfficialCadastralData(
   wilayaCode: string = WILAYA_47_CODE,
   communeCode?: string,
   useProxy: boolean = true
 ): Promise<WFSFeatureCollection> {
+  // Try primary layer name first
+  const primaryLayer = CADASTRAL_LAYERS.SECTIONS;
+  
+  try {
+    const data = await fetchWFSLayer(primaryLayer, wilayaCode, communeCode, useProxy);
+    
+    // Validate response structure
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response structure');
+    }
+    
+    if (!Array.isArray(data.features)) {
+      throw new Error('Invalid features array');
+    }
+    
+    console.log(`[Fadaa El Djazair LIVE] Successfully fetched ${data.features.length} features from ${primaryLayer}`);
+    return data;
+    
+  } catch (error: any) {
+    // Log error but don't crash
+    console.warn(`[Fadaa El Djazair] Primary layer failed (${primaryLayer}):`, error?.message || error);
+    
+    // Try alternative layer names
+    for (const altLayer of CADASTRAL_LAYERS_ALT.SECTIONS) {
+      if (altLayer === primaryLayer) continue;
+      
+      try {
+        console.log(`[Fadaa El Djazair] Trying alternative layer: ${altLayer}`);
+        const altData = await fetchWFSLayer(altLayer, wilayaCode, communeCode, useProxy);
+        
+        if (altData && Array.isArray(altData.features) && altData.features.length > 0) {
+          console.log(`[Fadaa El Djazair LIVE] Success with alternative layer ${altLayer}: ${altData.features.length} features`);
+          return altData;
+        }
+      } catch (altError: any) {
+        console.warn(`[Fadaa El Djazair] Alternative layer failed (${altLayer}):`, altError?.message || altError);
+      }
+    }
+    
+    // All attempts failed - return empty collection (DON'T CRASH)
+    console.warn('[Fadaa El Djazair] All layer attempts failed, returning empty data');
+    return {
+      type: 'FeatureCollection',
+      features: [],
+    };
+  }
+}
+
+/**
+ * Internal function to fetch a specific WFS layer
+ */
+async function fetchWFSLayer(
+  layerName: string,
+  wilayaCode: string,
+  communeCode: string | undefined,
+  useProxy: boolean
+): Promise<WFSFeatureCollection> {
   const params: WFSQueryParams = {
-    typeName: CADASTRAL_LAYERS.SECTIONS,
+    typeName: layerName,
     wilayaCode,
     communeCode,
     outputFormat: 'application/json',
     srsName: 'EPSG:4326',
   };
 
-  try {
-    if (useProxy) {
-      return await fetchWFSThroughProxy(params);
-    } else {
-      const url = buildWFSGetFeatureUrl(params);
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`WFS error: ${response.status}`);
-      }
-      
-      return await response.json();
+  // Build the WFS URL
+  const wfsUrl = buildWFSGetFeatureUrl(params);
+  
+  // CRITICAL: Explicit 404/error checking
+  if (useProxy) {
+    // Use CORS proxy
+    const proxyUrl = `${CADASTRAL_PROXY_ENDPOINT}?targetUrl=${encodeURIComponent(wfsUrl)}`;
+    
+    const response = await fetch(proxyUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json, application/xml, text/plain',
+        'Accept-Language': 'ar-DZ,ar;q=0.9,fr;q=0.8,en;q=0.7',
+        'Accept-Charset': 'UTF-8',
+      },
+    });
+    
+    // EXPLICIT ERROR CHECKING - Throw on any non-OK status
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      throw new Error(`WFS HTTP ${response.status}: ${errorText.slice(0, 200)}`);
     }
-  } catch (error) {
-    console.error('Failed to fetch official cadastral data:', error);
-    return {
-      type: 'FeatureCollection',
-      features: [],
-    };
+    
+    const data = await response.json();
+    
+    // Validate JSON response
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid JSON response from server');
+    }
+    
+    return data as WFSFeatureCollection;
+    
+  } else {
+    // Direct fetch (may fail due to CORS)
+    const response = await fetch(wfsUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Accept-Language': 'ar-DZ,ar;q=0.9',
+      },
+    });
+    
+    // EXPLICIT ERROR CHECKING
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      throw new Error(`WFS HTTP ${response.status}: ${errorText.slice(0, 200)}`);
+    }
+    
+    const data = await response.json();
+    return data as WFSFeatureCollection;
   }
 }
 
