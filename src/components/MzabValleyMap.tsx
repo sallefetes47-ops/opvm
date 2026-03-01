@@ -9,13 +9,12 @@ import {
     WILAYA_47_CODE,
     CADASTRAL_LAYERS,
     createWMSLayerConfig,
-    buildGetFeatureInfoUrl,
     extractFeatureInfo,
     fetchOfficialCadastralData,
     parseArabicProperties,
-    type CadastralFeatureInfo,
     type WFSFeatureCollection,
 } from '@/lib/fadaa-el-djazair';
+import { useToast } from '@/hooks/use-toast';
 
 export type ParcelSelectionData = {
     municipality: string;
@@ -118,11 +117,11 @@ const getMunicipalityColor = (code: unknown): string => {
 
 const getMunicipalityBorderColor = (code: unknown): string => {
     const normalizedCode = normalizeMunicipalityCode(code);
-    if (normalizedCode === '4701') return '#1e3a8a';      // غرداية - Dark Blue
-    if (normalizedCode === '4707') return '#dc2626';      // العطف - Bright Red
-    if (normalizedCode === '4710') return '#a21caf';      // بنورة - Purple
-    if (normalizedCode === '4705') return '#ea580c';      // متليلي - Bright Orange
-    if (normalizedCode === '4703') return '#047857';      // الضاية - Green
+    if (normalizedCode === '4701') return '#1e3a8a';
+    if (normalizedCode === '4707') return '#dc2626';
+    if (normalizedCode === '4710') return '#a21caf';
+    if (normalizedCode === '4705') return '#ea580c';
+    if (normalizedCode === '4703') return '#047857';
     return '#64748b';
 };
 
@@ -199,47 +198,75 @@ const MapSearchController = ({
 };
 
 const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(({ onParcelSelect }, ref) => {
+    const { toast } = useToast();
     const [geojsonData, setGeojsonData] = useState<GeoJsonFeatureCollectionLike | null>(null);
     const [hoveredParcelKey, setHoveredParcelKey] = useState('');
     const [selectedParcelKey, setSelectedParcelKey] = useState('');
     const [foundParcelKey, setFoundParcelKey] = useState('');
     const [searchedFeature, setSearchedFeature] = useState<GeoJsonFeatureCollectionLike['features'][number] | null>(null);
     const [resetSignal, setResetSignal] = useState(0);
-    
+
     // Official Fadaa El Djazair layer state
     const [fadaaLayerLoaded, setFadaaLayerLoaded] = useState(false);
     const [fadaaData, setFadaaData] = useState<WFSFeatureCollection | null>(null);
+    const [fadaaLoadError, setFadaaLoadError] = useState<string | null>(null);
     const mapRef = useRef<L.Map | null>(null);
 
-    // Load local cadastral data
+    // Load local cadastral data with error handling
     useEffect(() => {
-        fetch('/mzab_cadastre_map.geojson')
-            .then((res) => {
-                if (!res.ok) throw new Error('البيانات العقارية غير متوفرة');
-                return res.json();
-            })
-            .then((data) => setGeojsonData(normalizeGeoJson(data)))
-            .catch((err) => {
+        const loadLocalData = async () => {
+            try {
+                const res = await fetch('/mzab_cadastre_map.geojson');
+                if (!res.ok) {
+                    throw new Error('البيانات العقارية غير متوفرة');
+                }
+                const data = await res.json();
+                setGeojsonData(normalizeGeoJson(data));
+            } catch (err) {
                 console.error('خطأ في تحميل بيانات القطع:', err);
+                // Don't crash - just use empty data
                 setGeojsonData({ type: 'FeatureCollection', features: [] });
-            });
+            }
+        };
+        loadLocalData();
     }, []);
 
-    // Load official Fadaa El Djazair data on mount
+    // Load official Fadaa El Djazair data with STRICT error handling
+    // CRITICAL: Map must NOT crash if this fails
     useEffect(() => {
         const loadFadaaData = async () => {
             try {
                 const data = await fetchOfficialCadastralData(WILAYA_47_CODE, undefined, true);
+                
+                // Validate data before setting
+                if (!data || !Array.isArray(data.features)) {
+                    throw new Error('Invalid data format from server');
+                }
+                
                 setFadaaData(data);
                 setFadaaLayerLoaded(true);
-                console.log('[Fadaa El Djazair] Data loaded:', data.features.length, 'features');
-            } catch (error) {
+                setFadaaLoadError(null);
+                
+                if (data.features.length > 0) {
+                    console.log('[Fadaa El Djazair] Data loaded:', data.features.length, 'features');
+                }
+            } catch (error: any) {
                 console.error('[Fadaa El Djazair] Failed to load data:', error);
                 setFadaaLayerLoaded(false);
+                setFadaaLoadError(error?.message || 'Unknown error');
+                setFadaaData(null);
+                
+                // Show non-intrusive toast notification - DO NOT CRASH THE MAP
+                toast({
+                    title: 'تنبيه',
+                    description: 'تعذر جلب بيانات المسح العقاري من الخادم الخارجي',
+                    variant: 'default',
+                    duration: 5000,
+                });
             }
         };
         loadFadaaData();
-    }, []);
+    }, [toast]);
 
     const emitSelection = (props: Record<string, unknown>) => {
         if (!onParcelSelect) return;
@@ -308,9 +335,6 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
         if (!geojsonData || !geojsonData.features) return null;
         if (geojsonData.features.length === 0) return null;
 
-        // Store for tooltip references
-        const tooltipRefs: Record<string, L.Popup> = {};
-
         return (
             <GeoJSON
                 data={geojsonData as unknown as GeoJsonObject}
@@ -322,13 +346,10 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     const isFound = foundParcelKey === parcelKey;
 
                     // RED CADASTRAL LINES styling (STRICT GIS rules)
-                    // color: '#FF0000' (Solid Red)
-                    // weight: 2px (or more for hover/selected)
-                    // fillOpacity: 0 (Transparent fill, lines only)
                     if (isFound) {
                         return {
                             ...CADASTRAL_SELECTED_STYLE,
-                            color: '#F59E0B', // Amber for found/searched parcel
+                            color: '#F59E0B',
                         };
                     }
                     if (isSelected) {
@@ -346,7 +367,6 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                         const parcelKey = getParcelKey(props);
                         setHoveredParcelKey(parcelKey);
 
-                        // Extract metadata and show tooltip with Cairo font
                         const metadata = extractCadastralMetadata(feature as CadastralFeature);
                         const tooltipContent = generateTooltipContent(metadata);
 
@@ -357,7 +377,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                                 offset: L.point(0, -10),
                                 sticky: true,
                             }).setContent(`<div style="font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 600; white-space: nowrap;">${tooltipContent}</div>`);
-                            
+
                             (e.target as L.Layer).bindTooltip(tooltip);
                             (e.target as L.Layer).openTooltip();
                         }
@@ -382,12 +402,30 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
         );
     }, [geojsonData, hoveredParcelKey, selectedParcelKey, foundParcelKey]);
 
+    // Validate Fadaa data before rendering - CRITICAL for preventing crashes
+    const validFadaaData = useMemo(() => {
+        if (!fadaaData || !Array.isArray(fadaaData.features) || fadaaData.features.length === 0) {
+            return null;
+        }
+        
+        // Validate each feature has proper geometry
+        const validFeatures = fadaaData.features.filter((f: any) => 
+            f && f.type === 'Feature' && hasGeometry(f?.geometry)
+        );
+        
+        if (validFeatures.length === 0) return null;
+        
+        return { ...fadaaData, features: validFeatures };
+    }, [fadaaData]);
+
     return (
         <div className='relative' style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
-            <MapContainer 
-                center={[32.49, 3.67]} 
-                zoom={11} 
-                maxZoom={22} 
+            {/* CRITICAL FIX: Explicit CRS projection to prevent "crs.project is not a function" error */}
+            <MapContainer
+                center={[32.49, 3.67]}
+                zoom={11}
+                maxZoom={22}
+                crs={L.CRS.EPSG3857}
                 style={{ height: '100%', width: '100%' }}
                 ref={mapRef}
             >
@@ -419,7 +457,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                             />
                         </LayersControl.BaseLayer>
                     )}
-                    
+
                     {/* Official Fadaa El Djazair WMS Layer - Transparent Cadastral Overlay */}
                     <LayersControl.Overlay checked name='الطبقة العقارية الرسمية (فداء الجزائر)'>
                         <WMSTileLayer
@@ -429,14 +467,14 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                             transparent={FADAA_WMS_CONFIG.transparent}
                             attribution={FADAA_WMS_CONFIG.attribution}
                             version='1.3.0'
-                            crs='EPSG:3857'
                             zIndex={100}
                             eventHandlers={{
                                 tileload: (e) => {
                                     console.log('[Fadaa WMS] Tile loaded');
                                 },
                                 tileerror: (e) => {
-                                    console.warn('[Fadaa WMS] Tile error:', e);
+                                    // Silently handle WMS tile errors - don't crash the map
+                                    console.warn('[Fadaa WMS] Tile error (non-fatal):', e);
                                 },
                             }}
                         />
@@ -445,18 +483,17 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
                 {/* Local GeoJSON cadastral data */}
                 {geoJsonLayer}
-                
+
                 {/* Official Fadaa El Djazair vector data overlay (when available) */}
-                {fadaaData && fadaaData.features.length > 0 && (
+                {validFadaaData && (
                     <GeoJSON
-                        data={fadaaData as unknown as GeoJsonObject}
+                        data={validFadaaData as unknown as GeoJsonObject}
                         style={() => CADASTRAL_LINE_STYLE}
                         eventHandlers={{
                             mouseover: (e) => {
                                 const feature = e?.propagatedFrom?.feature;
                                 const props = (feature as any)?.properties || {};
-                                
-                                // Extract official cadastral info
+
                                 const info = extractFeatureInfo(props as Record<string, unknown>);
                                 const tooltipContent = generateTooltipContent({
                                     section: info.section,
@@ -472,7 +509,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                                         offset: L.point(0, -10),
                                         sticky: true,
                                     }).setContent(`<div style="font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 600; white-space: nowrap;">${tooltipContent}</div>`);
-                                    
+
                                     (e.target as L.Layer).bindTooltip(tooltip);
                                     (e.target as L.Layer).openTooltip();
                                 }
@@ -486,19 +523,15 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                             click: (e) => {
                                 const feature = e?.propagatedFrom?.feature;
                                 const props = (feature as any)?.properties || {};
-                                
-                                // Extract official cadastral metadata with strict formatting
+
                                 const info = extractFeatureInfo(props as Record<string, unknown>);
-                                
-                                // Parse Arabic properties for complete metadata
-                                const arabicProps = parseArabicProperties(props as Record<string, unknown>);
-                                
-                                // Emit selection with official data
+                                parseArabicProperties(props as Record<string, unknown>);
+
                                 if (onParcelSelect) {
                                     const rawArea = typeof info.area === 'number' ? info.area : Number(props.Area ?? props.AREA ?? NaN);
                                     const actualArea = Number.isFinite(rawArea) ? Number(rawArea.toFixed(2)) : null;
                                     const cadastralArea = actualArea === null ? null : toCadastralArea(actualArea);
-                                    
+
                                     onParcelSelect({
                                         municipality: info.municipality || resolveMunicipalityName(props.commune_code ?? props.COMMUNE ?? ''),
                                         section: info.section || formatSection(props.Section ?? props.SECTION ?? ''),
@@ -511,17 +544,19 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                         }}
                     />
                 )}
-                
+
                 <MapSearchController targetFeature={searchedFeature} resetSignal={resetSignal} />
             </MapContainer>
 
-            {!GOOGLE_MAPS_API_KEY && (
-                <div className='absolute left-4 top-4 z-[650] rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 shadow'>
-                    مفتاح Google غير مضبوط، طبقة Google Hybrid غير متاحة.
+            {/* Fadaa El Djazair load error indicator - non-intrusive */}
+            {fadaaLoadError && (
+                <div className='absolute left-4 top-20 z-[650] rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 shadow'>
+                    <span className='font-cairo'>⚠️ تعذر تحميل البيانات العقارية الرسمية</span>
                 </div>
             )}
 
-            <div className='pointer-events-none absolute right-4 top-[17.5rem] z-[500] w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
+            {/* Municipality color legend */}
+            <div className='pointer-events-none absolute right-4 top-[4.5rem] z-[500] w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
                 <p className='mb-2 text-xs font-semibold text-slate-700 sticky top-0 bg-white/90 p-1'>دليل الألوان - بلديات ولاية غرداية</p>
                 <div className='space-y-1.5 text-xs text-slate-700'>
                     <div className='flex items-center justify-between gap-2'>
