@@ -1,14 +1,12 @@
 import React, { useEffect, useImperativeHandle, useMemo, useState, useRef } from 'react';
 import L from 'leaflet';
-import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap, WMSTileLayer } from 'react-leaflet';
+import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import type { GeoJsonObject } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
 import { extractCadastralMetadata, generateTooltipContent, type CadastralFeature } from '@/lib/fadaa-dzair';
 import {
     WILAYA_47_CODE,
-    CADASTRAL_LAYERS,
-    createWMSLayerConfig,
     extractFeatureInfo,
     fetchOfficialCadastralData,
     parseArabicProperties,
@@ -66,16 +64,6 @@ const CADASTRAL_SELECTED_STYLE = {
     fillOpacity: 0,
     opacity: 1,
 } as const;
-
-/**
- * Official Fadaa El Djazair WMS layer configuration
- * Transparent overlay with red cadastral boundaries
- */
-const FADAA_WMS_CONFIG = createWMSLayerConfig(CADASTRAL_LAYERS.SECTIONS, {
-    format: 'image/png',
-    transparent: true,
-    attribution: '© Fadaa El Djazair - وزارة المالية',
-});
 
 type GeoJsonFeatureCollectionLike = {
     type: 'FeatureCollection';
@@ -478,34 +466,12 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                             />
                         </LayersControl.BaseLayer>
                     )}
-
-                    {/* Official Fadaa El Djazair WMS Layer - Transparent Cadastral Overlay */}
-                    <LayersControl.Overlay checked name='الطبقة العقارية الرسمية (فداء الجزائر)'>
-                        <WMSTileLayer
-                            url={FADAA_WMS_CONFIG.url}
-                            layers={FADAA_WMS_CONFIG.layers}
-                            format={FADAA_WMS_CONFIG.format}
-                            transparent={FADAA_WMS_CONFIG.transparent}
-                            attribution={FADAA_WMS_CONFIG.attribution}
-                            version='1.3.0'
-                            zIndex={100}
-                            eventHandlers={{
-                                tileload: (e) => {
-                                    console.log('[Fadaa WMS] Tile loaded');
-                                },
-                                tileerror: (e) => {
-                                    // Silently handle WMS tile errors - don't crash the map
-                                    console.warn('[Fadaa WMS] Tile error (non-fatal):', e);
-                                },
-                            }}
-                        />
-                    </LayersControl.Overlay>
                 </LayersControl>
 
                 {/* Local GeoJSON cadastral data */}
                 {geoJsonLayer}
 
-                {/* Official Fadaa El Djazair vector data overlay (when available) */}
+                {/* Official Fadaa El Djazair LIVE API vector data overlay (auto-loaded, no checkbox) */}
                 {validFadaaData && (
                     <GeoJSON
                         data={validFadaaData as unknown as GeoJsonObject}
