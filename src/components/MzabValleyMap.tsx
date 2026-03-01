@@ -341,38 +341,6 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                         <span>الضاية</span>
                         <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#047857', boxShadow: '0 0 0 1px #047857' }} />
                     </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>بريان</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#0891b2', boxShadow: '0 0 0 1px #0891b2' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>قارة</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#7c3aed', boxShadow: '0 0 0 1px #7c3aed' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>المنصورة</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#be185d', boxShadow: '0 0 0 1px #be185d' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>سبسب</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#059669', boxShadow: '0 0 0 1px #059669' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>حاسي الفحل</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#d97706', boxShadow: '0 0 0 1px #d97706' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>حاسي قارة</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#4f46e5', boxShadow: '0 0 0 1px #4f46e5' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>زلفانة</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#9333ea', boxShadow: '0 0 0 1px #9333ea' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>القيارة</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#c2410c', boxShadow: '0 0 0 1px #c2410c' }} />
-                    </div>
                 </div>
             </div>
         </div>
