@@ -20,6 +20,7 @@ import {
     AlertCircle,
     Download,
     Eye,
+    Archive,
 } from "lucide-react";
 import {
     searchGovDomains,
@@ -27,8 +28,11 @@ import {
     isPdfUrl,
     type GovSearchResult,
 } from "@/lib/gov-search";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export default function GovSearch() {
+    const { toast } = useToast();
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<GovSearchResult[]>([]);
     const [totalResults, setTotalResults] = useState(0);
@@ -37,6 +41,7 @@ export default function GovSearch() {
     const [error, setError] = useState<string | null>(null);
     const [hasSearched, setHasSearched] = useState(false);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+    const [savingId, setSavingId] = useState<string | null>(null);
 
     const configured = isSearchConfigured();
 
@@ -70,6 +75,51 @@ export default function GovSearch() {
             }
         },
         []
+    );
+
+    const handleSaveToArchive = useCallback(
+        async (result: GovSearchResult, buttonId: string) => {
+            if (savingId === buttonId) return; // Prevent double-click
+
+            setSavingId(buttonId);
+
+            try {
+                // Extract date from snippet if available (look for date patterns)
+                const dateMatch = result.snippet?.match(/\b(\d{4}[-/]\d{1,2}[-/]\d{1,2})\b/);
+                const extractedDate = dateMatch ? dateMatch[1] : null;
+
+                const { error } = await supabase.from("decrees").insert({
+                    title: result.title.replace(/<[^>]*>/g, ""), // Strip HTML tags
+                    url: result.link,
+                    source: result.sourceBadge.label,
+                    date: extractedDate,
+                    snippet: result.snippet?.replace(/<[^>]*>/g, "") || null,
+                });
+
+                if (error) {
+                    toast({
+                        variant: "destructive",
+                        title: "خطأ في الحفظ",
+                        description: "حدث خطأ أثناء حفظ المرسوم. يرجى المحاولة مرة أخرى.",
+                    });
+                } else {
+                    toast({
+                        title: "تم الحفظ بنجاح",
+                        description: "تم حفظ المرسوم في قاعدة بيانات الديوان بنجاح",
+                        className: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700",
+                    });
+                }
+            } catch (err) {
+                toast({
+                    variant: "destructive",
+                    title: "خطأ في الاتصال",
+                    description: "تعذر الاتصال بقاعدة البيانات. يرجى التحقق من الاتصال والمحاولة مرة أخرى.",
+                });
+            } finally {
+                setSavingId(null);
+            }
+        },
+        [savingId, toast]
     );
 
     return (
@@ -229,6 +279,8 @@ export default function GovSearch() {
                                 key={`${result.link}-${idx}`}
                                 result={result}
                                 onViewClick={handleResultClick}
+                                onSaveToArchive={handleSaveToArchive}
+                                isSaving={savingId === `save-${result.link}`}
                             />
                         ))}
                     </div>
@@ -338,11 +390,16 @@ export default function GovSearch() {
 function ResultCard({
     result,
     onViewClick,
+    onSaveToArchive,
+    isSaving,
 }: {
     result: GovSearchResult;
     onViewClick: (r: GovSearchResult) => void;
+    onSaveToArchive: (r: GovSearchResult, id: string) => void;
+    isSaving: boolean;
 }) {
     const isPdf = isPdfUrl(result.link);
+    const saveButtonId = `save-${result.link}`;
 
     return (
         <Card className="hover:shadow-md transition-shadow duration-200 border-border/60">
@@ -395,7 +452,7 @@ function ResultCard({
 
                         <div className="flex items-center gap-2">
                             <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
                                 className="font-cairo text-xs h-8"
                                 onClick={() =>
@@ -424,6 +481,30 @@ function ResultCard({
                                     <>
                                         <Eye className="w-3.5 h-3.5 ml-1.5" />
                                         عرض
+                                    </>
+                                )}
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className={cn(
+                                    "font-cairo text-xs h-8",
+                                    isSaving
+                                        ? "bg-emerald-600 hover:bg-emerald-700"
+                                        : "bg-emerald-600/90 hover:bg-emerald-700"
+                                )}
+                                onClick={() => onSaveToArchive(result, saveButtonId)}
+                                disabled={isSaving}
+                            >
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 ml-1.5 animate-spin" />
+                                        جارٍ الحفظ...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Archive className="w-3.5 h-3.5 ml-1.5" />
+                                        حفظ في الأرشيف
                                     </>
                                 )}
                             </Button>

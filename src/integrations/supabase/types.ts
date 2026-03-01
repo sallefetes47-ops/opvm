@@ -361,6 +361,39 @@ export type Database = {
         }
         Relationships: []
       }
+      decrees: {
+        Row: {
+          id: string
+          title: string
+          url: string
+          source: string
+          date: string | null
+          snippet: string | null
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          url: string
+          source: string
+          date?: string | null
+          snippet?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          url?: string
+          source?: string
+          date?: string | null
+          snippet?: string | null
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
