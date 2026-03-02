@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polygon, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -310,11 +310,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
-    // --- Heritage Zoning Layers State (المجال المحفوظ) ---
-    const [ksoursVisible, setKsoursVisible] = useState(false);
-    const [palmGrovesVisible, setPalmGrovesVisible] = useState(false);
-    const [valleyVisible, setValleyVisible] = useState(false);
-
     // --- GeoJSON Cadastre Data ---
     const [cadastreGeoJson, setCadastreGeoJson] = useState<any>(null);
     useEffect(() => {
@@ -324,70 +319,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
             .catch(err => console.warn('لم يتم تحميل بيانات المسح العقاري:', err.message));
     }, []);
     const hasCadastreGeoJson = Array.isArray(cadastreGeoJson?.features) && cadastreGeoJson.features.length > 0;
-
-    // --- Heritage Zoning Placeholder Data ---
-    const heritageLayersData = useMemo(() => ({
-        ksours: {
-            type: 'FeatureCollection' as const,
-            features: [
-                // Placeholder: Replace with actual Ksours boundaries
-                {
-                    type: 'Feature' as const,
-                    properties: { name: 'قصر بني يزقن', type: 'ksar' },
-                    geometry: {
-                        type: 'Polygon' as const,
-                        coordinates: [[
-                            [3.685, 32.485],
-                            [3.695, 32.485],
-                            [3.695, 32.495],
-                            [3.685, 32.495],
-                            [3.685, 32.485],
-                        ]]
-                    }
-                }
-            ]
-        },
-        palmGroves: {
-            type: 'FeatureCollection' as const,
-            features: [
-                // Placeholder: Replace with actual Palm Groves
-                {
-                    type: 'Feature' as const,
-                    properties: { name: 'واحة النخيل', type: 'palm_grove' },
-                    geometry: {
-                        type: 'Polygon' as const,
-                        coordinates: [[
-                            [3.675, 32.475],
-                            [3.690, 32.475],
-                            [3.690, 32.485],
-                            [3.675, 32.485],
-                            [3.675, 32.475],
-                        ]]
-                    }
-                }
-            ]
-        },
-        valley: {
-            type: 'FeatureCollection' as const,
-            features: [
-                // Placeholder: Replace with actual Valley Easements
-                {
-                    type: 'Feature' as const,
-                    properties: { name: 'حرم الوادي', type: 'valley' },
-                    geometry: {
-                        type: 'Polygon' as const,
-                        coordinates: [[
-                            [3.670, 32.470],
-                            [3.700, 32.470],
-                            [3.700, 32.490],
-                            [3.670, 32.490],
-                            [3.670, 32.470],
-                        ]]
-                    }
-                }
-            ]
-        }
-    }), []);
 
     // --- STATE ---
 
@@ -508,55 +439,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
 
                         {/* MVT Vector Layer for Ghardaia Cadastral Parcels */}
                         <MapLibreVectorLayer />
-
-                        {/* Heritage Zoning Layers (المجال المحفوظ) */}
-                        {ksoursVisible && (
-                            <GeoJSON
-                                data={heritageLayersData.ksours}
-                                style={{
-                                    color: '#b45309',
-                                    weight: 2,
-                                    fillColor: '#fbbf24',
-                                    fillOpacity: 0.3,
-                                }}
-                                onEachFeature={(feature, layer) => {
-                                    const props = feature.properties as any;
-                                    layer.bindTooltip(`<div dir="rtl" style="font-family: Cairo; font-weight: bold;">${props?.name || 'حدود القصر'}</div>`, { sticky: true });
-                                }}
-                            />
-                        )}
-
-                        {palmGrovesVisible && (
-                            <GeoJSON
-                                data={heritageLayersData.palmGroves}
-                                style={{
-                                    color: '#14532d',
-                                    weight: 2,
-                                    fillColor: '#22c55e',
-                                    fillOpacity: 0.3,
-                                }}
-                                onEachFeature={(feature, layer) => {
-                                    const props = feature.properties as any;
-                                    layer.bindTooltip(`<div dir="rtl" style="font-family: Cairo; font-weight: bold;">${props?.name || 'واحة النخيل'}</div>`, { sticky: true });
-                                }}
-                            />
-                        )}
-
-                        {valleyVisible && (
-                            <GeoJSON
-                                data={heritageLayersData.valley}
-                                style={{
-                                    color: '#1e3a8a',
-                                    weight: 2,
-                                    fillColor: '#3b82f6',
-                                    fillOpacity: 0.3,
-                                }}
-                                onEachFeature={(feature, layer) => {
-                                    const props = feature.properties as any;
-                                    layer.bindTooltip(`<div dir="rtl" style="font-family: Cairo; font-weight: bold;">${props?.name || 'حرم الوادي'}</div>`, { sticky: true });
-                                }}
-                            />
-                        )}
 
                         {/* طبقة القطع العقارية من ملف GeoJSON */}
                         {hasCadastreGeoJson && (
@@ -685,66 +567,6 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
 
                         {/* Real Contracts Layer: Now handled entirely by GeoJSON overlay above. Old markers are hidden. */}
                     </MapContainer>
-                </div>
-
-                {/* Heritage Zoning Layer Control Panel (المجال المحفوظ) */}
-                <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md p-4 rounded-xl shadow-2xl z-[500] text-right rtl border border-white/50 w-72" dir="rtl">
-                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200/60">
-                        <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center shadow-inner">
-                            <Satellite className="w-4 h-4 text-white" />
-                        </div>
-                        <h3 className="font-bold text-sm text-slate-800 font-cairo">طبقات المجال المحفوظ</h3>
-                    </div>
-
-                    <div className="space-y-2.5">
-                        {/* Ksours Toggle */}
-                        <label className="flex items-center justify-between gap-3 cursor-pointer group hover:bg-amber-50/50 rounded-lg p-1.5 -m-1.5 transition-colors">
-                            <div className="flex items-center gap-2.5 flex-1">
-                                <div className="w-3 h-3 rounded-sm shadow-sm" style={{ backgroundColor: '#fbbf24', border: '2px solid #b45309' }}></div>
-                                <span className="text-xs font-medium text-slate-700 font-cairo group-hover:text-amber-700">حدود القصور الخمسة</span>
-                            </div>
-                            <input
-                                type="checkbox"
-                                checked={ksoursVisible}
-                                onChange={(e) => setKsoursVisible(e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
-                            />
-                        </label>
-
-                        {/* Palm Groves Toggle */}
-                        <label className="flex items-center justify-between gap-3 cursor-pointer group hover:bg-green-50/50 rounded-lg p-1.5 -m-1.5 transition-colors">
-                            <div className="flex items-center gap-2.5 flex-1">
-                                <div className="w-3 h-3 rounded-sm shadow-sm" style={{ backgroundColor: '#22c55e', border: '2px solid #14532d' }}></div>
-                                <span className="text-xs font-medium text-slate-700 font-cairo group-hover:text-green-700">المناطق الفلاحية وواحات النخيل</span>
-                            </div>
-                            <input
-                                type="checkbox"
-                                checked={palmGrovesVisible}
-                                onChange={(e) => setPalmGrovesVisible(e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500 cursor-pointer"
-                            />
-                        </label>
-
-                        {/* Valley Toggle */}
-                        <label className="flex items-center justify-between gap-3 cursor-pointer group hover:bg-blue-50/50 rounded-lg p-1.5 -m-1.5 transition-colors">
-                            <div className="flex items-center gap-2.5 flex-1">
-                                <div className="w-3 h-3 rounded-sm shadow-sm" style={{ backgroundColor: '#3b82f6', border: '2px solid #1e3a8a' }}></div>
-                                <span className="text-xs font-medium text-slate-700 font-cairo group-hover:text-blue-700">حرم وادي ميزاب</span>
-                            </div>
-                            <input
-                                type="checkbox"
-                                checked={valleyVisible}
-                                onChange={(e) => setValleyVisible(e.target.checked)}
-                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                            />
-                        </label>
-                    </div>
-
-                    <div className="mt-3 pt-2.5 border-t border-slate-200/60">
-                        <p className="text-[10px] text-slate-500 font-cairo leading-tight">
-                            ⚠️ بيانات تجريبية - سيتم تحديثها ببيانات حقيقية
-                        </p>
-                    </div>
                 </div>
 
                 {/* Legend */}
