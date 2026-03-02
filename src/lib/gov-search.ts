@@ -159,40 +159,38 @@ export async function searchGovDomains(
     const fullQuery = buildGovSearchQuery(query);
     const startTime = performance.now();
 
-    // Clean fetch URL construction
+    // URL construction as specified: https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${query}
     const baseUrl = "https://www.googleapis.com/customsearch/v1";
-    const params = new URLSearchParams({
-        key: apiKey,
-        cx: cx,
-        q: fullQuery,
-        start: String(start),
-        num: "10",
-        lr: "lang_ar|lang_fr",
-    });
-
-    const url = `${baseUrl}?${params.toString()}`;
+    const url = `${baseUrl}?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(fullQuery)}&start=${start}&num=10&lr=lang_ar|lang_fr`;
     console.log("[GOOGLE API] Fetching:", url.replace(apiKey, "***REDACTED***"));
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            method: "GET",
+            mode: "cors",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+
         const data = await response.json();
 
-        // Debug: Log full response for error diagnosis
-        console.log("[GOOGLE API] Full Response:", data);
-
+        // Enhanced error handling: log status and full JSON error
         if (!response.ok) {
-            console.error("[GOOGLE API] Request failed:", response.status, response.statusText);
-            console.error("[GOOGLE API] Error response:", data);
-            
+            console.error("[GOOGLE API] Request failed - Status:", response.status);
+            console.error("[GOOGLE API] Error response JSON:", JSON.stringify(data, null, 2));
+
             let errorMsg: string;
             if (response.status === 403) {
+                const errorDetails = data?.error?.errors?.[0]?.message || data?.error?.message || "403 Forbidden";
+                console.error("[GOOGLE API] 403 Error Details:", errorDetails);
                 errorMsg = "جاري مزامنة صلاحيات البحث مع سيرفرات جوجل... يرجى إعادة المحاولة خلال دقيقة";
             } else {
-                errorMsg = data?.error?.message || 
-                            data?.error?.errors?.[0]?.message || 
+                errorMsg = data?.error?.message ||
+                            data?.error?.errors?.[0]?.message ||
                             `خطأ في الخادم: ${response.status}`;
             }
-            
+
             return {
                 results: [],
                 totalResults: 0,
