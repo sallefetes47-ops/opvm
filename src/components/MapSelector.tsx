@@ -313,7 +313,10 @@ export default function MapSelector({
             // Debug: Log source data events
             map.on('sourcedata', (e) => {
                 if (e.sourceId === 'ghardaia-cadastre' && e.isSourceLoaded) {
-                    console.log('[Mapbox] Source loaded successfully:', e);
+                    console.log('[Mapbox] Cadastre source loaded:', e);
+                }
+                if (e.sourceId === 'ghardaia-batiment-source' && e.isSourceLoaded) {
+                    console.log('[Mapbox] Building source loaded:', e);
                 }
             });
 
