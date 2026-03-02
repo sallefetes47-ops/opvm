@@ -437,6 +437,9 @@ export default function MapSelector({ flyToLocation, selectedContractId, onContr
                             maxZoom={19}
                         />
 
+                        {/* MVT Vector Layer for Ghardaia Cadastral Parcels */}
+                        <MapLibreVectorLayer />
+
                         {/* طبقة القطع العقارية من ملف GeoJSON */}
                         {hasCadastreGeoJson && (
                             <GeoJSON
