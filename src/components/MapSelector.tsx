@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polygon, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -14,6 +14,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
 import { formatFileNumberWithYear } from '@/lib/file-number';
+import 'maplibre-gl';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 // --- Fix Leaflet Default Icons (Critical) ---
 delete (L.Icon.Default.prototype as any)._getIconUrl;
