@@ -114,12 +114,10 @@ export default function ArchivePage() {
   // 1. List Row Click -> Fly on Map
   const handleRowClick = (file: FileRecord) => {
     setSelectedContractId(file.id);
-    if (file.location_lat && file.location_lng) {
-      setFlyToLocation({ lat: file.location_lat, lng: file.location_lng });
-      // On mobile, switch to map tab
-      if (window.matchMedia("(max-width: 768px)").matches) {
-        setActiveTab("map");
-      }
+    // location_lat/location_lng not yet in DB schema
+    // On mobile, switch to map tab
+    if (window.matchMedia("(max-width: 768px)").matches) {
+      setActiveTab("map");
     }
   };
 
@@ -173,7 +171,7 @@ export default function ArchivePage() {
       queryClient.invalidateQueries({ queryKey: ["archive-files"] });
       toast({ title: "✅ تم تحديث الملف بنجاح" });
       setEditDialogOpen(false);
-      setIsReplacingFile(false);
+      // setIsReplacingFile removed - not needed
     },
     onError: (e) => toast({ title: "خطأ", description: e.message, variant: "destructive" }),
   });
@@ -410,7 +408,7 @@ export default function ArchivePage() {
                   <Label className="text-right block">البلدية</Label>
                   <Select
                     value={editFormData.municipality || 'غرداية'}
-                    onValueChange={v => setEditFormData({ ...editFormData, municipality: v as "غرداية" | "العطف" | "بنورة" | "الضاية" | "متليلي" })}
+                    onValueChange={v => setEditFormData({ ...editFormData, municipality: v as any })}
                     dir="rtl"
                   >
                     <SelectTrigger className="text-right flex flex-row-reverse items-center justify-between bg-white">

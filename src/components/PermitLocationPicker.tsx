@@ -118,13 +118,11 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('files')
-                .select('id, full_name, file_number, year, address, permit_type, location_lat, location_lng')
-                .not('location_lat', 'is', null)
-                .not('location_lng', 'is', null)
+                .select('id, full_name, file_number, year, address, permit_type')
                 .or('is_deleted.is.null,is_deleted.eq.false')
                 .order('created_at', { ascending: false });
             if (error) throw error;
-            return (data || []) as ContractMarker[];
+            return (data || []) as unknown as ContractMarker[];
         },
         enabled: isOpen,
     });

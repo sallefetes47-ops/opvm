@@ -112,7 +112,6 @@ export default function Login() {
               className="w-72 max-w-md h-auto object-contain mb-6 rounded-lg shadow-2xl border-2 border-white/20"
               loading="eager"
               decoding="async"
-              quality="95"
               style={{ 
                 imageRendering: 'crisp-edges',
                 WebkitFontSmoothing: 'antialiased',
