@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import https from 'https';
 
 export default defineConfig({
   plugins: [react()],
@@ -55,9 +56,8 @@ export default defineConfig({
             proxyReq.setHeader('Accept-Charset', 'UTF-8');
             proxyReq.setHeader('Connection', 'keep-alive');
             proxyReq.setHeader('Upgrade-Insecure-Requests', '1');
-            
-            // Fix for TLS connection issues: disable keep-alive agent
-            const https = require('https');
+
+            // Fix for TLS connection issues: use HTTPS agent with relaxed settings
             const agent = new https.Agent({
               rejectUnauthorized: false, // SSL bypass
               keepAlive: false,
@@ -87,7 +87,7 @@ export default defineConfig({
             console.error('[Fadaa Proxy] TLS/Network Error:', err.message);
             console.error('[Fadaa Proxy] Error code:', (err as any).code);
             console.error('[Fadaa Proxy] Error syscall:', (err as any).syscall);
-            
+
             // Handle specific TLS errors
             if ((err as any).code === 'ECONNRESET') {
               console.warn('[Fadaa Proxy] Connection reset by server - retrying with relaxed TLS...');
@@ -95,7 +95,7 @@ export default defineConfig({
             if ((err as any).code === 'ERR_TLS_CERT_ALTNAME_INVALID') {
               console.warn('[Fadaa Proxy] TLS certificate mismatch - secure:false should handle this');
             }
-            
+
             res.writeHead(502, {
               'Content-Type': 'application/json; charset=utf-8',
             });
