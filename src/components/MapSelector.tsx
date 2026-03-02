@@ -1,7 +1,6 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import Map, { Source, Layer, Popup, MapRef } from 'react-map-gl';
-import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,12 +10,18 @@ import { Loader2, Zap, Satellite, FileText, CheckCircle2, Hash } from 'lucide-re
 import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
 import { formatFileNumberWithYear } from '@/lib/file-number';
 
-// MapLibre GL configuration
-const MAPLIBRE_STYLE = {
+// Set Mapbox access token (using empty string for Mapbox GL JS with custom tiles)
+mapboxgl.accessToken = '';
+
+// Ghardaia center coordinates
+const GHARDAIA_CENTER: [number, number] = [3.6900, 32.4810];
+
+// Custom style for Mapbox GL with OSM tiles
+const CUSTOM_STYLE: mapboxgl.Style = {
     version: 8,
     sources: {
         'osm-tiles': {
-            type: 'raster' as const,
+            type: 'raster',
             tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
             tileSize: 256,
             attribution: '© OpenStreetMap contributors',
@@ -26,18 +31,12 @@ const MAPLIBRE_STYLE = {
     layers: [
         {
             id: 'osm-layer',
-            type: 'raster' as const,
+            type: 'raster',
             source: 'osm-tiles',
             minzoom: 0,
             maxzoom: 19,
         },
     ],
-};
-
-// Ghardaia center coordinates
-const GHARDAIA_CENTER = {
-    lng: 3.6900,
-    lat: 32.4810,
 };
 
 export interface MapSelectorProps {
@@ -54,12 +53,10 @@ export default function MapSelector({
     const { user, role, isViewer } = useAuth();
     const canEdit = !isViewer && role !== 'viewer';
     const { toast } = useToast();
-    const mapRef = useRef<MapRef>(null);
-    const [popupInfo, setPopupInfo] = useState<{
-        lng: number;
-        lat: number;
-        properties: Record<string, unknown>;
-    } | null>(null);
+    const mapContainerRef = useRef<HTMLDivElement>(null);
+    const mapRef = useRef<mapboxgl.Map | null>(null);
+    const [isMapLoaded, setIsMapLoaded] = useState(false);
+    const [popup, setPopup] = useState<mapboxgl.Popup | null>(null);
 
     // Fetch contracts from Supabase
     const { data: rawContracts, isLoading } = useQuery({
@@ -86,13 +83,11 @@ export default function MapSelector({
         },
     });
 
-    // Handle map click for cadastre info
-    const handleMapClick = useCallback((event: any) => {
-        const { lngLat } = event;
-        console.log('🌐 Fetching cadastre info from:', lngLat);
+    // Handle cadastre fetch from government API
+    const handleCadastreFetch = useCallback((lat: number, lng: number) => {
+        console.log('🌐 Fetching cadastre info from:', lat, lng);
 
-        // Fetch cadastre data from government API
-        const apiUrl = `https://fadaeldjazair.mf.gov.dz/api/cadastre/from?get&lat=${lngLat.lat}&lng=${lngLat.lng}`;
+        const apiUrl = `https://fadaeldjazair.mf.gov.dz/api/cadastre/from?get&lat=${lat}&lng=${lng}`;
 
         fetch(apiUrl, {
             method: 'GET',
@@ -104,61 +99,226 @@ export default function MapSelector({
             })
             .then((data) => {
                 console.log('✅ CADASTRE_RESPONSE:', data);
-                setPopupInfo({
-                    lng: lngLat.lng,
-                    lat: lngLat.lat,
-                    properties: {
-                        section: data.section || '---',
-                        group: data.group || data.propertyGroup || '---',
-                        ...data,
-                    },
-                });
+
+                // Show popup with cadastre info
+                const popupContent = `
+                    <div class="popup-content" dir="rtl" style="text-align: right; font-family: 'Cairo', sans-serif;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1e40af; border-bottom: 2px solid #3b82f6; padding-bottom: 6px;">
+                            🗺️ معلومات المسح العقاري
+                        </h4>
+                        <div style="font-size: 12px; color: #475569;">
+                            <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
+                                <span style="color: #64748b;">القسم (Section):</span>
+                                <span style="font-weight: 600; color: #0f172a;">${formatSection(data.section || '---')}</span>
+                            </div>
+                            <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
+                                <span style="color: #64748b;">مجموعة الملكية:</span>
+                                <span style="font-weight: 600; color: #0f172a;">${formatPropertyGroup(data.group || data.propertyGroup || '---')}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const newPopup = new mapboxgl.Popup({ closeButton: true, closeOnClick: false })
+                    .setLngLat([lng, lat])
+                    .setHTML(popupContent)
+                    .addTo(mapRef.current!);
+
+                setPopup(newPopup);
             })
             .catch((error) => {
                 console.error('❌ Fetch Error:', error);
-                setPopupInfo({
-                    lng: lngLat.lng,
-                    lat: lngLat.lat,
-                    properties: {
-                        error: `خطأ في الاتصال: ${error.message}`,
-                    },
-                });
+
+                const errorContent = `
+                    <div class="popup-content" dir="rtl" style="text-align: right; font-family: 'Cairo', sans-serif;">
+                        <div style="color: #dc2626; font-size: 12px; padding: 8px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 4px;">
+                            <p style="font-weight: bold; margin: 0 0 4px 0;">تعذر الجلب</p>
+                            <p style="margin: 0; opacity: 0.8;">${error.message}</p>
+                        </div>
+                    </div>
+                `;
+
+                const newPopup = new mapboxgl.Popup({ closeButton: true, closeOnClick: false })
+                    .setLngLat([lng, lat])
+                    .setHTML(errorContent)
+                    .addTo(mapRef.current!);
+
+                setPopup(newPopup);
             });
     }, []);
 
-    // Handle parcel click from vector tile
-    const handleParcelClick = useCallback((event: any) => {
-        if (event.features && event.features.length > 0) {
-            const properties = event.features[0].properties || {};
-            console.log('[MVT] Parcel clicked:', properties);
+    // Initialize map
+    useEffect(() => {
+        if (!mapContainerRef.current) return;
 
-            const { lng, lat } = event.lngLat || event.point;
+        // Initialize Mapbox GL map
+        const map = new mapboxgl.Map({
+            container: mapContainerRef.current,
+            style: CUSTOM_STYLE,
+            center: GHARDAIA_CENTER,
+            zoom: 16,
+            attributionControl: false,
+        });
 
-            setPopupInfo({
-                lng,
-                lat,
-                properties: {
-                    Commune: properties.Commune || properties.COMMUNE || '---',
-                    Section: formatSection(properties.Section || properties.SECTION || '---'),
-                    Ilot: formatPropertyGroup(
-                        properties.Ilot || properties.ILOT || properties.group || '---'
-                    ),
-                    ...properties,
+        // Add navigation controls
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        mapRef.current = map;
+
+        // Map load event
+        map.on('load', () => {
+            console.log('[Mapbox] Map loaded, adding Ghardaia cadastral source...');
+            setIsMapLoaded(true);
+
+            // Add MVT source for Ghardaia cadastral parcels
+            map.addSource('ghardaia-cadastre', {
+                type: 'vector',
+                tiles: ['https://fadaeldjazair.mf.gov.dz/pm/ghardaia_ilot/{z}/{x}/{y}.mvt'],
+                minzoom: 0,
+                maxzoom: 22,
+                scheme: 'xyz',
+            });
+
+            // Add fill layer with transparent red
+            map.addLayer({
+                id: 'ghardaia-cadastre-fill',
+                type: 'fill',
+                source: 'ghardaia-cadastre',
+                'source-layer': 'ghardaia_ilot',
+                paint: {
+                    'fill-color': '#FF0000',
+                    'fill-opacity': 0.3,
                 },
             });
-        }
-    }, []);
+
+            // Add line layer with red outline
+            map.addLayer({
+                id: 'ghardaia-cadastre-line',
+                type: 'line',
+                source: 'ghardaia-cadastre',
+                'source-layer': 'ghardaia_ilot',
+                paint: {
+                    'line-color': '#FF0000',
+                    'line-width': 2,
+                    'line-opacity': 1,
+                },
+            });
+
+            console.log('[Mapbox] Cadastral layers added successfully');
+
+            // Change cursor to pointer on hover
+            map.on('mouseenter', 'ghardaia-cadastre-fill', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', 'ghardaia-cadastre-fill', () => {
+                map.getCanvas().style.cursor = '';
+            });
+
+            // Handle parcel click
+            map.on('click', 'ghardaia-cadastre-fill', (e) => {
+                if (e.features && e.features.length > 0) {
+                    const properties = e.features[0].properties || {};
+                    console.log('[Mapbox] Parcel clicked:', properties);
+
+                    const commune = properties.Commune || properties.COMMUNE || '---';
+                    const section = formatSection(properties.Section || properties.SECTION || '---');
+                    const ilot = formatPropertyGroup(
+                        properties.Ilot || properties.ILOT || properties.group || '---'
+                    );
+
+                    const popupContent = `
+                        <div class="popup-content" dir="rtl" style="text-align: right; font-family: 'Cairo', sans-serif; min-width: 180px;">
+                            <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1e40af; border-bottom: 2px solid #3b82f6; padding-bottom: 6px;">
+                                🗺️ معلومات القطعة
+                            </h4>
+                            <div style="font-size: 12px; color: #475569;">
+                                <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
+                                    <span style="color: #64748b;">البلدية:</span>
+                                    <span style="font-weight: 600; color: #0f172a;">${commune}</span>
+                                </div>
+                                <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
+                                    <span style="color: #64748b;">القسم:</span>
+                                    <span style="font-weight: 600; color: #0f172a;">${section}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: #64748b;">مجموعة الملكية:</span>
+                                    <span style="font-weight: 600; color: #0f172a;">${ilot}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Close existing popup
+                    if (popup) {
+                        popup.remove();
+                    }
+
+                    const newPopup = new mapboxgl.Popup({ closeButton: true, closeOnClick: false })
+                        .setLngLat(e.lngLat)
+                        .setHTML(popupContent)
+                        .addTo(map);
+
+                    setPopup(newPopup);
+                }
+            });
+
+            // Handle map click (for cadastre API fetch)
+            map.on('click', (e) => {
+                // Don't trigger if clicking on parcel layer
+                const features = map.queryRenderedFeatures(e.point, {
+                    layers: ['ghardaia-cadastre-fill'],
+                });
+
+                if (features.length === 0) {
+                    // Close existing popup
+                    if (popup) {
+                        popup.remove();
+                        setPopup(null);
+                    }
+
+                    // Fetch cadastre info from API
+                    handleCadastreFetch(e.lngLat.lat, e.lngLat.lng);
+                }
+            });
+
+            // Debug: Log source data events
+            map.on('sourcedata', (e) => {
+                if (e.sourceId === 'ghardaia-cadastre' && e.isSourceLoaded) {
+                    console.log('[Mapbox] Source loaded successfully:', e);
+                }
+            });
+
+            // Debug: Log errors
+            map.on('error', (e) => {
+                console.error('[Mapbox] Error:', e);
+            });
+        });
+
+        // Cleanup function
+        return () => {
+            console.log('[Mapbox] Cleaning up map instance...');
+            if (popup) {
+                popup.remove();
+            }
+            if (mapRef.current) {
+                mapRef.current.remove();
+                mapRef.current = null;
+            }
+            setIsMapLoaded(false);
+        };
+    }, [handleCadastreFetch, popup]);
 
     // Fly to location effect
     useEffect(() => {
-        if (flyToLocation && mapRef.current) {
+        if (flyToLocation && mapRef.current && isMapLoaded) {
             mapRef.current.flyTo({
                 center: [flyToLocation.lng, flyToLocation.lat],
                 zoom: flyToLocation.zoom || 16,
                 duration: 1500,
             });
         }
-    }, [flyToLocation]);
+    }, [flyToLocation, isMapLoaded]);
 
     // Get contract color by type
     const getContractColor = (type: string | null): string => {
@@ -187,110 +347,8 @@ export default function MapSelector({
 
             <CardContent className="p-0 flex-1 relative bg-slate-100">
                 <div className="relative w-full h-[500px] lg:h-[600px] z-0 isolate shrink-0 overflow-hidden">
-                    <Map
-                        ref={mapRef}
-                        mapLib={maplibregl as any}
-                        initialViewState={{
-                            longitude: GHARDAIA_CENTER.lng,
-                            latitude: GHARDAIA_CENTER.lat,
-                            zoom: 16,
-                        }}
-                        style={{ width: '100%', height: '100%' }}
-                        mapStyle={MAPLIBRE_STYLE as any}
-                        onClick={handleMapClick}
-                        interactiveLayerIds={['ghardaia-cadastre-fill', 'ghardaia-cadastre-line']}
-                    >
-                        {/* MVT Vector Source for Ghardaia Cadastral Parcels */}
-                        <Source
-                            id="ghardaia-cadastre"
-                            type="vector"
-                            tiles={[
-                                'https://fadaeldjazair.mf.gov.dz/pm/ghardaia_ilot/{z}/{x}/{y}.mvt',
-                            ]}
-                            minzoom={0}
-                            maxzoom={22}
-                            scheme="xyz"
-                        >
-                            {/* Fill layer with light red color */}
-                            <Layer
-                                id="ghardaia-cadastre-fill"
-                                type="fill"
-                                source-layer="ghardaia_ilot"
-                                paint={{
-                                    'fill-color': '#FF0000',
-                                    'fill-opacity': 0.3,
-                                }}
-                                onClick={handleParcelClick}
-                            />
-
-                            {/* Line layer with red outline */}
-                            <Layer
-                                id="ghardaia-cadastre-line"
-                                type="line"
-                                source-layer="ghardaia_ilot"
-                                paint={{
-                                    'line-color': '#FF0000',
-                                    'line-width': 2,
-                                    'line-opacity': 1,
-                                }}
-                            />
-                        </Source>
-
-                        {/* Popup for parcel info */}
-                        {popupInfo && (
-                            <Popup
-                                anchor="top"
-                                longitude={popupInfo.lng}
-                                latitude={popupInfo.lat}
-                                onClose={() => setPopupInfo(null)}
-                                closeOnClick={false}
-                                className="font-cairo"
-                            >
-                                <div className="text-right p-1 min-w-[200px]" dir="rtl">
-                                    <h4 className="font-bold text-sm border-b pb-2 mb-2 flex items-center gap-2 bg-slate-50 p-1 rounded-t">
-                                        <Satellite className="w-3 h-3 text-blue-500" />
-                                        معلومات القطعة
-                                    </h4>
-
-                                    {popupInfo.properties.error ? (
-                                        <div className="text-red-500 text-xs py-2 bg-red-50 p-2 rounded border border-red-100 mb-2">
-                                            <p className="font-bold mb-1">تعذر الجلب</p>
-                                            <p className="opacity-80 break-words">
-                                                {popupInfo.properties.error}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2 text-xs">
-                                            <div className="flex justify-between items-center bg-white border p-1.5 rounded">
-                                                <span className="text-muted-foreground">
-                                                    البلدية:
-                                                </span>
-                                                <span className="font-mono font-bold text-sm">
-                                                    {popupInfo.properties.Commune || '---'}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between items-center bg-white border p-1.5 rounded">
-                                                <span className="text-muted-foreground">
-                                                    القسم (Section):
-                                                </span>
-                                                <span className="font-mono font-bold text-sm">
-                                                    {popupInfo.properties.Section || '---'}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between items-center bg-white border p-1.5 rounded">
-                                                <span className="text-muted-foreground">
-                                                    مجموعة الملكية:
-                                                </span>
-                                                <span className="font-mono font-bold text-sm">
-                                                    {popupInfo.properties.Ilot || '---'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </Popup>
-                        )}
-                    </Map>
+                    {/* Map container ref for vanilla Mapbox GL */}
+                    <div ref={mapContainerRef} className="w-full h-full" />
                 </div>
 
                 {/* Legend */}
