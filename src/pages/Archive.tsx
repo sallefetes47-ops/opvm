@@ -111,7 +111,11 @@ export default function ArchivePage() {
       (opinionFilter === "pending" && !file.committee_opinion) ||
       file.committee_opinion === opinionFilter;
 
-    return matchesSearch && matchesMunicipality && matchesOpinion;
+    // Section and Ilot filters (from map auto-fill)
+    const matchesSection = !sectionFilter || file.section === sectionFilter;
+    const matchesIlot = !ilotFilter || (file.property_group && file.property_group.toString() === ilotFilter);
+
+    return matchesSearch && matchesMunicipality && matchesOpinion && matchesSection && matchesIlot;
   });
 
   /* ── Sync Handlers ── */
