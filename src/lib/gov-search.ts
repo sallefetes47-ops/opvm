@@ -181,14 +181,21 @@ export async function searchGovDomains(
             console.error("[GOOGLE API] Error response JSON:", JSON.stringify(data, null, 2));
 
             let errorMsg: string;
-            if (response.status === 403) {
-                const errorDetails = data?.error?.errors?.[0]?.message || data?.error?.message || "403 Forbidden";
-                console.error("[GOOGLE API] 403 Error Details:", errorDetails);
+            const googleErrorMessage = data?.error?.message || data?.error?.errors?.[0]?.message || "";
+            const googleErrorReason = data?.error?.errors?.[0]?.reason || "";
+
+            // Only show "API key expired" if Google explicitly returns this error
+            if (googleErrorMessage.toLowerCase().includes("expired") || googleErrorReason === "API_KEY_EXPIRED") {
+                console.error("[GOOGLE API] Key Expiration Detected:", googleErrorMessage);
+                errorMsg = "مفتاح API منتهي الصلاحية. يرجى تحديث المفتاح في ملف .env";
+            } else if (response.status === 403) {
+                console.error("[GOOGLE API] 403 Forbidden Details:", googleErrorMessage || "No details");
                 errorMsg = "جاري مزامنة صلاحيات البحث مع سيرفرات جوجل... يرجى إعادة المحاولة خلال دقيقة";
+            } else if (response.status === 429) {
+                console.error("[GOOGLE API] Quota Exceeded:", googleErrorMessage);
+                errorMsg = "تم تجاوز حد الاستخدام اليومي. يرجى المحاولة غداً";
             } else {
-                errorMsg = data?.error?.message ||
-                            data?.error?.errors?.[0]?.message ||
-                            `خطأ في الخادم: ${response.status}`;
+                errorMsg = googleErrorMessage || `خطأ في الخادم: ${response.status}`;
             }
 
             return {
