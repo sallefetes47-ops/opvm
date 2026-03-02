@@ -84,6 +84,218 @@ function MapEvents({ onMapClick }: { onMapClick: (lat: number, lng: number) => v
     return null;
 }
 
+/**
+ * MapLibre GL Vector Tile Layer for Ghardaia Cadastral Parcels (Ilots)
+ * MVT Source: https://fadaeldjazair.mf.gov.dz/pm/ghardaia_ilot/{z}/{x}/{y}.mvt
+ */
+function MapLibreVectorLayer() {
+    const map = useMap();
+    const containerRef = useRef<HTMLDivElement>(null);
+    const maplibreMapRef = useRef<maplibregl.Map | null>(null);
+
+    useEffect(() => {
+        if (!containerRef.current || !map) return;
+
+        // Get Leaflet map container
+        const leafletContainer = map.getContainer();
+        const overlayContainer = document.createElement('div');
+        overlayContainer.style.position = 'absolute';
+        overlayContainer.style.top = '0';
+        overlayContainer.style.left = '0';
+        overlayContainer.style.width = '100%';
+        overlayContainer.style.height = '100%';
+        overlayContainer.style.pointerEvents = 'none'; // Let clicks pass through to Leaflet
+        overlayContainer.style.zIndex = '400';
+        leafletContainer.appendChild(overlayContainer);
+
+        // Initialize MapLibre map synced with Leaflet
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+
+        const maplibreMap = new maplibregl.Map({
+            container: overlayContainer,
+            style: {
+                version: 8,
+                sources: {},
+                layers: [],
+            },
+            center: [center.lng, center.lat],
+            zoom: zoom,
+            interactive: true,
+            attributionControl: false,
+        });
+
+        maplibreMapRef.current = maplibreMap;
+
+        // Add MVT source for Ghardaia cadastral parcels
+        maplibreMap.on('load', () => {
+            console.log('[MVT] MapLibre loaded, adding Ghardaia cadastral source...');
+
+            maplibreMap.addSource('ghardaia-cadastre', {
+                type: 'vector',
+                tiles: [
+                    'https://fadaeldjazair.mf.gov.dz/pm/ghardaia_ilot/{z}/{x}/{y}.mvt'
+                ],
+                minzoom: 0,
+                maxzoom: 22,
+                scheme: 'xyz',
+            });
+
+            // Add fill layer with subtle blue color
+            maplibreMap.addLayer({
+                id: 'ghardaia-cadastre-fill',
+                type: 'fill',
+                source: 'ghardaia-cadastre',
+                'source-layer': 'ghardaia_ilot',
+                paint: {
+                    'fill-color': '#3b82f6',
+                    'fill-opacity': 0.2,
+                },
+            });
+
+            // Add line layer with solid border
+            maplibreMap.addLayer({
+                id: 'ghardaia-cadastre-line',
+                type: 'line',
+                source: 'ghardaia-cadastre',
+                'source-layer': 'ghardaia_ilot',
+                paint: {
+                    'line-color': '#1e40af',
+                    'line-width': 2,
+                    'line-opacity': 1,
+                },
+            });
+
+            console.log('[MVT] Layers added. Listening for sourcedata events...');
+
+            // Debug: Log sourcedata events to verify source-layer name
+            maplibreMap.on('sourcedata', (e) => {
+                if (e.sourceId === 'ghardaia-cadastre' && e.isSourceLoaded) {
+                    console.log('[MVT] Source loaded successfully:', e);
+                }
+                if (e.sourceId === 'ghardaia-cadastre' && e.tile) {
+                    console.log('[MVT] Tile event:', e.tile.tileID, 'loaded:', e.isSourceLoaded);
+                }
+            });
+
+            // Debug: Log errors
+            maplibreMap.on('error', (e) => {
+                console.error('[MVT] MapLibre error:', e);
+            });
+        });
+
+        // Sync MapLibre view with Leaflet
+        const updateMapLibreView = () => {
+            if (!maplibreMapRef.current) return;
+            const center = map.getCenter();
+            const zoom = map.getZoom();
+            const size = map.getSize();
+
+            maplibreMapRef.current.resize();
+            maplibreMapRef.current.jumpTo({
+                center: [center.lng, center.lat],
+                zoom: zoom,
+            });
+
+            // Update container size
+            if (containerRef.current) {
+                const bounds = map.getBounds();
+                const topLeft = map.latLngToContainerPoint(bounds.getNorthWest());
+                const bottomRight = map.latLngToContainerPoint(bounds.getSouthEast());
+                containerRef.current.style.width = `${Math.abs(bottomRight.x - topLeft.x)}px`;
+                containerRef.current.style.height = `${Math.abs(bottomRight.y - topLeft.y)}px`;
+            }
+        };
+
+        map.on('move', updateMapLibreView);
+        map.on('moveend', updateMapLibreView);
+        map.on('resize', updateMapLibreView);
+
+        // Add click interaction for parcels
+        const onClick = (e: maplibregl.MapMouseEvent) => {
+            if (!maplibreMapRef.current) return;
+
+            const features = maplibreMapRef.current.queryRenderedFeatures(e.point, {
+                layers: ['ghardaia-cadastre-fill'],
+            });
+
+            if (features.length > 0) {
+                const props = features[0].properties;
+                console.log('[MVT] Parcel clicked:', props);
+
+                // Extract and display properties in popup
+                const commune = props?.Commune || props?.COMMUNE || props?.commune || '---';
+                const section = formatSection(props?.Section || props?.SECTION || props?.section || '---');
+                const ilot = formatPropertyGroup(props?.Ilot || props?.ILOT || props?.ilot || props?.group || '---');
+
+                const popupContent = `
+                    <div dir="rtl" style="text-align: right; font-family: 'Cairo', sans-serif; min-width: 180px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1e40af; border-bottom: 2px solid #3b82f6; padding-bottom: 6px;">
+                            🗺️ معلومات القطعة
+                        </h4>
+                        <div style="font-size: 12px; color: #475569;">
+                            <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
+                                <span style="color: #64748b;">البلدية:</span>
+                                <span style="font-weight: 600; color: #0f172a;">${commune}</span>
+                            </div>
+                            <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
+                                <span style="color: #64748b;">القسم:</span>
+                                <span style="font-weight: 600; color: #0f172a;">${section}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #64748b;">مجموعة الملكية:</span>
+                                <span style="font-weight: 600; color: #0f172a;">${ilot}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                new maplibregl.Popup({ closeButton: true })
+                    .setLngLat(e.lngLat)
+                    .setHTML(popupContent)
+                    .addTo(maplibreMapRef.current!);
+            }
+        };
+
+        maplibreMap.on('click', 'ghardaia-cadastre-fill', onClick);
+
+        // Change cursor on hover
+        const onMouseEnter = () => {
+            if (maplibreMapRef.current) {
+                maplibreMapRef.current.getCanvas().style.cursor = 'pointer';
+            }
+        };
+
+        const onMouseLeave = () => {
+            if (maplibreMapRef.current) {
+                maplibreMapRef.current.getCanvas().style.cursor = '';
+            }
+        };
+
+        maplibreMap.on('mouseenter', 'ghardaia-cadastre-fill', onMouseEnter);
+        maplibreMap.on('mouseleave', 'ghardaia-cadastre-fill', onMouseLeave);
+
+        // Initial sync
+        updateMapLibreView();
+
+        // Cleanup
+        return () => {
+            map.off('move', updateMapLibreView);
+            map.off('moveend', updateMapLibreView);
+            map.off('resize', updateMapLibreView);
+
+            if (maplibreMapRef.current) {
+                maplibreMapRef.current.remove();
+            }
+            if (overlayContainer.parentNode) {
+                overlayContainer.parentNode.removeChild(overlayContainer);
+            }
+        };
+    }, [map]);
+
+    return null;
+}
+
 // --- Main Component ---
 
 export interface MapSelectorProps {
