@@ -117,6 +117,16 @@ export default function GovSearch() {
         async (result: GovSearchResult, buttonId: string) => {
             if (savingId === buttonId) return; // Prevent double-click
 
+            // RLS FIX: Ensure user is authenticated before insert
+            if (!user?.id) {
+                toast({
+                    variant: "destructive",
+                    title: "خطأ",
+                    description: "يجب تسجيل الدخول أولاً",
+                });
+                return;
+            }
+
             setSavingId(buttonId);
 
             try {
@@ -130,9 +140,11 @@ export default function GovSearch() {
                     file_url: result.link,
                     description: result.snippet?.replace(/<[^>]*>/g, "") || null,
                     document_date: extractedDate,
+                    created_by: user.id,
                 });
 
                 if (error) {
+                    console.error("[RLS] legal_documents insert error:", error);
                     toast({
                         variant: "destructive",
                         title: "خطأ في الحفظ",
@@ -146,6 +158,7 @@ export default function GovSearch() {
                     });
                 }
             } catch (err) {
+                console.error("[RLS] legal_documents catch error:", err);
                 toast({
                     variant: "destructive",
                     title: "خطأ في الاتصال",
@@ -155,7 +168,7 @@ export default function GovSearch() {
                 setSavingId(null);
             }
         },
-        [savingId, toast]
+        [savingId, toast, user]
     );
 
     return (
