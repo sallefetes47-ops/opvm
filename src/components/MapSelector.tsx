@@ -243,60 +243,70 @@ export default function MapSelector({
                 map.getCanvas().style.cursor = '';
             });
 
-            // Handle parcel click (ilots layer)
+            // Handle parcel click (ilots layer) - VANILLA MAPLIBRE POPUP
             map.on('click', 'ghardaia-cadastre-fill', (e) => {
-                if (e.features && e.features.length > 0) {
-                    const properties = e.features[0].properties || {};
-                    console.log('[MapLibre] Parcel clicked:', properties);
-
-                    const commune = properties.Commune || properties.COMMUNE || '---';
-                    const section = formatSection(properties.Section || properties.SECTION || '---');
-                    const ilot = formatPropertyGroup(
-                        properties.Ilot || properties.ILOT || properties.group || '---'
-                    );
-
-                    const popupContent = `
-                        <div class="popup-content" dir="rtl" style="text-align: right; font-family: 'Cairo', sans-serif; min-width: 180px;">
-                            <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1e40af; border-bottom: 2px solid #3b82f6; padding-bottom: 6px;">
-                                🗺️ معلومات القطعة
-                            </h4>
-                            <div style="font-size: 12px; color: #475569;">
-                                <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
-                                    <span style="color: #64748b;">البلدية:</span>
-                                    <span style="font-weight: 600; color: #0f172a;">${commune}</span>
-                                </div>
-                                <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
-                                    <span style="color: #64748b;">القسم:</span>
-                                    <span style="font-weight: 600; color: #0f172a;">${section}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="color: #64748b;">مجموعة الملكية:</span>
-                                    <span style="font-weight: 600; color: #0f172a;">${ilot}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-
-                    // Close existing popup
-                    if (popup) {
-                        popup.remove();
-                    }
-
-                    const newPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: false })
-                        .setLngLat(e.lngLat)
-                        .setHTML(popupContent)
-                        .addTo(map);
-
-                    setPopup(newPopup);
+                console.log('[MapLibre] Click event triggered on ghardaia-cadastre-fill');
+                console.log('[MapLibre] Event features:', e.features);
+                
+                if (!e.features || e.features.length === 0) {
+                    console.log('[MapLibre] No features found');
+                    return;
                 }
+                
+                const properties = e.features[0].properties || {};
+                console.log('[MapLibre] Parcel properties:', properties);
+
+                // Safely extract properties with multiple case variations
+                const commune = properties.COMMUNE || properties.Commune || properties.commune || 'غير متوفر';
+                const section = formatSection(properties.SECTION || properties.Section || properties.section || 'غير متوفر');
+                const ilot = formatPropertyGroup(properties.ILOT || properties.Ilot || properties.ilot || properties.group || 'غير متوفر');
+
+                // Close any existing popup first
+                if (popup) {
+                    popup.remove();
+                }
+
+                // Create and show new popup
+                const popupContent = `
+                    <div style="font-family: 'Cairo', sans-serif; padding: 8px; text-align: right; direction: rtl; min-width: 200px;">
+                        <h4 style="margin: 0 0 8px 0; color: #dc2626; border-bottom: 1px solid #ccc; padding-bottom: 4px; font-size: 14px; font-weight: bold;">
+                            معلومات القطعة
+                        </h4>
+                        <p style="margin: 4px 0; font-size: 12px;">
+                            <strong>البلدية:</strong> ${commune}
+                        </p>
+                        <p style="margin: 4px 0; font-size: 12px;">
+                            <strong>القسم:</strong> ${section}
+                        </p>
+                        <p style="margin: 4px 0; font-size: 12px;">
+                            <strong>مجموعة الملكية:</strong> ${ilot}
+                        </p>
+                    </div>
+                `;
+
+                const newPopup = new maplibregl.Popup({ 
+                    closeButton: true, 
+                    closeOnClick: false,
+                    maxWidth: '250px',
+                })
+                    .setLngLat(e.lngLat)
+                    .setHTML(popupContent)
+                    .addTo(map);
+
+                console.log('[MapLibre] Popup created and added:', newPopup);
+                setPopup(newPopup);
             });
 
-            // Handle map click (for cadastre API fetch)
+            // Handle map click (for cadastre API fetch) - only when NOT clicking on parcels
             map.on('click', (e) => {
-                // Don't trigger if clicking on parcel layer
+                console.log('[MapLibre] Map click event');
+                
+                // Check if clicking on parcel layer
                 const features = map.queryRenderedFeatures(e.point, {
-                    layers: ['ghardaia-cadastre-fill'],
+                    layers: ['ghardaia-cadastre-fill', 'ghardaia-batiment-layer'],
                 });
+
+                console.log('[MapLibre] Features at click point:', features.length);
 
                 if (features.length === 0) {
                     // Close existing popup
