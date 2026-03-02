@@ -29,10 +29,12 @@ import {
     type GovSearchResult,
 } from "@/lib/gov-search";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
 export default function GovSearch() {
     const { toast } = useToast();
+    const { user } = useAuth();
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<GovSearchResult[]>([]);
     const [totalResults, setTotalResults] = useState(0);
