@@ -59,6 +59,10 @@ export default function ArchivePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [municipalityFilter, setMunicipalityFilter] = useState<string>("all");
   const [opinionFilter, setOpinionFilter] = useState<string>("all");
+  
+  // Section and Ilot filters (for map auto-fill)
+  const [sectionFilter, setSectionFilter] = useState<string>("");
+  const [ilotFilter, setIlotFilter] = useState<string>("");
 
   // Sync State (Map <-> List)
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
