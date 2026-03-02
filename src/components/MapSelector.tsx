@@ -449,6 +449,19 @@ export default function MapSelector({
                             ></div>
                             <span>قطعة عقارية (إيلو)</span>
                         </div>
+                        <div className="flex items-center gap-2">
+                            <div
+                                style={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '2px',
+                                    background: '#1f2937',
+                                    opacity: 0.7,
+                                    border: '1px solid #000000',
+                                }}
+                            ></div>
+                            <span>مبنى (Building)</span>
+                        </div>
                     </div>
                 </div>
             </CardContent>
