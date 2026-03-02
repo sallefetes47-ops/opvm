@@ -51,6 +51,7 @@ interface FileRecord {
   committee_opinion: string | null;
   is_deleted: boolean | null;
   created_at: string;
+  year: number;
 }
 
 /* ═══════════════════════════════════════════

@@ -20,7 +20,6 @@ export function DashboardLayout() {
                 className="h-20 w-auto object-contain max-h-20 min-h-20"
                 loading="eager"
                 decoding="async"
-                quality="95"
                 style={{ 
                   imageRendering: 'crisp-edges',
                   WebkitFontSmoothing: 'antialiased',

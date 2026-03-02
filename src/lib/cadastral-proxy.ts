@@ -12,7 +12,7 @@
  *   /api/cadastral-proxy?targetUrl=https%3A%2F%2Ffadaeldjazair.mf.gov.dz%2Fgeoserver%2Fwfs
  */
 
-import { defineProxyConfig } from 'http-proxy-middleware';
+// http-proxy-middleware removed - this is a config-only module
 
 // Official Fadaa El Djazair domains
 const ALLOWED_DOMAINS = [

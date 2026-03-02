@@ -97,12 +97,12 @@ export default function GovSearch() {
                 const dateMatch = result.snippet?.match(/\b(\d{4}[-/]\d{1,2}[-/]\d{1,2})\b/);
                 const extractedDate = dateMatch ? dateMatch[1] : null;
 
-                const { error } = await supabase.from("decrees").insert({
-                    title: result.title.replace(/<[^>]*>/g, ""), // Strip HTML tags
-                    url: result.link,
-                    source: result.sourceBadge.label,
-                    date: extractedDate,
-                    snippet: result.snippet?.replace(/<[^>]*>/g, "") || null,
+                const { error } = await supabase.from("legal_documents").insert({
+                    title_ar: result.title.replace(/<[^>]*>/g, ""),
+                    document_type: "مرسوم",
+                    file_url: result.link,
+                    description: result.snippet?.replace(/<[^>]*>/g, "") || null,
+                    document_date: extractedDate,
                 });
 
                 if (error) {

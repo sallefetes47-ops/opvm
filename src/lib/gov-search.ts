@@ -183,9 +183,14 @@ export async function searchGovDomains(
             console.error("[GOOGLE API] Request failed:", response.status, response.statusText);
             console.error("[GOOGLE API] Error response:", data);
             
-            const errorMsg = data?.error?.message || 
+            let errorMsg: string;
+            if (response.status === 403) {
+                errorMsg = "جاري مزامنة صلاحيات البحث مع سيرفرات جوجل... يرجى إعادة المحاولة خلال دقيقة";
+            } else {
+                errorMsg = data?.error?.message || 
                             data?.error?.errors?.[0]?.message || 
                             `خطأ في الخادم: ${response.status}`;
+            }
             
             return {
                 results: [],
