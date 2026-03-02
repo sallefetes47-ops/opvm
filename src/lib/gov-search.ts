@@ -29,6 +29,7 @@ export interface GovSearchResponse {
     totalResults: number;
     searchTime: number;
     error?: string;
+    statusCode?: number;
 }
 
 // ── Domain Configuration ─────────────────────────────────────────────
@@ -197,6 +198,7 @@ export async function searchGovDomains(
                 totalResults: 0,
                 searchTime: 0,
                 error: errorMsg,
+                statusCode: response.status,
             };
         }
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -42,13 +42,33 @@ export default function GovSearch() {
     const [hasSearched, setHasSearched] = useState(false);
     const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
     const [savingId, setSavingId] = useState<string | null>(null);
+    const [retryAfter, setRetryAfter] = useState<number | null>(null);
+    const [retryCountdown, setRetryCountdown] = useState(0);
 
     const configured = isSearchConfigured();
+
+    useEffect(() => {
+        if (!retryAfter) {
+            setRetryCountdown(0);
+            return;
+        }
+
+        const updateCountdown = () => {
+            const seconds = Math.max(0, Math.ceil((retryAfter - Date.now()) / 1000));
+            setRetryCountdown(seconds);
+            if (seconds === 0) setRetryAfter(null);
+        };
+
+        updateCountdown();
+        const timer = window.setInterval(updateCountdown, 1000);
+        return () => window.clearInterval(timer);
+    }, [retryAfter]);
 
     const handleSearch = useCallback(
         async (e?: React.FormEvent) => {
             e?.preventDefault();
             if (!query.trim() || loading) return;
+            if (retryAfter && Date.now() < retryAfter) return;
 
             // HARD RESET: Clear all previous states before new search
             setLoading(true);
@@ -67,12 +87,17 @@ export default function GovSearch() {
             setSearchTime(response.searchTime);
             if (response.error) {
                 setError(response.error);
+                if (response.statusCode === 403) {
+                    const until = Date.now() + 60_000;
+                    setRetryAfter(until);
+                    setRetryCountdown(60);
+                }
                 console.error("[UI] Search error:", response.error);
             }
 
             setLoading(false);
         },
-        [query, loading]
+        [query, loading, retryAfter]
     );
 
     const handleResultClick = useCallback(
@@ -169,7 +194,7 @@ export default function GovSearch() {
                             type="submit"
                             size="lg"
                             className="font-cairo h-12 px-8"
-                            disabled={!configured || loading || !query.trim()}
+                            disabled={!configured || loading || !query.trim() || retryCountdown > 0}
                         >
                             {loading ? (
                                 <Loader2 className="w-5 h-5 animate-spin ml-2" />
@@ -271,9 +296,10 @@ export default function GovSearch() {
                             size="sm"
                             className="font-cairo"
                             onClick={() => handleSearch()}
+                            disabled={retryCountdown > 0}
                         >
                             <Search className="w-4 h-4 ml-2" />
-                            إعادة المحاولة
+                            {retryCountdown > 0 ? `إعادة المحاولة بعد ${retryCountdown} ثانية` : "إعادة المحاولة"}
                         </Button>
                     </div>
                 </div>
