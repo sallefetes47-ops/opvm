@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import MapSelector from "@/components/MapSelector";
+import ArchiveMap from "@/components/ArchiveMap";
 import PermitLocationPicker from "@/components/PermitLocationPicker";
 
 
