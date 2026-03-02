@@ -285,6 +285,33 @@ export default function ArchivePage() {
                 <SelectItem value="مرفوض">مرفوض</SelectItem>
               </SelectContent>
             </Select>
+            {/* Section Filter (from map auto-fill) */}
+            <Input
+              placeholder="القسم"
+              value={sectionFilter}
+              onChange={(e) => setSectionFilter(e.target.value)}
+              className="w-full md:w-24 h-9 text-sm font-mono"
+              dir="ltr"
+            />
+            {/* Ilot Filter (from map auto-fill) */}
+            <Input
+              placeholder="مجموعة الملكية"
+              value={ilotFilter}
+              onChange={(e) => setIlotFilter(e.target.value)}
+              className="w-full md:w-28 h-9 text-sm font-mono"
+              dir="ltr"
+            />
+            {/* Clear Filters Button */}
+            {(sectionFilter || ilotFilter) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setSectionFilter(""); setIlotFilter(""); }}
+                className="h-9 px-3"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
