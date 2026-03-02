@@ -212,33 +212,48 @@ export default function NewFile() {
 
   const createFileMutation = useMutation({
     mutationFn: async (data: FileFormData) => {
-      const { error } = await supabase.from("files").insert({
-        full_name: data.full_name,
-        municipality: data.municipality as Municipality,
-        permit_type: data.permit_type || null,
-        file_number: data.file_number,
-        year: data.year,
-        ownership_type: data.ownership_type as any,
-        address: data.address,
-        section: data.section || null,
-        property_group: data.property_group || null,
-        lot_number: data.ownership_type === "شهادة استفادة" ? data.lot_number : null,
-        subdivision_name: data.ownership_type === "شهادة استفادة" ? data.subdivision_name : null,
-        plot_area: data.permit_type === "رخصة بناء" || data.permit_type === "شهادة تقسيم" || data.permit_type === "رخصة تجزئة"
-          ? (data.plot_area ? parseFloat(data.plot_area) : null)
-          : null,
-        built_area: data.permit_type === "رخصة بناء" && data.built_area ? parseFloat(data.built_area) : null,
-        engineer_name: data.permit_type === "رخصة بناء" ? data.engineer_name : null,
-        shares_count: data.permit_type === "شهادة تقسيم" && data.shares_count ? parseInt(data.shares_count) : null,
-        plots_count: data.permit_type === "رخصة تجزئة" && data.plots_count ? parseInt(data.plots_count) : null,
-        submission_date: data.submission_date ? format(data.submission_date, "yyyy-MM-dd") : null,
-        session_date: data.session_date ? format(data.session_date, "yyyy-MM-dd") : null,
-        committee_opinion: data.committee_opinion || null,
-        rejection_reason: (data.committee_opinion === "تحفظ" || data.committee_opinion === "مرفوض") ? data.rejection_reason : null,
-        created_by: user?.id,
-      });
+      // RLS FIX: Ensure user is authenticated before insert
+      if (!user?.id) {
+        throw new Error("يجب تسجيل الدخول أولاً");
+      }
 
-      if (error) throw error;
+      const { data: insertData, error } = await supabase
+        .from("files")
+        .insert({
+          full_name: data.full_name,
+          municipality: data.municipality as Municipality,
+          permit_type: data.permit_type || null,
+          file_number: data.file_number,
+          year: data.year,
+          ownership_type: data.ownership_type as any,
+          address: data.address,
+          section: data.section || null,
+          property_group: data.property_group || null,
+          lot_number: data.ownership_type === "شهادة استفادة" ? data.lot_number : null,
+          subdivision_name: data.ownership_type === "شهادة استفادة" ? data.subdivision_name : null,
+          plot_area: data.permit_type === "رخصة بناء" || data.permit_type === "شهادة تقسيم" || data.permit_type === "رخصة تجزئة"
+            ? (data.plot_area ? parseFloat(data.plot_area) : null)
+            : null,
+          built_area: data.permit_type === "رخصة بناء" && data.built_area ? parseFloat(data.built_area) : null,
+          engineer_name: data.permit_type === "رخصة بناء" ? data.engineer_name : null,
+          shares_count: data.permit_type === "شهادة تقسيم" && data.shares_count ? parseInt(data.shares_count) : null,
+          plots_count: data.permit_type === "رخصة تجزئة" && data.plots_count ? parseInt(data.plots_count) : null,
+          submission_date: data.submission_date ? format(data.submission_date, "yyyy-MM-dd") : null,
+          session_date: data.session_date ? format(data.session_date, "yyyy-MM-dd") : null,
+          committee_opinion: data.committee_opinion || null,
+          rejection_reason: (data.committee_opinion === "تحفظ" || data.committee_opinion === "مرفوض") ? data.rejection_reason : null,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("[RLS] Insert error:", error);
+        console.error("[RLS] User context:", { userId: user.id, hasSession: !!user });
+        throw error;
+      }
+
+      return insertData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-files"] });

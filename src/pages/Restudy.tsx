@@ -134,6 +134,11 @@ export default function Restudy() {
         : restudyData.new_opinion;
 
       // Insert into file_studies table
+      // RLS FIX: Ensure user is authenticated before insert
+      if (!user?.id) {
+        throw new Error("يجب تسجيل الدخول أولاً");
+      }
+
       const { error: studyError } = await supabase.from("file_studies").insert({
         file_id: foundFile.id,
         study_date: format(restudyData.study_date, "yyyy-MM-dd"),
@@ -142,10 +147,14 @@ export default function Restudy() {
         rejection_reason: (restudyData.new_opinion === "تحفظ" || restudyData.new_opinion === "مرفوض")
           ? restudyData.new_reason
           : null,
-        created_by: user?.id,
+        created_by: user.id,
       });
 
-      if (studyError) throw studyError;
+      if (studyError) {
+        console.error("[RLS] file_studies insert error:", studyError);
+        console.error("[RLS] User context:", { userId: user.id, hasSession: !!user });
+        throw studyError;
+      }
 
       // Update the main file record with the new opinion
       const { error: updateError } = await supabase
