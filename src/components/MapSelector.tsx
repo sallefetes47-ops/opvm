@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import maplibregl, { Map, Popup } from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,18 +10,15 @@ import { Loader2, Zap, Satellite, FileText, CheckCircle2, Hash } from 'lucide-re
 import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
 import { formatFileNumberWithYear } from '@/lib/file-number';
 
-// Set Mapbox access token (using empty string for Mapbox GL JS with custom tiles)
-mapboxgl.accessToken = '';
-
 // Ghardaia center coordinates
 const GHARDAIA_CENTER: [number, number] = [3.6900, 32.4810];
 
-// Custom style for Mapbox GL with OSM tiles
-const CUSTOM_STYLE: mapboxgl.Style = {
+// Custom OSM style for MapLibre (no token required)
+const OSM_STYLE = {
     version: 8,
     sources: {
-        'osm-tiles': {
-            type: 'raster',
+        'osm': {
+            type: 'raster' as const,
             tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
             tileSize: 256,
             attribution: '© OpenStreetMap contributors',
@@ -31,8 +28,8 @@ const CUSTOM_STYLE: mapboxgl.Style = {
     layers: [
         {
             id: 'osm-layer',
-            type: 'raster',
-            source: 'osm-tiles',
+            type: 'raster' as const,
+            source: 'osm',
             minzoom: 0,
             maxzoom: 19,
         },
@@ -54,9 +51,9 @@ export default function MapSelector({
     const canEdit = !isViewer && role !== 'viewer';
     const { toast } = useToast();
     const mapContainerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<mapboxgl.Map | null>(null);
+    const mapRef = useRef<Map | null>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
-    const [popup, setPopup] = useState<mapboxgl.Popup | null>(null);
+    const [popup, setPopup] = useState<Popup | null>(null);
 
     // Fetch contracts from Supabase
     const { data: rawContracts, isLoading } = useQuery({
@@ -100,26 +97,28 @@ export default function MapSelector({
             .then((data) => {
                 console.log('✅ CADASTRE_RESPONSE:', data);
 
-                // Show popup with cadastre info
+                const section = formatSection(data.section || '---');
+                const group = formatPropertyGroup(data.group || data.propertyGroup || '---');
+
                 const popupContent = `
-                    <div class="popup-content" dir="rtl" style="text-align: right; font-family: 'Cairo', sans-serif;">
+                    <div class="popup-content" dir="rtl" style="text-align: right; font-family: 'Cairo', sans-serif; min-width: 180px;">
                         <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #1e40af; border-bottom: 2px solid #3b82f6; padding-bottom: 6px;">
                             🗺️ معلومات المسح العقاري
                         </h4>
                         <div style="font-size: 12px; color: #475569;">
                             <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
                                 <span style="color: #64748b;">القسم (Section):</span>
-                                <span style="font-weight: 600; color: #0f172a;">${formatSection(data.section || '---')}</span>
+                                <span style="font-weight: 600; color: #0f172a;">${section}</span>
                             </div>
                             <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
                                 <span style="color: #64748b;">مجموعة الملكية:</span>
-                                <span style="font-weight: 600; color: #0f172a;">${formatPropertyGroup(data.group || data.propertyGroup || '---')}</span>
+                                <span style="font-weight: 600; color: #0f172a;">${group}</span>
                             </div>
                         </div>
                     </div>
                 `;
 
-                const newPopup = new mapboxgl.Popup({ closeButton: true, closeOnClick: false })
+                const newPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: false })
                     .setLngLat([lng, lat])
                     .setHTML(popupContent)
                     .addTo(mapRef.current!);
@@ -138,7 +137,7 @@ export default function MapSelector({
                     </div>
                 `;
 
-                const newPopup = new mapboxgl.Popup({ closeButton: true, closeOnClick: false })
+                const newPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: false })
                     .setLngLat([lng, lat])
                     .setHTML(errorContent)
                     .addTo(mapRef.current!);
@@ -151,23 +150,24 @@ export default function MapSelector({
     useEffect(() => {
         if (!mapContainerRef.current) return;
 
-        // Initialize Mapbox GL map
-        const map = new mapboxgl.Map({
+        // Initialize MapLibre GL map (open-source, no token required)
+        const map = new maplibregl.Map({
             container: mapContainerRef.current,
-            style: CUSTOM_STYLE,
+            style: OSM_STYLE,
             center: GHARDAIA_CENTER,
             zoom: 16,
-            attributionControl: false,
+            attributionControl: true,
         });
 
         // Add navigation controls
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+        map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
 
         mapRef.current = map;
 
         // Map load event
         map.on('load', () => {
-            console.log('[Mapbox] Map loaded, adding Ghardaia layers...');
+            console.log('[MapLibre] Map loaded, adding Ghardaia layers...');
             setIsMapLoaded(true);
 
             // ==========================================
@@ -206,7 +206,7 @@ export default function MapSelector({
                 },
             });
 
-            console.log('[Mapbox] Cadastral parcel (ilot) layer added');
+            console.log('[MapLibre] Cadastral parcel (ilot) layer added');
 
             // ==========================================
             // LAYER 2: Buildings (Batiments) - ON TOP
@@ -232,9 +232,9 @@ export default function MapSelector({
                 },
             });
 
-            console.log('[Mapbox] Building (batiment) layer added on top');
+            console.log('[MapLibre] Building (batiment) layer added on top');
 
-            // Change cursor to pointer on hover
+            // Change cursor to pointer on hover (ilots layer)
             map.on('mouseenter', 'ghardaia-cadastre-fill', () => {
                 map.getCanvas().style.cursor = 'pointer';
             });
@@ -243,11 +243,11 @@ export default function MapSelector({
                 map.getCanvas().style.cursor = '';
             });
 
-            // Handle parcel click
+            // Handle parcel click (ilots layer)
             map.on('click', 'ghardaia-cadastre-fill', (e) => {
                 if (e.features && e.features.length > 0) {
                     const properties = e.features[0].properties || {};
-                    console.log('[Mapbox] Parcel clicked:', properties);
+                    console.log('[MapLibre] Parcel clicked:', properties);
 
                     const commune = properties.Commune || properties.COMMUNE || '---';
                     const section = formatSection(properties.Section || properties.SECTION || '---');
@@ -282,7 +282,7 @@ export default function MapSelector({
                         popup.remove();
                     }
 
-                    const newPopup = new mapboxgl.Popup({ closeButton: true, closeOnClick: false })
+                    const newPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: false })
                         .setLngLat(e.lngLat)
                         .setHTML(popupContent)
                         .addTo(map);
@@ -313,22 +313,22 @@ export default function MapSelector({
             // Debug: Log source data events
             map.on('sourcedata', (e) => {
                 if (e.sourceId === 'ghardaia-cadastre' && e.isSourceLoaded) {
-                    console.log('[Mapbox] Cadastre source loaded:', e);
+                    console.log('[MapLibre] Cadastre source loaded:', e);
                 }
                 if (e.sourceId === 'ghardaia-batiment-source' && e.isSourceLoaded) {
-                    console.log('[Mapbox] Building source loaded:', e);
+                    console.log('[MapLibre] Building source loaded:', e);
                 }
             });
 
             // Debug: Log errors
             map.on('error', (e) => {
-                console.error('[Mapbox] Error:', e);
+                console.error('[MapLibre] Error:', e);
             });
         });
 
         // Cleanup function
         return () => {
-            console.log('[Mapbox] Cleaning up map instance...');
+            console.log('[MapLibre] Cleaning up map instance...');
             if (popup) {
                 popup.remove();
             }
@@ -378,8 +378,12 @@ export default function MapSelector({
 
             <CardContent className="p-0 flex-1 relative bg-slate-100">
                 <div className="relative w-full h-[500px] lg:h-[600px] z-0 isolate shrink-0 overflow-hidden">
-                    {/* Map container ref for vanilla Mapbox GL */}
-                    <div ref={mapContainerRef} className="w-full h-full" />
+                    {/* Map container with explicit dimensions */}
+                    <div
+                        ref={mapContainerRef}
+                        style={{ width: '100%', height: '100%' }}
+                        className="map-container"
+                    />
                 </div>
 
                 {/* Legend */}
