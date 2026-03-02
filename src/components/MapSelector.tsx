@@ -167,10 +167,12 @@ export default function MapSelector({
 
         // Map load event
         map.on('load', () => {
-            console.log('[Mapbox] Map loaded, adding Ghardaia cadastral source...');
+            console.log('[Mapbox] Map loaded, adding Ghardaia layers...');
             setIsMapLoaded(true);
 
-            // Add MVT source for Ghardaia cadastral parcels
+            // ==========================================
+            // LAYER 1: Cadastral Parcels (Ilots) - Bottom
+            // ==========================================
             map.addSource('ghardaia-cadastre', {
                 type: 'vector',
                 tiles: ['https://fadaeldjazair.mf.gov.dz/pm/ghardaia_ilot/{z}/{x}/{y}.mvt'],
@@ -204,7 +206,33 @@ export default function MapSelector({
                 },
             });
 
-            console.log('[Mapbox] Cadastral layers added successfully');
+            console.log('[Mapbox] Cadastral parcel (ilot) layer added');
+
+            // ==========================================
+            // LAYER 2: Buildings (Batiments) - ON TOP
+            // ==========================================
+            map.addSource('ghardaia-batiment-source', {
+                type: 'vector',
+                tiles: ['https://fadaeldjazair.mf.gov.dz/pm/ghardaia_batiment/{z}/{x}/{y}.mvt'],
+                minzoom: 0,
+                maxzoom: 22,
+                scheme: 'xyz',
+            });
+
+            // Add fill layer for buildings (dark gray)
+            map.addLayer({
+                id: 'ghardaia-batiment-layer',
+                type: 'fill',
+                source: 'ghardaia-batiment-source',
+                'source-layer': 'ghardaia_batiment',
+                paint: {
+                    'fill-color': '#1f2937',
+                    'fill-opacity': 0.7,
+                    'fill-outline-color': '#000000',
+                },
+            });
+
+            console.log('[Mapbox] Building (batiment) layer added on top');
 
             // Change cursor to pointer on hover
             map.on('mouseenter', 'ghardaia-cadastre-fill', () => {
