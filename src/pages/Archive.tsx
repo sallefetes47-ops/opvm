@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -145,6 +145,20 @@ export default function ArchivePage() {
       }
     }, 100);
   };
+
+  // 3. Archive Map Parcel Click -> Auto-fill Section & Ilot filters
+  const handleParcelSelect = useCallback((section: string, ilot: string) => {
+    console.log('[Archive] Parcel selected:', { section, ilot });
+    setSectionFilter(section);
+    setIlotFilter(ilot);
+    
+    // Show toast notification
+    toast({
+      title: 'تم تطبيق الفلتر',
+      description: `جاري البحث عن الملفات - القسم: ${section}, مجموعة الملكية: ${ilot}`,
+      className: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700",
+    });
+  }, [toast]);
 
   /* ── Mutations ── */
 
