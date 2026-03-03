@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Satellite } from 'lucide-react';
-import type { GeoJSONSource, LngLatLike } from 'mapbox-gl';
+import type { GeoJSONSource, LngLatLike, MapGeoJSONFeature } from 'mapbox-gl';
 
 // Ghardaia center coordinates
 const GHARDAIA_CENTER: LngLatLike = [3.6900, 32.4810];
 
-// Custom OSM style for Mapbox (free, no token required for basic usage)
+// Custom OSM style for Mapbox (free, no token required)
 const OSM_STYLE = {
     version: 8,
     sources: {
@@ -41,27 +41,32 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const [isMapLoaded, setIsMapLoaded] = useState(false);
     const [cadastreGeoJson, setCadastreGeoJson] = useState<GeoJSON.GeoJSON | null>(null);
 
-    // Load local cadastral GeoJSON data
+    // Load local cadastral GeoJSON data from public folder
     useEffect(() => {
         fetch('/mzab_cadastre_map.geojson')
             .then((res) => {
-                if (!res.ok) throw new Error('GeoJSON not found');
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: GeoJSON not found`);
+                }
                 return res.json();
             })
             .then((data) => {
-                console.log('[Archive Map] GeoJSON loaded:', data.features?.length || 0, 'features');
+                console.log('[Archive Map] ✅ GeoJSON loaded:', data.features?.length || 0, 'features');
                 setCadastreGeoJson(data);
             })
             .catch((err) => {
-                console.error('[Archive Map] Failed to load GeoJSON:', err.message);
+                console.error('[Archive Map] ❌ Failed to load GeoJSON:', err.message);
             });
     }, []);
 
-    // Initialize map with vanilla Mapbox GL
+    // Initialize vanilla Mapbox GL map
     useEffect(() => {
-        if (!mapContainerRef.current) return;
+        if (!mapContainerRef.current) {
+            console.error('[Archive Map] ❌ Map container ref is null');
+            return;
+        }
 
-        // Set Mapbox access token (can use empty string for OSM-only style)
+        // Set Mapbox access token (empty string works for OSM-only style)
         mapboxgl.accessToken = '';
 
         // Initialize vanilla Mapbox GL map
@@ -71,17 +76,18 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             center: GHARDAIA_CENTER,
             zoom: 14,
             attributionControl: true,
+            preserveDrawingBuffer: true,
         });
 
         // Add navigation controls
-        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-        map.addControl(new mapboxgl.ScaleControl(), 'bottom-left');
+        map.addControl(new mapboxgl.NavigationControl({ showCompass: true, showZoom: true }), 'top-right');
+        map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
         mapRef.current = map;
 
         // Map load event
         map.on('load', () => {
-            console.log('[Archive Map] Map loaded');
+            console.log('[Archive Map] ✅ Map loaded');
             setIsMapLoaded(true);
 
             // Add GeoJSON source for cadastral parcels
@@ -111,12 +117,12 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 source: 'cadastre-parcels',
                 paint: {
                     'line-color': '#FF0000',
-                    'line-width': 1.5,
+                    'line-width': 2,
                     'line-opacity': 1,
                 },
             });
 
-            console.log('[Archive Map] Cadastral layers added');
+            console.log('[Archive Map] ✅ Cadastral layers added');
 
             // Change cursor to pointer on hover
             map.on('mouseenter', 'cadastre-parcels-fill', () => {
@@ -129,48 +135,66 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
 
             // Handle parcel click - AUTO-FILL ARCHIVE SEARCH & SHOW POPUP
             map.on('click', 'cadastre-parcels-fill', (e) => {
-                console.log('[Archive Map] Parcel clicked:', e.features);
+                console.log('[Archive Map] 🖱️ Parcel clicked');
 
-                if (!e.features || e.features.length === 0) return;
+                if (!e.features || e.features.length === 0) {
+                    console.warn('[Archive Map] ⚠️ No features found');
+                    return;
+                }
 
-                const properties = e.features[0].properties || {};
-                console.log('[Archive Map] Parcel properties:', properties);
+                const feature = e.features[0] as MapGeoJSONFeature;
+                const properties = feature.properties || {};
+                console.log('[Archive Map] 📋 Parcel properties:', properties);
 
-                // Extract SECTION and ILOT from properties
-                const section = properties.SECTION || properties.Section || properties.section || '';
-                const ilot = properties.ILOT || properties.Ilot || properties.ilot || properties.group || '';
-                const commune = properties.COMMUNE || properties.Commune || properties.commune || 'غير متوفر';
+                // Extract SECTION and ILOT from properties (uppercase as per GeoJSON)
+                const sectionRaw = properties.SECTION ?? properties.Section ?? properties.section ?? '';
+                const ilotRaw = properties.ILOT ?? properties.Ilot ?? properties.ilot ?? properties.group ?? '';
+                const communeRaw = properties.COMMUNE ?? properties.Commune ?? properties.commune ?? 'غير متوفر';
 
-                console.log('[Archive Map] Extracted:', { section, ilot, commune });
+                // Format section (3 digits) and ilot (4 digits)
+                const section = String(sectionRaw).padStart(3, '0');
+                const ilot = String(ilotRaw).padStart(4, '0');
+                const commune = String(communeRaw);
 
-                // Auto-fill archive search filters using React state setters
+                console.log('[Archive Map] 📊 Extracted & formatted:', { section, ilot, commune });
+
+                // CRITICAL: Auto-fill archive search filters using React state setters
                 if (onParcelSelect && section && ilot) {
                     onParcelSelect(section, ilot);
-                    console.log('[Archive Map] Calling onParcelSelect with:', section, ilot);
+                    console.log('[Archive Map] ✅ Called onParcelSelect with:', section, ilot);
                 }
 
                 // Show popup with Arabic survey data (معلومات المسح)
                 const popupContent = `
-                    <div style="font-family: 'Cairo', sans-serif; padding: 8px; text-align: right; direction: rtl; min-width: 200px;">
-                        <h4 style="margin: 0 0 8px 0; color: #dc2626; border-bottom: 1px solid #ccc; padding-bottom: 4px; font-size: 14px; font-weight: bold;">
+                    <div style="font-family: 'Cairo', sans-serif; padding: 12px; text-align: right; direction: rtl; min-width: 220px;">
+                        <h4 style="margin: 0 0 10px 0; color: #dc2626; border-bottom: 2px solid #fecaca; padding-bottom: 6px; font-size: 15px; font-weight: bold;">
                             معلومات المسح
                         </h4>
-                        <p style="margin: 4px 0; font-size: 12px;">
-                            <strong>البلدية:</strong> ${commune}
-                        </p>
-                        <p style="margin: 4px 0; font-size: 12px;">
-                            <strong>القسم:</strong> ${section || '---'}
-                        </p>
-                        <p style="margin: 4px 0; font-size: 12px;">
-                            <strong>مجموعة الملكية:</strong> ${ilot || '---'}
-                        </p>
+                        <div style="font-size: 13px; color: #1e293b; line-height: 1.8;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="color: #64748b;">البلدية:</span>
+                                <span style="font-weight: 700; color: #0f172a;">${commune}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                <span style="color: #64748b;">القسم:</span>
+                                <span style="font-weight: 700; color: #0f172a; font-family: monospace;">${section}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #64748b;">مجموعة الملكية:</span>
+                                <span style="font-weight: 700; color: #0f172a; font-family: monospace;">${ilot}</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #10b981; font-weight: 600;">
+                            ✓ تم تطبيق الفلتر على الأرشيف
+                        </div>
                     </div>
                 `;
 
                 new mapboxgl.Popup({
                     closeButton: true,
                     closeOnClick: false,
-                    maxWidth: '250px',
+                    maxWidth: '280px',
+                    anchor: 'top',
                 })
                     .setLngLat(e.lngLat)
                     .setHTML(popupContent)
@@ -182,19 +206,19 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 const source = map.getSource('cadastre-parcels') as GeoJSONSource;
                 if (source) {
                     source.setData(cadastreGeoJson);
-                    console.log('[Archive Map] GeoJSON data set on source');
+                    console.log('[Archive Map] ✅ GeoJSON data set on source');
                 }
             }
 
             // Debug: Log errors
             map.on('error', (e) => {
-                console.error('[Archive Map] Error:', e);
+                console.error('[Archive Map] ❌ Error:', e);
             });
         });
 
         // Cleanup function
         return () => {
-            console.log('[Archive Map] Cleaning up map instance...');
+            console.log('[Archive Map] 🧹 Cleaning up map instance...');
             if (mapRef.current) {
                 mapRef.current.remove();
                 mapRef.current = null;
@@ -209,47 +233,64 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             const source = mapRef.current.getSource('cadastre-parcels') as GeoJSONSource;
             if (source) {
                 source.setData(cadastreGeoJson);
-                console.log('[Archive Map] GeoJSON data updated');
+                console.log('[Archive Map] 🔄 GeoJSON data updated');
             }
         }
     }, [cadastreGeoJson, isMapLoaded]);
 
     return (
-        <Card className="w-full h-full flex flex-col border-0 rounded-none shadow-none text-right" dir="rtl">
-            <CardHeader className="bg-slate-900 text-white p-3 shrink-0">
+        <Card className="w-full h-full flex flex-col border-2 border-slate-200 rounded-xl shadow-lg text-right" dir="rtl">
+            <CardHeader className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-4 shrink-0">
                 <CardTitle className="text-sm flex items-center gap-2 justify-between">
                     <div className="flex items-center gap-2">
-                        <Satellite className="w-4 h-4 text-blue-400" />
-                        خريطة الأرشيف
+                        <Satellite className="w-5 h-5 text-blue-400" />
+                        <span className="font-bold">خريطة الأرشيف العقاري</span>
                     </div>
                 </CardTitle>
             </CardHeader>
 
-            <CardContent className="p-0 flex-1 relative bg-slate-100">
-                {/* Map container with proper height (h-96 = 384px) */}
-                <div className="relative w-full h-96 lg:h-[500px] z-0 shrink-0 overflow-hidden">
+            <CardContent className="p-0 flex-1 relative bg-slate-50">
+                {/* 
+                    CRITICAL: Map container with explicit dimensions
+                    - w-full: full width
+                    - h-96: 384px height (Tailwind)
+                    - min-h-[400px]: minimum 400px for mobile
+                    - relative: required for Mapbox positioning
+                */}
+                <div className="relative w-full h-96 min-h-[400px] lg:h-[500px] z-0 shrink-0 overflow-hidden bg-white">
                     <div
                         ref={mapContainerRef}
+                        className="absolute inset-0 w-full h-full"
                         style={{ width: '100%', height: '100%' }}
-                        className="map-container"
                     />
                 </div>
 
-                {/* Info Banner */}
-                <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-lg z-[40] text-xs text-right rtl border border-slate-200 max-w-[280px]">
-                    <div className="flex items-start gap-2">
-                        <div className="w-6 h-6 bg-red-100 rounded flex items-center justify-center shrink-0">
-                            <span className="text-lg">📍</span>
+                {/* Info Banner - Top Left */}
+                <div className="absolute top-4 left-4 bg-white/98 backdrop-blur-sm p-4 rounded-xl shadow-xl z-[40] text-xs text-right rtl border-2 border-slate-200 max-w-[300px]">
+                    <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
+                            <span className="text-xl">📍</span>
                         </div>
                         <div>
-                            <p className="font-bold text-slate-700 mb-1">بحث حسب الموقع</p>
-                            <p className="text-slate-600 leading-tight">
-                                انقر على أي قطعة عقارية لتصفية الأرشيف حسب القسم ومجموعة الملكية
+                            <p className="font-bold text-slate-800 mb-1 text-sm">بحث حسب الموقع</p>
+                            <p className="text-slate-600 leading-relaxed">
+                                انقر على أي قطعة عقارية لتصفية الأرشيف حسب <span className="font-mono font-bold text-red-600">القسم</span> و <span className="font-mono font-bold text-red-600">مجموعة الملكية</span>
                             </p>
                         </div>
                     </div>
                 </div>
+
+                {/* Loading State */}
+                {!isMapLoaded && (
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="text-center">
+                            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                            <p className="text-slate-600 font-medium">جاري تحميل الخريطة...</p>
+                        </div>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
 }
+
