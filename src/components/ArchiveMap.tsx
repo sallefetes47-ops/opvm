@@ -1,14 +1,14 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import maplibregl, { Map, Popup, GeoJSONSource } from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Satellite, Loader2 } from 'lucide-react';
-import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
+import { Satellite } from 'lucide-react';
+import type { GeoJSONSource, LngLatLike } from 'mapbox-gl';
 
 // Ghardaia center coordinates
-const GHARDAIA_CENTER: [number, number] = [3.6900, 32.4810];
+const GHARDAIA_CENTER: LngLatLike = [3.6900, 32.4810];
 
-// Custom OSM style for MapLibre (no token required)
+// Custom OSM style for Mapbox (free, no token required for basic usage)
 const OSM_STYLE = {
     version: 8,
     sources: {
@@ -37,10 +37,9 @@ export interface ArchiveMapProps {
 
 export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<Map | null>(null);
+    const mapRef = useRef<mapboxgl.Map | null>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
-    const [popup, setPopup] = useState<Popup | null>(null);
-    const [cadastreGeoJson, setCadastreGeoJson] = useState<any>(null);
+    const [cadastreGeoJson, setCadastreGeoJson] = useState<GeoJSON.GeoJSON | null>(null);
 
     // Load local cadastral GeoJSON data
     useEffect(() => {
@@ -58,12 +57,15 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             });
     }, []);
 
-    // Initialize map
+    // Initialize map with vanilla Mapbox GL
     useEffect(() => {
         if (!mapContainerRef.current) return;
 
-        // Initialize MapLibre GL map (open-source, no token required)
-        const map = new maplibregl.Map({
+        // Set Mapbox access token (can use empty string for OSM-only style)
+        mapboxgl.accessToken = '';
+
+        // Initialize vanilla Mapbox GL map
+        const map = new mapboxgl.Map({
             container: mapContainerRef.current,
             style: OSM_STYLE,
             center: GHARDAIA_CENTER,
@@ -72,8 +74,8 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
         });
 
         // Add navigation controls
-        map.addControl(new maplibregl.NavigationControl(), 'top-right');
-        map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        map.addControl(new mapboxgl.ScaleControl(), 'bottom-left');
 
         mapRef.current = map;
 
@@ -125,7 +127,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 map.getCanvas().style.cursor = '';
             });
 
-            // Handle parcel click - AUTO-FILL ARCHIVE SEARCH
+            // Handle parcel click - AUTO-FILL ARCHIVE SEARCH & SHOW POPUP
             map.on('click', 'cadastre-parcels-fill', (e) => {
                 console.log('[Archive Map] Parcel clicked:', e.features);
 
@@ -135,39 +137,23 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 console.log('[Archive Map] Parcel properties:', properties);
 
                 // Extract SECTION and ILOT from properties
-                const section = formatSection(
-                    properties.SECTION || properties.Section || properties.section || ''
-                );
-                const ilot = formatPropertyGroup(
-                    properties.ILOT ||
-                    properties.Ilot ||
-                    properties.ilot ||
-                    properties.group ||
-                    ''
-                );
-                const commune =
-                    properties.COMMUNE ||
-                    properties.Commune ||
-                    properties.commune ||
-                    'غير متوفر';
+                const section = properties.SECTION || properties.Section || properties.section || '';
+                const ilot = properties.ILOT || properties.Ilot || properties.ilot || properties.group || '';
+                const commune = properties.COMMUNE || properties.Commune || properties.commune || 'غير متوفر';
 
                 console.log('[Archive Map] Extracted:', { section, ilot, commune });
 
-                // Auto-fill archive search filters
+                // Auto-fill archive search filters using React state setters
                 if (onParcelSelect && section && ilot) {
                     onParcelSelect(section, ilot);
                     console.log('[Archive Map] Calling onParcelSelect with:', section, ilot);
                 }
 
-                // Show popup
-                if (popup) {
-                    popup.remove();
-                }
-
+                // Show popup with Arabic survey data (معلومات المسح)
                 const popupContent = `
                     <div style="font-family: 'Cairo', sans-serif; padding: 8px; text-align: right; direction: rtl; min-width: 200px;">
                         <h4 style="margin: 0 0 8px 0; color: #dc2626; border-bottom: 1px solid #ccc; padding-bottom: 4px; font-size: 14px; font-weight: bold;">
-                            معلومات القطعة
+                            معلومات المسح
                         </h4>
                         <p style="margin: 4px 0; font-size: 12px;">
                             <strong>البلدية:</strong> ${commune}
@@ -178,13 +164,10 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                         <p style="margin: 4px 0; font-size: 12px;">
                             <strong>مجموعة الملكية:</strong> ${ilot || '---'}
                         </p>
-                        <p style="margin: 8px 0 0 0; font-size: 11px; color: #64748b; font-style: italic;">
-                            📋 تم تطبيق الفلتر على الأرشيف
-                        </p>
                     </div>
                 `;
 
-                const newPopup = new maplibregl.Popup({
+                new mapboxgl.Popup({
                     closeButton: true,
                     closeOnClick: false,
                     maxWidth: '250px',
@@ -192,8 +175,6 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     .setLngLat(e.lngLat)
                     .setHTML(popupContent)
                     .addTo(map);
-
-                setPopup(newPopup);
             });
 
             // Update GeoJSON data when loaded
@@ -214,16 +195,13 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
         // Cleanup function
         return () => {
             console.log('[Archive Map] Cleaning up map instance...');
-            if (popup) {
-                popup.remove();
-            }
             if (mapRef.current) {
                 mapRef.current.remove();
                 mapRef.current = null;
             }
             setIsMapLoaded(false);
         };
-    }, [cadastreGeoJson, onParcelSelect, popup]);
+    }, [cadastreGeoJson, onParcelSelect]);
 
     // Update GeoJSON data when it changes
     useEffect(() => {
@@ -248,8 +226,8 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             </CardHeader>
 
             <CardContent className="p-0 flex-1 relative bg-slate-100">
-                <div className="relative w-full h-[400px] lg:h-[500px] z-0 isolate shrink-0 overflow-hidden">
-                    {/* Map container with explicit dimensions */}
+                {/* Map container with proper height (h-96 = 384px) */}
+                <div className="relative w-full h-96 lg:h-[500px] z-0 shrink-0 overflow-hidden">
                     <div
                         ref={mapContainerRef}
                         style={{ width: '100%', height: '100%' }}
