@@ -19,6 +19,7 @@ import {
   ShieldCheck, Settings, Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AdminLoginModal } from "@/components/AdminLoginModal";
@@ -83,19 +84,16 @@ export function AppSidebar() {
       <Sidebar className="border-l-0 border-r border-sidebar-border" side="right">
         <SidebarHeader className="border-b border-sidebar-border p-4">
           <div className="flex items-center gap-3">
-            <img
-              src="/images/opvm-logo.png"
-              alt="OPVM Logo"
-              className="w-12 h-12 object-contain"
-              onError={(e) => {
-                // Fallback if logo not loaded yet
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
-            />
-            <div className="w-10 h-10 rounded-lg items-center justify-center hidden" style={{ backgroundColor: 'rgba(212, 175, 55, 0.2)' }}>
-              <span className="text-lg font-bold" style={{ color: '#D4AF37' }}>ظ…</span>
-            </div>
+            <Avatar className="h-[42px] w-[42px] border-2 border-slate-200 transition-all hover:scale-110">
+              <AvatarImage
+                src="/images/opvm-logo.png"
+                alt="شعار ديوان حماية وادي ميزاب - Bureau Logo"
+                className="object-contain"
+              />
+              <AvatarFallback className="bg-[rgba(212,175,55,0.2)]">
+                <span className="text-lg font-bold" style={{ color: '#D4AF37' }}>م</span>
+              </AvatarFallback>
+            </Avatar>
             <div className="flex-1 min-w-0">
               <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">
                 ديوان حماية وادي ميزاب وترقيته

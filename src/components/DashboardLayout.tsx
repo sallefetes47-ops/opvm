@@ -1,4 +1,5 @@
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
 import { Menu } from "lucide-react";
@@ -13,23 +14,17 @@ export function DashboardLayout() {
             <SidebarTrigger className="md:hidden">
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
-            <div className="flex items-center gap-3 mr-4">
-              <img
-                src="/Capture.PNG"
-                alt="OPVM Header - شعار ديوان حماية وادي ميزاب"
-                className="h-20 w-auto object-contain max-h-20 min-h-20"
-                loading="eager"
-                decoding="async"
-                style={{ 
-                  imageRendering: 'crisp-edges',
-                  WebkitFontSmoothing: 'antialiased',
-                  backfaceVisibility: 'hidden',
-                  WebkitBackfaceVisibility: 'hidden',
-                }}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+            <div className="flex items-center gap-4 mr-4">
+              <Avatar className="h-[42px] w-[42px] border-2 border-slate-200 transition-all hover:scale-110">
+                <AvatarImage
+                  src="/Capture.PNG"
+                  alt="شعار ديوان حماية وادي ميزاب - Bureau Logo"
+                  className="object-contain"
+                />
+                <AvatarFallback className="bg-[rgba(212,175,55,0.2)]">
+                  <span className="text-lg font-bold" style={{ color: '#D4AF37' }}>م</span>
+                </AvatarFallback>
+              </Avatar>
               <span className="font-bold text-foreground hidden md:block">
                 ديوان حماية وادي ميزاب وترقيته
               </span>
