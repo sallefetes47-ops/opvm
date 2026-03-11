@@ -409,9 +409,9 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     }
                     return {
                         color: baseColor,
-                        weight: 2,
+                        weight: 2.5,
                         fillColor,
-                        fillOpacity: 0.12,
+                        fillOpacity: 0.3,
                         opacity: 1,
                     };
                 }}
