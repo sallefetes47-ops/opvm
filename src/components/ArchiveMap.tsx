@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Satellite } from 'lucide-react';
-import type { GeoJSONSource, LngLatLike, MapGeoJSONFeature } from 'mapbox-gl';
+import type { GeoJSONSource, LngLatLike } from 'mapbox-gl';
 
 // Ghardaia center coordinates
 const GHARDAIA_CENTER: LngLatLike = [3.6900, 32.4810];
