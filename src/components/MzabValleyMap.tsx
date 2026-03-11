@@ -354,20 +354,44 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     const isSelected = selectedParcelKey === parcelKey;
                     const isFound = foundParcelKey === parcelKey;
 
-                    // RED CADASTRAL LINES styling (STRICT GIS rules)
+                    const communeCode = getCommuneCodeFromProps(props);
+                    const baseColor = getMunicipalityBorderColor(communeCode);
+                    const fillColor = getMunicipalityColor(communeCode);
+
                     if (isFound) {
                         return {
-                            ...CADASTRAL_SELECTED_STYLE,
                             color: '#F59E0B',
+                            weight: 4,
+                            fillColor: '#F59E0B',
+                            fillOpacity: 0.25,
+                            opacity: 1,
                         };
                     }
                     if (isSelected) {
-                        return CADASTRAL_SELECTED_STYLE;
+                        return {
+                            color: baseColor,
+                            weight: 4,
+                            fillColor,
+                            fillOpacity: 0.3,
+                            opacity: 1,
+                        };
                     }
                     if (isHovered) {
-                        return CADASTRAL_HOVER_STYLE;
+                        return {
+                            color: baseColor,
+                            weight: 3.5,
+                            fillColor,
+                            fillOpacity: 0.2,
+                            opacity: 1,
+                        };
                     }
-                    return CADASTRAL_LINE_STYLE;
+                    return {
+                        color: baseColor,
+                        weight: 2,
+                        fillColor,
+                        fillOpacity: 0.12,
+                        opacity: 1,
+                    };
                 }}
                 eventHandlers={{
                     mouseover: (e) => {
