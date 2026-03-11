@@ -142,7 +142,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     return;
                 }
 
-                const feature = e.features[0] as MapGeoJSONFeature;
+                const feature = e.features[0];
                 const properties = feature.properties || {};
                 console.log('[Archive Map] 📋 Parcel properties:', properties);
 

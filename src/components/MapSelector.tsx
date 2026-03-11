@@ -156,7 +156,7 @@ export default function MapSelector({
             style: OSM_STYLE,
             center: GHARDAIA_CENTER,
             zoom: 16,
-            attributionControl: true,
+            attributionControl: false,
         });
 
         // Add navigation controls
