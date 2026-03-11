@@ -15,7 +15,7 @@ const GHARDAIA_CENTER: [number, number] = [3.6900, 32.4810];
 
 // Custom OSM style for MapLibre (no token required)
 const OSM_STYLE = {
-    version: 8,
+    version: 8 as const,
     sources: {
         'osm': {
             type: 'raster' as const,
@@ -156,7 +156,7 @@ export default function MapSelector({
             style: OSM_STYLE,
             center: GHARDAIA_CENTER,
             zoom: 16,
-            attributionControl: true,
+            attributionControl: false,
         });
 
         // Add navigation controls

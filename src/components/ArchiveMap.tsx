@@ -3,14 +3,14 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Satellite } from 'lucide-react';
-import type { GeoJSONSource, LngLatLike, MapGeoJSONFeature } from 'mapbox-gl';
+import type { GeoJSONSource, LngLatLike } from 'mapbox-gl';
 
 // Ghardaia center coordinates
 const GHARDAIA_CENTER: LngLatLike = [3.6900, 32.4810];
 
 // Custom OSM style for Mapbox (free, no token required)
 const OSM_STYLE = {
-    version: 8,
+    version: 8 as const,
     sources: {
         'osm': {
             type: 'raster' as const,
@@ -142,7 +142,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     return;
                 }
 
-                const feature = e.features[0] as MapGeoJSONFeature;
+                const feature = e.features[0];
                 const properties = feature.properties || {};
                 console.log('[Archive Map] 📋 Parcel properties:', properties);
 

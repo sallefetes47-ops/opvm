@@ -65,7 +65,7 @@ export default defineConfig({
               maxFreeSockets: 10,
               timeout: 30000,
             });
-            proxyReq.agent = agent;
+            (proxyReq as any).agent = agent;
 
             console.log(`[Fadaa Proxy] Proxying to: ${proxyReq.path}`);
           });
