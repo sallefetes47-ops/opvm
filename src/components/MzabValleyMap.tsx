@@ -578,6 +578,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     />
                 )}
 
+                <AutoFitBounds geojsonData={geojsonData} />
                 <MapSearchController targetFeature={searchedFeature} resetSignal={resetSignal} />
             </MapContainer>
 
