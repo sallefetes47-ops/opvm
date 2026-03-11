@@ -159,6 +159,28 @@ const getSectionFromProps = (props: Record<string, unknown>): string =>
 const getGroupFromProps = (props: Record<string, unknown>): string =>
     formatPropertyGroup(props.group ?? props.Group ?? props.ILOT ?? props.PropertyGroup ?? props.PROPERTYGROUP ?? '');
 
+const AutoFitBounds = ({ geojsonData }: { geojsonData: GeoJsonFeatureCollectionLike | null }) => {
+    const map = useMap();
+    const hasFitted = useRef(false);
+
+    useEffect(() => {
+        if (!geojsonData || !geojsonData.features.length || hasFitted.current) return;
+        try {
+            const layer = L.geoJSON(geojsonData as any);
+            const bounds = layer.getBounds();
+            if (bounds.isValid()) {
+                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+                hasFitted.current = true;
+                console.log('[MzabMap] ✅ Auto-fitted to GeoJSON bounds');
+            }
+        } catch (e) {
+            console.warn('[MzabMap] Could not fit bounds:', e);
+        }
+    }, [map, geojsonData]);
+
+    return null;
+};
+
 const MapSearchController = ({
     targetFeature,
     resetSignal,
