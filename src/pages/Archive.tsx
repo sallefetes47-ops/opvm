@@ -402,10 +402,6 @@ export default function ArchivePage() {
         </div>
       </div>
 
-      {/* ── ARCHIVE MAP (Parcel Selection for Auto-Fill) ── */}
-      <div className="mt-4">
-        <ArchiveMap onParcelSelect={handleParcelSelect} />
-      </div>
 
       {/* ── EDIT DIALOG ── */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
