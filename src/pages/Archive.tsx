@@ -164,12 +164,7 @@ export default function ArchivePage() {
 
   const softDeleteMutation = useMutation({
     mutationFn: async (fileId: string) => {
-      const { error } = await supabase
-        .from("files")
-        // PostgREST returns updated rows by default; when soft-deleting, the row may no longer
-        // match the SELECT policy (is_deleted=false). Avoid requiring SELECT on the updated row.
-        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-        .eq("id", fileId);
+      const { error } = await supabase.rpc("soft_delete_file", { _file_id: fileId });
       if (error) throw error;
     },
     onSuccess: () => {
