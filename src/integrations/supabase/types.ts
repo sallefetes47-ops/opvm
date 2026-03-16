@@ -368,6 +368,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      soft_delete_file: { Args: { _file_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "employee" | "viewer"
