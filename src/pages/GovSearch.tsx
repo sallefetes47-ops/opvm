@@ -239,32 +239,8 @@ export default function GovSearch() {
                 </CardContent>
             </Card>
 
-            {/* ── Config Warning ─────────────────────────────────── */}
-            {!configured && (
-                <Card className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20">
-                    <CardContent className="pt-6">
-                        <div className="flex items-start gap-3">
-                            <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                            <div className="font-cairo">
-                                <h3 className="font-bold text-amber-800 dark:text-amber-300 mb-1">
-                                    مفاتيح البحث غير مُعدّة
-                                </h3>
-                                <p className="text-sm text-amber-700 dark:text-amber-400 leading-relaxed">
-                                    يرجى إضافة المتغيرات التالية في ملف{" "}
-                                    <code className="font-mono bg-amber-200/50 dark:bg-amber-800/30 px-1.5 py-0.5 rounded text-xs">
-                                        .env
-                                    </code>
-                                    :
-                                </p>
-                                <ul className="mt-2 space-y-1 text-sm text-amber-700 dark:text-amber-400 font-mono" dir="ltr">
-                                    <li>VITE_GOOGLE_SEARCH_API_KEY=your_api_key</li>
-                                    <li>VITE_GOOGLE_SEARCH_CX=your_search_engine_id</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+
+
 
             {/* ── Results Area ───────────────────────────────────── */}
             {hasSearched && !loading && !error && (
