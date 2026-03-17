@@ -329,7 +329,7 @@ export default function GovSearch() {
             )}
 
             {/* Initial State (before first search) */}
-            {!hasSearched && configured && (
+            {!hasSearched && (
                 <div className="flex flex-col items-center justify-center py-16 gap-6 text-center">
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                         <Globe className="w-10 h-10 text-primary" />
