@@ -46,8 +46,6 @@ export default function GovSearch() {
     const [retryAfter, setRetryAfter] = useState<number | null>(null);
     const [retryCountdown, setRetryCountdown] = useState(0);
 
-    const configured = isSearchConfigured();
-
     useEffect(() => {
         if (!retryAfter) {
             setRetryCountdown(0);
