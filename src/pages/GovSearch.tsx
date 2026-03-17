@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import {
     searchGovDomains,
-    isSearchConfigured,
     isPdfUrl,
     type GovSearchResult,
 } from "@/lib/gov-search";
