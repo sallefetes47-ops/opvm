@@ -206,7 +206,7 @@ export default function GovSearch() {
                             type="submit"
                             size="lg"
                             className="font-cairo h-12 px-8"
-                            disabled={!configured || loading || !query.trim() || retryCountdown > 0}
+                            disabled={loading || !query.trim() || retryCountdown > 0}
                         >
                             {loading ? (
                                 <Loader2 className="w-5 h-5 animate-spin ml-2" />
