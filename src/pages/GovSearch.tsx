@@ -199,7 +199,7 @@ export default function GovSearch() {
                                 placeholder="ابحث عن قانون، مرسوم، تعليمة... مثال: رخصة البناء"
                                 className="pr-11 font-cairo text-base h-12"
                                 dir="rtl"
-                                disabled={!configured || loading}
+                                disabled={loading}
                             />
                         </div>
                         <Button
