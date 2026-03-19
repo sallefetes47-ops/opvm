@@ -478,13 +478,17 @@ function ResultCard({
                                 variant="outline"
                                 size="sm"
                                 className="font-cairo text-xs h-8"
-                                onClick={() =>
-                                    window.open(
-                                        result.link,
-                                        "_blank",
-                                        "noopener,noreferrer"
-                                    )
-                                }
+                                onClick={() => {
+                                    if (result.link && result.link.startsWith("http")) {
+                                        window.open(result.link, "_blank", "noopener,noreferrer");
+                                    } else {
+                                        // Search Google for the title on the source domain
+                                        const domain = result.displayLink || "";
+                                        const title = result.title.replace(/<[^>]*>/g, "");
+                                        const searchUrl = `https://www.google.com/search?q=site:${encodeURIComponent(domain)}+${encodeURIComponent(title)}`;
+                                        window.open(searchUrl, "_blank", "noopener,noreferrer");
+                                    }
+                                }}
                             >
                                 <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
                                 فتح
@@ -493,19 +497,19 @@ function ResultCard({
                                 variant="default"
                                 size="sm"
                                 className="font-cairo text-xs h-8"
-                                onClick={() => onViewClick(result)}
+                                onClick={() => {
+                                    if (result.link && result.link.startsWith("http")) {
+                                        onViewClick(result);
+                                    } else {
+                                        const domain = result.displayLink || "";
+                                        const title = result.title.replace(/<[^>]*>/g, "");
+                                        const searchUrl = `https://www.google.com/search?q=site:${encodeURIComponent(domain)}+${encodeURIComponent(title)}`;
+                                        window.open(searchUrl, "_blank", "noopener,noreferrer");
+                                    }
+                                }}
                             >
-                                {isPdf ? (
-                                    <>
-                                        <Download className="w-3.5 h-3.5 ml-1.5" />
-                                        تحميل
-                                    </>
-                                ) : (
-                                    <>
-                                        <Eye className="w-3.5 h-3.5 ml-1.5" />
-                                        عرض
-                                    </>
-                                )}
+                                <Eye className="w-3.5 h-3.5 ml-1.5" />
+                                عرض
                             </Button>
                             <Button
                                 variant="secondary"
