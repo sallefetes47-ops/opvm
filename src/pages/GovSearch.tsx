@@ -488,15 +488,13 @@ function ResultCard({
                                 size="sm"
                                 className="font-cairo text-xs h-8"
                                 onClick={() => {
-                                    if (result.link && result.link.startsWith("http")) {
-                                        window.open(result.link, "_blank", "noopener,noreferrer");
-                                    } else {
-                                        // Search Google for the title on the source domain
-                                        const domain = result.displayLink || "";
-                                        const title = result.title.replace(/<[^>]*>/g, "");
-                                        const searchUrl = `https://www.google.com/search?q=site:${encodeURIComponent(domain)}+${encodeURIComponent(title)}`;
-                                        window.open(searchUrl, "_blank", "noopener,noreferrer");
-                                    }
+                                    const domain = result.displayLink || "";
+                                    const title = result.title.replace(/<[^>]*>/g, "");
+                                    window.open(
+                                        `https://www.google.com/search?q=site:${encodeURIComponent(domain)}+${encodeURIComponent(title)}`,
+                                        "_blank",
+                                        "noopener,noreferrer"
+                                    );
                                 }}
                             >
                                 <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
@@ -507,14 +505,13 @@ function ResultCard({
                                 size="sm"
                                 className="font-cairo text-xs h-8"
                                 onClick={() => {
-                                    if (result.link && result.link.startsWith("http")) {
-                                        onViewClick(result);
-                                    } else {
-                                        const domain = result.displayLink || "";
-                                        const title = result.title.replace(/<[^>]*>/g, "");
-                                        const searchUrl = `https://www.google.com/search?q=site:${encodeURIComponent(domain)}+${encodeURIComponent(title)}`;
-                                        window.open(searchUrl, "_blank", "noopener,noreferrer");
-                                    }
+                                    const domain = result.displayLink || "";
+                                    const title = result.title.replace(/<[^>]*>/g, "");
+                                    window.open(
+                                        `https://www.google.com/search?q=site:${encodeURIComponent(domain)}+${encodeURIComponent(title)}`,
+                                        "_blank",
+                                        "noopener,noreferrer"
+                                    );
                                 }}
                             >
                                 <Eye className="w-3.5 h-3.5 ml-1.5" />
