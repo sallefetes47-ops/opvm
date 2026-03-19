@@ -99,15 +99,17 @@ export default function GovSearch() {
         [query, loading, retryAfter]
     );
 
+    const getGoogleSearchUrl = useCallback((result: GovSearchResult) => {
+        const domain = result.displayLink || "";
+        const title = result.title.replace(/<[^>]*>/g, "");
+        return `https://www.google.com/search?q=site:${encodeURIComponent(domain)}+${encodeURIComponent(title)}`;
+    }, []);
+
     const handleResultClick = useCallback(
         (result: GovSearchResult) => {
-            if (isPdfUrl(result.link)) {
-                setPdfPreviewUrl(result.link);
-            } else {
-                window.open(result.link, "_blank", "noopener,noreferrer");
-            }
+            window.open(getGoogleSearchUrl(result), "_blank", "noopener,noreferrer");
         },
-        []
+        [getGoogleSearchUrl]
     );
 
     const handleSaveToArchive = useCallback(
