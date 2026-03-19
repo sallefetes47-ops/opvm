@@ -373,12 +373,19 @@ export default function GovSearch() {
                         >
                             {pdfPreviewUrl && (
                                 <iframe
-                                    src={pdfPreviewUrl}
+                                    src={
+                                        isPdfUrl(pdfPreviewUrl)
+                                            ? `https://docs.google.com/gview?url=${encodeURIComponent(pdfPreviewUrl)}&embedded=true`
+                                            : pdfPreviewUrl
+                                    }
                                     className="w-full h-full"
                                     title="PDF Preview"
                                 />
                             )}
                         </div>
+                        <p className="text-xs text-muted-foreground font-cairo mt-2">
+                            ⚠️ إذا لم يظهر المستند، قد يكون الموقع محجوباً بواسطة إضافة حظر الإعلانات. جرب تعطيلها أو استخدم زر "فتح في نافذة جديدة".
+                        </p>
                         <div className="flex items-center justify-between mt-3">
                             <p className="text-xs text-muted-foreground font-cairo">
                                 إذا لم يظهر المستند، استخدم زر التحميل المباشر
