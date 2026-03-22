@@ -194,6 +194,25 @@ select option {
   text-align: right !important;
 }
 
+[role="listbox"],
+[role="menu"],
+[cmdk-root],
+[cmdk-list] {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+[role="option"],
+[role="menuitem"],
+[role="menuitemcheckbox"],
+[role="menuitemradio"],
+[cmdk-item],
+[cmdk-group-heading],
+[cmdk-input] {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
 /* ==========================================
    Cadastral Data Fetcher - Fadaa Dzair Integration
    Red Cadastral Lines Styling & Tooltips
