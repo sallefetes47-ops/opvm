@@ -15,9 +15,7 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     allowedHosts: true,
-    hmr: {
-      clientPort: 443,
-    },
+    hmr: true,
     // CORS Proxy for Fadaa El Djazair cadastral server
     // Bypasses browser CORS restrictions for government server requests
     proxy: {
@@ -96,14 +94,19 @@ export default defineConfig({
               console.warn('[Fadaa Proxy] TLS certificate mismatch - secure:false should handle this');
             }
 
-            res.writeHead(502, {
-              'Content-Type': 'application/json; charset=utf-8',
-            });
-            res.end(JSON.stringify({
-              error: 'Proxy connection error',
-              message: err.message,
-              code: (err as any).code,
-            }));
+            // Guard: res may be a net.Socket (not ServerResponse) during WebSocket upgrades
+            if (res && typeof (res as any).writeHead === 'function') {
+              (res as any).writeHead(502, {
+                'Content-Type': 'application/json; charset=utf-8',
+              });
+              (res as any).end(JSON.stringify({
+                error: 'Proxy connection error',
+                message: err.message,
+                code: (err as any).code,
+              }));
+            } else if (res && typeof (res as any).end === 'function') {
+              (res as any).end();
+            }
           });
 
           proxy.on('close', (req, res) => {

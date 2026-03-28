@@ -192,7 +192,26 @@ export default function GovSearch() {
             {/* ── Search Bar ─────────────────────────────────────── */}
             <Card>
                 <CardContent className="pt-6">
-                    <form onSubmit={handleSearch} className="flex gap-3">
+                    <form
+                        action="https://www.google.com/search"
+                        method="GET"
+                        target="_blank"
+                        onSubmit={(e) => {
+                            if (!query.trim()) {
+                                e.preventDefault();
+                                return;
+                            }
+                            // Set the hidden "q" input to include the site restriction
+                            const form = e.currentTarget;
+                            const hiddenInput = form.querySelector('input[name="q"]') as HTMLInputElement;
+                            if (hiddenInput) {
+                                hiddenInput.value = query.trim() + " site:gov.dz OR site:dz";
+                            }
+                        }}
+                        className="flex gap-3"
+                    >
+                        {/* Hidden input that carries the actual Google query (user text + site restriction) */}
+                        <input type="hidden" name="q" value="" />
                         <div className="relative flex-1">
                             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                             <Input
@@ -201,20 +220,15 @@ export default function GovSearch() {
                                 placeholder="ابحث عن قانون، مرسوم، تعليمة... مثال: رخصة البناء"
                                 className="pr-11 font-cairo text-base h-12"
                                 dir="rtl"
-                                disabled={loading}
                             />
                         </div>
                         <Button
                             type="submit"
                             size="lg"
                             className="font-cairo h-12 px-8"
-                            disabled={loading || !query.trim() || retryCountdown > 0}
+                            disabled={!query.trim()}
                         >
-                            {loading ? (
-                                <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                                <Search className="w-5 h-5 ml-2" />
-                            )}
+                            <Search className="w-5 h-5 ml-2" />
                             بحث
                         </Button>
                     </form>
