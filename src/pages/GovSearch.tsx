@@ -498,25 +498,35 @@ function ResultCard({
                                 }}
                             >
                                 <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
-                                فتح
+                                فتح في Google
                             </Button>
-                            <Button
-                                variant="default"
-                                size="sm"
-                                className="font-cairo text-xs h-8"
-                                onClick={() => {
-                                    const domain = result.displayLink || "";
-                                    const title = result.title.replace(/<[^>]*>/g, "");
-                                    window.open(
-                                        `https://www.google.com/search?q=site:${encodeURIComponent(domain)}+${encodeURIComponent(title)}`,
-                                        "_blank",
-                                        "noopener,noreferrer"
-                                    );
-                                }}
-                            >
-                                <Eye className="w-3.5 h-3.5 ml-1.5" />
-                                عرض
-                            </Button>
+                            {isPdf && result.link ? (
+                                <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="font-cairo text-xs h-8"
+                                    onClick={() => onViewClick(result)}
+                                >
+                                    <Eye className="w-3.5 h-3.5 ml-1.5" />
+                                    معاينة PDF
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="font-cairo text-xs h-8"
+                                    onClick={() => {
+                                        if (result.link) {
+                                            window.open(result.link, "_blank", "noopener,noreferrer");
+                                        } else {
+                                            onViewClick(result);
+                                        }
+                                    }}
+                                >
+                                    <Eye className="w-3.5 h-3.5 ml-1.5" />
+                                    عرض مباشر
+                                </Button>
+                            )}
                             <Button
                                 variant="secondary"
                                 size="sm"
