@@ -107,7 +107,11 @@ export default function GovSearch() {
 
     const handleResultClick = useCallback(
         (result: GovSearchResult) => {
-            window.open(getGoogleSearchUrl(result), "_blank", "noopener,noreferrer");
+            if (isPdfUrl(result.link)) {
+                setPdfPreviewUrl(result.link);
+            } else {
+                window.open(getGoogleSearchUrl(result), "_blank", "noopener,noreferrer");
+            }
         },
         [getGoogleSearchUrl]
     );
