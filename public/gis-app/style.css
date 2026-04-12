@@ -669,7 +669,7 @@ html, body {
 .map-controls-overlay {
   position: absolute;
   top: 16px;
-  left: 16px;
+  left: 60px;
   z-index: 800;
   display: flex;
   flex-direction: column;
@@ -708,7 +708,7 @@ html, body {
 .detail-panel {
   position: absolute;
   bottom: 16px;
-  right: 16px;
+  left: 16px;
   width: 380px;
   max-height: calc(100vh - 48px);
   background: var(--bg-secondary);
