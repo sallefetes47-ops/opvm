@@ -209,38 +209,61 @@ async function loadGeoJSON() {
 }
 
 /**
- * Parse potentially concatenated FeatureCollections
+ * Parse potentially concatenated FeatureCollections.
+ * The file may contain two FeatureCollection JSON objects concatenated together.
+ * We use a fast split-and-parse approach instead of character-by-character scanning.
  */
 function parseFeatureCollections(text) {
+  // First, try a simple JSON.parse (handles single valid JSON)
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features)) {
+      return parsed.features;
+    }
+  } catch (e) {
+    // Expected for concatenated JSON — continue
+  }
+
+  // Split on the boundary between two top-level JSON objects
+  // Pattern: "}\n{" or "}\r\n{" at the top level (end of one object, start of another)
+  // We look for the closing sequence of the first FeatureCollection
   const features = [];
   
-  // Try to find multiple FeatureCollection objects
-  // They might be concatenated: {...}{...}
-  let depth = 0;
-  let start = -1;
-  let jsonBlocks = [];
+  // Find the split point: look for }\s*{ pattern after the features array closes
+  // The pattern at boundary is: ...]\n}\n{\n  "type"...
+  const splitRegex = /\}\s*\{[\s]*"type"\s*:\s*"FeatureCollection"/g;
+  let match = splitRegex.exec(text);
   
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] === '{') {
-      if (depth === 0) start = i;
-      depth++;
-    } else if (text[i] === '}') {
-      depth--;
-      if (depth === 0 && start !== -1) {
-        jsonBlocks.push(text.substring(start, i + 1));
-        start = -1;
+  if (match) {
+    // Split at the found position (keep the } for first block, { for second)
+    const splitPos = match.index + 1; // after the }
+    const blocks = [
+      text.substring(0, splitPos).trim(),
+      text.substring(splitPos).trim()
+    ];
+    
+    for (const block of blocks) {
+      try {
+        const parsed = JSON.parse(block);
+        if (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features)) {
+          features.push(...parsed.features);
+        }
+      } catch (e) {
+        console.warn('Failed to parse a JSON block (' + block.length + ' chars), skipping');
       }
     }
   }
 
-  for (const block of jsonBlocks) {
+  if (features.length === 0) {
+    // Last resort: try trimming the text
+    const trimmed = text.trim();
     try {
-      const parsed = JSON.parse(block);
+      const parsed = JSON.parse(trimmed);
       if (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features)) {
-        features.push(...parsed.features);
+        return parsed.features;
       }
-    } catch (e) {
-      console.warn('Failed to parse a JSON block, skipping');
+    } catch(e) {
+      console.error('Failed to parse GeoJSON:', e.message);
     }
   }
 
