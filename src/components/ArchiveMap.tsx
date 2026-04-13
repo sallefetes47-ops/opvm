@@ -58,6 +58,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             style: OSM_STYLE,
             center: GHARDAIA_CENTER,
             zoom: 14,
+            maxZoom: 22,
             attributionControl: true,
             preserveDrawingBuffer: true,
         });
@@ -87,6 +88,8 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 id: 'cadastre-parcels-fill',
                 type: 'fill',
                 source: 'cadastre-parcels',
+                minzoom: 0,
+                maxzoom: 24,
                 paint: {
                     'fill-color': '#64748b',
                     'fill-opacity': 0.1,
@@ -98,6 +101,8 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 id: 'cadastre-parcels-line',
                 type: 'line',
                 source: 'cadastre-parcels',
+                minzoom: 0,
+                maxzoom: 24,
                 paint: {
                     'line-color': '#64748b',
                     'line-width': 1.5,
