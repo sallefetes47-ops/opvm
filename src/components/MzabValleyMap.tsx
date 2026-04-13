@@ -7,10 +7,7 @@ import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
 import { extractCadastralMetadata, generateTooltipContent, type CadastralFeature } from '@/lib/fadaa-dzair';
 import { useToast } from '@/hooks/use-toast';
 
-// Static import — bundled at build time, zero network fetch
-import geoData from '../data/mzab_cadastre_map.json';
-
-console.log('Map Data Loaded:', geoData);
+// Loaded dynamically to avoid OOM during build
 
 export type ParcelSelectionData = {
     municipality: string;

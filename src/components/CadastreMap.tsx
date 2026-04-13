@@ -3,7 +3,7 @@ import { GeoJSON, MapContainer, TileLayer } from 'react-leaflet';
 import type { GeoJsonObject } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 
-import geoData from '@/data/mzab_cadastre_map.json';
+
 
 /**
  * CadastreMap — Minimal, static-import GeoJSON renderer for Ghardaïa cadastre.
