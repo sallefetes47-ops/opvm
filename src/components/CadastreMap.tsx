@@ -62,7 +62,7 @@ const CadastreMap: React.FC<CadastreMapProps> = ({ height = '100%', width = '100
                     <GeoJSON
                         key={`cadastre-${geoData.features?.length ?? 0}`}
                         data={geoData as unknown as GeoJsonObject}
-                        style={() => CADASTRE_STYLE}
+                        style={() => ({ ...CADASTRE_STYLE, renderer: canvasRenderer })}
                         onEachFeature={(feature, layer) => {
                             const props = (feature as any)?.properties || {};
                             const commune = props.COMMUNE ?? props.commune ?? props.Municipality ?? '—';
