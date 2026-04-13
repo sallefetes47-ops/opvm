@@ -201,7 +201,7 @@ const MapSearchController = ({
 
     useEffect(() => {
         if (resetSignal === 0) return;
-        map.flyTo([32.49, 3.67], 11, { duration: 1 });
+        map.flyTo([32.54, 3.60], 11, { duration: 1 });
     }, [map, resetSignal]);
 
     return null;
