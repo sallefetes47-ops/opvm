@@ -284,6 +284,7 @@ const MunicipalityLabels = ({ geojsonData }: { geojsonData: GeoJsonFeatureCollec
 const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(({ onParcelSelect }, ref) => {
     const { toast } = useToast();
     const [geojsonData, setGeojsonData] = useState<GeoJsonFeatureCollectionLike | null>(null);
+    const [geoDataKey, setGeoDataKey] = useState(0); // Performance-safe key for GeoJSON re-render
     const [hoveredParcelKey, setHoveredParcelKey] = useState('');
     const [selectedParcelKey, setSelectedParcelKey] = useState('');
     const [foundParcelKey, setFoundParcelKey] = useState('');
@@ -291,8 +292,8 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
     const [resetSignal, setResetSignal] = useState(0);
 
     // Official Fadaa El Djazair LIVE API layer state
-    const [fadaaLayerLoaded, setFadaaLayerLoaded] = useState(false);
     const [fadaaData, setFadaaData] = useState<WFSFeatureCollection | null>(null);
+    const [fadaaDataKey, setFadaaDataKey] = useState(0); // Performance-safe key for Fadaa GeoJSON re-render
     const [fadaaLoadError, setFadaaLoadError] = useState<string | null>(null);
     const [isLoadingFadaa, setIsLoadingFadaa] = useState(true);
     const mapRef = useRef<L.Map | null>(null);
@@ -307,6 +308,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 }
                 const data = await res.json();
                 setGeojsonData(normalizeGeoJson(data));
+                setGeoDataKey((prev) => prev + 1); // Force GeoJSON re-render
             } catch (err) {
                 console.error('خطأ في تحميل بيانات القطع:', err);
                 // Don't crash - just use empty data
@@ -342,7 +344,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
                 // Successfully loaded live data
                 setFadaaData(data);
-                setFadaaLayerLoaded(true);
+                setFadaaDataKey((prev) => prev + 1); // Force Fadaa GeoJSON re-render
                 setIsLoadingFadaa(false);
 
                 if (data.features.length > 0) {
@@ -355,7 +357,6 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 // CRITICAL: Catch all errors and show notification - DON'T CRASH
                 console.error('[Fadaa LIVE API] Fetch failed:', error?.message || error);
 
-                setFadaaLayerLoaded(false);
                 setFadaaLoadError(error?.message || 'فشل الاتصال بالخادم');
                 setFadaaData(null);
                 setIsLoadingFadaa(false);
@@ -442,7 +443,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
         return (
             <GeoJSON
-                key={`local-${JSON.stringify(geojsonData).length}`}
+                key={`local-${geoDataKey}`}
                 data={geojsonData as unknown as GeoJsonObject}
                 style={(feature) => {
                     const props = (feature?.properties || {}) as Record<string, unknown>;
@@ -600,7 +601,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 {/* Official Fadaa El Djazair LIVE API vector data overlay (auto-loaded, no checkbox) */}
                 {validFadaaData && (
                     <GeoJSON
-                        key={`fadaa-${JSON.stringify(validFadaaData).length}`}
+                        key={`fadaa-${fadaaDataKey}`}
                         data={validFadaaData as unknown as GeoJsonObject}
                         style={() => CADASTRAL_LINE_STYLE}
                         eventHandlers={{
