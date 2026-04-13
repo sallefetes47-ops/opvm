@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import L from 'leaflet';
 import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import type { GeoJsonObject } from 'geojson';
@@ -7,10 +7,7 @@ import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
 import { extractCadastralMetadata, generateTooltipContent, type CadastralFeature } from '@/lib/fadaa-dzair';
 import { useToast } from '@/hooks/use-toast';
 
-// Static import — bundled at build time, zero network fetch
-import geoData from '../data/mzab_cadastre_map.json';
-
-console.log('Map Data Loaded:', geoData);
+// Loaded dynamically to avoid OOM during build
 
 export type ParcelSelectionData = {
     municipality: string;
@@ -266,8 +263,14 @@ const MunicipalityLabels = ({ geojsonData }: { geojsonData: GeoJsonFeatureCollec
     return null;
 };
 
-// ─── Normalize the static data once at module load ───
-const normalizedGeoJson = normalizeGeoJson(geoData);
+// GeoJSON loaded dynamically
+let _geoDataCache: any = null;
+const loadGeoData = () => {
+    if (_geoDataCache) return Promise.resolve(_geoDataCache);
+    return fetch('./mzab_cadastre_map.json')
+        .then(r => r.json())
+        .then(d => { _geoDataCache = d; return d; });
+};
 
 const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(({ onParcelSelect }, ref) => {
     const { toast } = useToast();
@@ -277,8 +280,11 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
     const [searchedFeature, setSearchedFeature] = useState<GeoJsonFeatureCollectionLike['features'][number] | null>(null);
     const [resetSignal, setResetSignal] = useState(0);
     const mapRef = useRef<L.Map | null>(null);
+    const [geojsonData, setGeojsonData] = useState<GeoJsonFeatureCollectionLike | null>(null);
 
-    const geojsonData = normalizedGeoJson;
+    useEffect(() => {
+        loadGeoData().then(d => setGeojsonData(normalizeGeoJson(d)));
+    }, []);
 
     const emitSelection = (props: Record<string, unknown>) => {
         if (!onParcelSelect) return;

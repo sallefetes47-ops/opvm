@@ -1,9 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { GeoJSON, MapContainer, TileLayer } from 'react-leaflet';
 import type { GeoJsonObject } from 'geojson';
 import 'leaflet/dist/leaflet.css';
-
-import geoData from '@/data/mzab_cadastre_map.json';
 
 /**
  * CadastreMap — Minimal, static-import GeoJSON renderer for Ghardaïa cadastre.
@@ -32,6 +30,15 @@ const HOVER_STYLE = {
 };
 
 const CadastreMap: React.FC<CadastreMapProps> = ({ height = '100%', width = '100%' }) => {
+    const [geoData, setGeoData] = useState<any>(null);
+
+    useEffect(() => {
+        fetch('./mzab_cadastre_map.json')
+            .then(r => r.json())
+            .then(setGeoData)
+            .catch(err => console.error('Failed to load GeoJSON:', err));
+    }, []);
+
     return (
         <div style={{ height, width, borderRadius: '12px', overflow: 'hidden' }}>
             <MapContainer
@@ -42,7 +49,6 @@ const CadastreMap: React.FC<CadastreMapProps> = ({ height = '100%', width = '100
                 zoomControl
                 preferCanvas
             >
-                {/* Base tile layer — OpenStreetMap */}
                 <TileLayer
                     attribution='&copy; OpenStreetMap contributors'
                     url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -50,40 +56,32 @@ const CadastreMap: React.FC<CadastreMapProps> = ({ height = '100%', width = '100
                     maxZoom={22}
                 />
 
-                {/* GeoJSON overlay — cadastre parcels */}
-                <GeoJSON
-                    key={`cadastre-${geoData.features?.length ?? 0}`}
-                    data={geoData as unknown as GeoJsonObject}
-                    style={() => CADASTRE_STYLE}
-                    onEachFeature={(feature, layer) => {
-                        const props = (feature as any)?.properties || {};
-
-                        const commune = props.COMMUNE ?? props.commune ?? props.Municipality ?? '—';
-                        const section = props.SECTION ?? props.Section ?? props.section ?? '—';
-                        const ilot = props.ILOT ?? props.propertyGroup ?? props.PropertyGroup ?? '—';
-                        const area = props.AREA ?? props.Area ?? props.area ?? '—';
-
-                        const popupContent = `
-                            <div dir="rtl" style="font-family: 'Cairo', sans-serif; font-size: 14px; line-height: 1.8; white-space: nowrap;">
-                                <strong style="font-size: 15px; display: block; margin-bottom: 4px;">📍 معلومات القطعة</strong>
-                                <span>البلدية:</span> <strong>${commune}</strong><br/>
-                                <span>رقم القسم:</span> <strong>${section}</strong><br/>
-                                <span>مجموعة الملكية:</span> <strong>${ilot}</strong><br/>
-                                <span>المساحة:</span> <strong>${area} م²</strong>
-                            </div>
-                        `;
-
-                        layer.bindPopup(popupContent);
-
-                        // Hover: highlight
-                        layer.on('mouseover', () => {
-                            (layer as any).setStyle(HOVER_STYLE);
-                        });
-                        layer.on('mouseout', () => {
-                            (layer as any).setStyle(CADASTRE_STYLE);
-                        });
-                    }}
-                />
+                {geoData && (
+                    <GeoJSON
+                        key={`cadastre-${geoData.features?.length ?? 0}`}
+                        data={geoData as unknown as GeoJsonObject}
+                        style={() => CADASTRE_STYLE}
+                        onEachFeature={(feature, layer) => {
+                            const props = (feature as any)?.properties || {};
+                            const commune = props.COMMUNE ?? props.commune ?? props.Municipality ?? '—';
+                            const section = props.SECTION ?? props.Section ?? props.section ?? '—';
+                            const ilot = props.ILOT ?? props.propertyGroup ?? props.PropertyGroup ?? '—';
+                            const area = props.AREA ?? props.Area ?? props.area ?? '—';
+                            const popupContent = `
+                                <div dir="rtl" style="font-family: 'Cairo', sans-serif; font-size: 14px; line-height: 1.8; white-space: nowrap;">
+                                    <strong style="font-size: 15px; display: block; margin-bottom: 4px;">📍 معلومات القطعة</strong>
+                                    <span>البلدية:</span> <strong>${commune}</strong><br/>
+                                    <span>رقم القسم:</span> <strong>${section}</strong><br/>
+                                    <span>مجموعة الملكية:</span> <strong>${ilot}</strong><br/>
+                                    <span>المساحة:</span> <strong>${area} م²</strong>
+                                </div>
+                            `;
+                            layer.bindPopup(popupContent);
+                            layer.on('mouseover', () => { (layer as any).setStyle(HOVER_STYLE); });
+                            layer.on('mouseout', () => { (layer as any).setStyle(CADASTRE_STYLE); });
+                        }}
+                    />
+                )}
             </MapContainer>
         </div>
     );

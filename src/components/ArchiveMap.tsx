@@ -5,8 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Satellite } from 'lucide-react';
 import type { GeoJSONSource, LngLatLike } from 'mapbox-gl';
 
-// Static import — bundled at build time, zero network fetch
-import geoData from '../data/mzab_cadastre_map.json';
+// Loaded dynamically to avoid OOM during build
 
 // Ghardaia center coordinates
 const GHARDAIA_CENTER: LngLatLike = [3.6900, 32.4810];
@@ -185,12 +184,17 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     .addTo(map);
             });
 
-            // Set GeoJSON data from static import
-            const source = map.getSource('cadastre-parcels') as GeoJSONSource;
-            if (source && geoData) {
-                source.setData(geoData as GeoJSON.GeoJSON);
-                console.log('[Archive Map] ✅ GeoJSON data set:', geoData.features?.length || 0, 'features');
-            }
+            // Load GeoJSON data dynamically
+            fetch('./mzab_cadastre_map.json')
+                .then(r => r.json())
+                .then(geoData => {
+                    const source = map.getSource('cadastre-parcels') as GeoJSONSource;
+                    if (source && geoData) {
+                        source.setData(geoData as GeoJSON.GeoJSON);
+                        console.log('[Archive Map] ✅ GeoJSON data set:', geoData.features?.length || 0, 'features');
+                    }
+                })
+                .catch(err => console.error('[Archive Map] Failed to load GeoJSON:', err));
 
             // Debug: Log errors
             map.on('error', (e) => {
