@@ -209,17 +209,6 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
         };
     }, [onParcelSelect]);
 
-    // Update GeoJSON data when it changes
-    useEffect(() => {
-        if (mapRef.current && isMapLoaded && cadastreGeoJson) {
-            const source = mapRef.current.getSource('cadastre-parcels') as GeoJSONSource;
-            if (source) {
-                source.setData(cadastreGeoJson);
-                console.log('[Archive Map] 🔄 GeoJSON data updated');
-            }
-        }
-    }, [cadastreGeoJson, isMapLoaded]);
-
     return (
         <Card className="w-full h-full flex flex-col border-2 border-slate-200 rounded-xl shadow-lg text-right" dir="rtl">
             <CardHeader className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-4 shrink-0">
