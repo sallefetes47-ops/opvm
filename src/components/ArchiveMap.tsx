@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Satellite } from 'lucide-react';
 import type { GeoJSONSource, LngLatLike } from 'mapbox-gl';
 
+// Static import — bundled at build time, zero network fetch
+import geoData from '../data/mzab_cadastre_map.json';
+
 // Ghardaia center coordinates
 const GHARDAIA_CENTER: LngLatLike = [3.6900, 32.4810];
 
