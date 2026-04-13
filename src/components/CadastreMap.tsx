@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { GeoJSON, MapContainer, TileLayer } from 'react-leaflet';
 import type { GeoJsonObject } from 'geojson';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 /**
@@ -30,6 +31,7 @@ const HOVER_STYLE = {
 };
 
 const CadastreMap: React.FC<CadastreMapProps> = ({ height = '100%', width = '100%' }) => {
+    const canvasRenderer = useMemo(() => L.canvas({ padding: 0.5 }), []);
     const [geoData, setGeoData] = useState<any>(null);
 
     useEffect(() => {
@@ -60,7 +62,7 @@ const CadastreMap: React.FC<CadastreMapProps> = ({ height = '100%', width = '100
                     <GeoJSON
                         key={`cadastre-${geoData.features?.length ?? 0}`}
                         data={geoData as unknown as GeoJsonObject}
-                        style={() => CADASTRE_STYLE}
+                        style={() => ({ ...CADASTRE_STYLE, renderer: canvasRenderer })}
                         onEachFeature={(feature, layer) => {
                             const props = (feature as any)?.properties || {};
                             const commune = props.COMMUNE ?? props.commune ?? props.Municipality ?? '—';
