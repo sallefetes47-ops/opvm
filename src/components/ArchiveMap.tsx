@@ -42,25 +42,6 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
-    const [cadastreGeoJson, setCadastreGeoJson] = useState<GeoJSON.GeoJSON | null>(null);
-
-    // Load local cadastral GeoJSON data from public folder
-    useEffect(() => {
-        fetch('/mzab_cadastre_map.geojson')
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}: GeoJSON not found`);
-                }
-                return res.json();
-            })
-            .then((data) => {
-                console.log('[Archive Map] ✅ GeoJSON loaded:', data.features?.length || 0, 'features');
-                setCadastreGeoJson(data);
-            })
-            .catch((err) => {
-                console.error('[Archive Map] ❌ Failed to load GeoJSON:', err.message);
-            });
-    }, []);
 
     // Initialize vanilla Mapbox GL map
     useEffect(() => {
@@ -102,25 +83,25 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 } as GeoJSON.GeoJSON,
             });
 
-            // Add fill layer with transparent red
+            // Add fill layer with transparent slate gray
             map.addLayer({
                 id: 'cadastre-parcels-fill',
                 type: 'fill',
                 source: 'cadastre-parcels',
                 paint: {
-                    'fill-color': '#FF0000',
-                    'fill-opacity': 0.2,
+                    'fill-color': '#64748b',
+                    'fill-opacity': 0.1,
                 },
             });
 
-            // Add line layer with red outline
+            // Add line layer with slate gray outline
             map.addLayer({
                 id: 'cadastre-parcels-line',
                 type: 'line',
                 source: 'cadastre-parcels',
                 paint: {
-                    'line-color': '#FF0000',
-                    'line-width': 2,
+                    'line-color': '#64748b',
+                    'line-width': 1.5,
                     'line-opacity': 1,
                 },
             });
