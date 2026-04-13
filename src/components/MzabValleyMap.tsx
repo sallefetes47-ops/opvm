@@ -456,6 +456,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
         return (
             <GeoJSON
+                key={`local-${JSON.stringify(geojsonData).length}`}
                 data={geojsonData as unknown as GeoJsonObject}
                 style={(feature) => {
                     const props = (feature?.properties || {}) as Record<string, unknown>;
@@ -565,7 +566,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
         <div className='relative' style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
             {/* CRITICAL FIX: Explicit CRS projection to prevent "crs.project is not a function" error */}
             <MapContainer
-                center={[32.49, 3.67]}
+                center={[32.54, 3.60]}
                 zoom={11}
                 maxZoom={22}
                 crs={L.CRS.EPSG3857}
@@ -613,6 +614,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 {/* Official Fadaa El Djazair LIVE API vector data overlay (auto-loaded, no checkbox) */}
                 {validFadaaData && (
                     <GeoJSON
+                        key={`fadaa-${JSON.stringify(validFadaaData).length}`}
                         data={validFadaaData as unknown as GeoJsonObject}
                         style={() => CADASTRAL_LINE_STYLE}
                         eventHandlers={{
