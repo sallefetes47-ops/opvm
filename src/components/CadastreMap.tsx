@@ -40,6 +40,7 @@ const CadastreMap: React.FC<CadastreMapProps> = ({ height = '100%', width = '100
                 maxZoom={22}
                 style={{ height: '100%', width: '100%' }}
                 zoomControl
+                preferCanvas
             >
                 {/* Base tile layer — OpenStreetMap */}
                 <TileLayer

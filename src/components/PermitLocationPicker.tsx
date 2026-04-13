@@ -219,6 +219,7 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                             maxBounds={MAX_BOUNDS}
                             maxBoundsViscosity={1.0}
                             minZoom={12}
+                            preferCanvas
                         >
                             <TileLayer
                                 attribution=""
@@ -233,16 +234,16 @@ export default function PermitLocationPicker({ value, onChange }: PermitLocation
                                 <GeoJSON
                                     key={value ? `${value.section}-${value.ilot}` : 'unselected'}
                                     data={geoJsonData}
-                                     style={(feature: any) => {
-                                         const p = feature?.properties;
-                                         const isSelected =
-                                             !!value &&
-                                             formatSection(p?.SECTION || "") === value.section &&
-                                             formatPropertyGroup(p?.ILOT || p?.group || "") === value.ilot;
-                                         return {
-                                             color: isSelected ? '#3b82f6' : '#FF0000',
-                                             weight: 2,
-                                             fillColor: isSelected ? '#3b82f6' : '#FF0000',
+                                    style={(feature: any) => {
+                                        const p = feature?.properties;
+                                        const isSelected =
+                                            !!value &&
+                                            formatSection(p?.SECTION || "") === value.section &&
+                                            formatPropertyGroup(p?.ILOT || p?.group || "") === value.ilot;
+                                        return {
+                                            color: isSelected ? '#3b82f6' : '#FF0000',
+                                            weight: 2,
+                                            fillColor: isSelected ? '#3b82f6' : '#FF0000',
                                             fillOpacity: isSelected ? 0.4 : 0.05
                                         };
                                     }}

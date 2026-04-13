@@ -448,6 +448,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 crs={L.CRS.EPSG3857}
                 style={{ height: '100%', width: '100%' }}
                 ref={mapRef}
+                preferCanvas
             >
                 <LayersControl position='topright'>
                     <LayersControl.BaseLayer checked name='خريطة الشارع (OSM)'>
