@@ -31,6 +31,7 @@ const HOVER_STYLE = {
 };
 
 const CadastreMap: React.FC<CadastreMapProps> = ({ height = '100%', width = '100%' }) => {
+    const canvasRenderer = useMemo(() => L.canvas({ padding: 0.5 }), []);
     const [geoData, setGeoData] = useState<any>(null);
 
     useEffect(() => {
