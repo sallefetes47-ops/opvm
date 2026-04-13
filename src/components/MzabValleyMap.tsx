@@ -263,8 +263,14 @@ const MunicipalityLabels = ({ geojsonData }: { geojsonData: GeoJsonFeatureCollec
     return null;
 };
 
-// ─── Normalize the static data once at module load ───
-const normalizedGeoJson = normalizeGeoJson(geoData);
+// GeoJSON loaded dynamically
+let _geoDataCache: any = null;
+const loadGeoData = () => {
+    if (_geoDataCache) return Promise.resolve(_geoDataCache);
+    return fetch('./mzab_cadastre_map.json')
+        .then(r => r.json())
+        .then(d => { _geoDataCache = d; return d; });
+};
 
 const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(({ onParcelSelect }, ref) => {
     const { toast } = useToast();
@@ -274,8 +280,11 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
     const [searchedFeature, setSearchedFeature] = useState<GeoJsonFeatureCollectionLike['features'][number] | null>(null);
     const [resetSignal, setResetSignal] = useState(0);
     const mapRef = useRef<L.Map | null>(null);
+    const [geojsonData, setGeojsonData] = useState<GeoJsonFeatureCollectionLike | null>(null);
 
-    const geojsonData = normalizedGeoJson;
+    useEffect(() => {
+        loadGeoData().then(d => setGeojsonData(normalizeGeoJson(d)));
+    }, []);
 
     const emitSelection = (props: Record<string, unknown>) => {
         if (!onParcelSelect) return;
