@@ -51,20 +51,6 @@ const CADASTRAL_LINE_STYLE = {
     opacity: 1,
 } as const;
 
-const CADASTRAL_HOVER_STYLE = {
-    color: '#FF0000',
-    weight: 3.5,
-    fillOpacity: 0,
-    opacity: 1,
-} as const;
-
-const CADASTRAL_SELECTED_STYLE = {
-    color: '#FF0000',
-    weight: 4,
-    fillOpacity: 0,
-    opacity: 1,
-} as const;
-
 type GeoJsonFeatureCollectionLike = {
     type: 'FeatureCollection';
     features: Array<{
