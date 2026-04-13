@@ -185,13 +185,11 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     .addTo(map);
             });
 
-            // Update GeoJSON data when loaded
-            if (cadastreGeoJson) {
-                const source = map.getSource('cadastre-parcels') as GeoJSONSource;
-                if (source) {
-                    source.setData(cadastreGeoJson);
-                    console.log('[Archive Map] ✅ GeoJSON data set on source');
-                }
+            // Set GeoJSON data from static import
+            const source = map.getSource('cadastre-parcels') as GeoJSONSource;
+            if (source && geoData) {
+                source.setData(geoData as GeoJSON.GeoJSON);
+                console.log('[Archive Map] ✅ GeoJSON data set:', geoData.features?.length || 0, 'features');
             }
 
             // Debug: Log errors
@@ -209,7 +207,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             }
             setIsMapLoaded(false);
         };
-    }, [cadastreGeoJson, onParcelSelect]);
+    }, [onParcelSelect]);
 
     // Update GeoJSON data when it changes
     useEffect(() => {
