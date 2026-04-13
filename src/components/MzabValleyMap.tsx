@@ -207,6 +207,94 @@ const MapSearchController = ({
     return null;
 };
 
+const MunicipalityLabels = ({ geojsonData }: { geojsonData: GeoJsonFeatureCollectionLike | null }) => {
+    const map = useMap();
+    const labelLayerRef = useRef<L.LayerGroup | null>(null);
+
+    useEffect(() => {
+        if (!geojsonData || !geojsonData.features || geojsonData.features.length === 0) return;
+
+        // Initialize label layer if not exists
+        if (!labelLayerRef.current) {
+            labelLayerRef.current = L.layerGroup().addTo(map);
+        }
+
+        const layerGroup = labelLayerRef.current;
+        layerGroup.clearLayers();
+
+        // Create a map to track unique municipalities and their representative points
+        const municipalityCenters = new Map<string, { center: [number, number]; count: number }>();
+
+        geojsonData.features.forEach((feature) => {
+            const props = (feature?.properties || {}) as Record<string, unknown>;
+            const communeCode = getCommuneCodeFromProps(props);
+            const municipalityName = resolveMunicipalityName(communeCode);
+
+            if (!municipalityName) return;
+
+            try {
+                const layer = L.geoJSON(feature as any);
+                const bounds = layer.getBounds();
+                if (bounds.isValid()) {
+                    const center = bounds.getCenter();
+                    const existing = municipalityCenters.get(municipalityName);
+
+                    if (existing) {
+                        // Average the center for better accuracy
+                        existing.center = [
+                            (existing.center[0] + center.lat) / 2,
+                            (existing.center[1] + center.lng) / 2,
+                        ];
+                        existing.count += 1;
+                    } else {
+                        municipalityCenters.set(municipalityName, { center: [center.lat, center.lng], count: 1 });
+                    }
+                }
+            } catch (e) {
+                // Ignore invalid geometries
+            }
+        });
+
+        // Add labels for each municipality
+        municipalityCenters.forEach((data, municipalityName) => {
+            const label = L.marker(data.center, {
+                icon: L.divIcon({
+                    className: 'municipality-label font-cairo',
+                    html: `<div style="
+                        font-family: 'Cairo', sans-serif;
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: #1e293b;
+                        background: rgba(255, 255, 255, 0.85);
+                        padding: 4px 10px;
+                        border-radius: 6px;
+                        border: 2px solid #3b82f6;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+                        white-space: nowrap;
+                        text-align: center;
+                        pointer-events: none;
+                    ">${municipalityName}</div>`,
+                    iconSize: [0, 0],
+                    iconAnchor: [0, 0],
+                }),
+                interactive: false,
+            });
+
+            layerGroup.addLayer(label);
+        });
+
+        // Cleanup on unmount
+        return () => {
+            if (labelLayerRef.current) {
+                map.removeLayer(labelLayerRef.current);
+                labelLayerRef.current = null;
+            }
+        };
+    }, [map, geojsonData]);
+
+    return null;
+};
+
 const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(({ onParcelSelect }, ref) => {
     const { toast } = useToast();
     const [geojsonData, setGeojsonData] = useState<GeoJsonFeatureCollectionLike | null>(null);
@@ -250,42 +338,42 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
         const loadFadaaLiveApiData = async () => {
             setIsLoadingFadaa(true);
             setFadaaLoadError(null);
-            
+
             try {
                 console.log('[Fadaa LIVE API] Fetching data from https://fadaeldjazair.mf.gov.dz...');
-                
+
                 // LIVE API FETCH with crash prevention
                 const data = await fetchOfficialCadastralData(WILAYA_47_CODE, undefined, true);
-                
+
                 // Validate data structure before setting state
                 if (!data || typeof data !== 'object') {
                     throw new Error('Invalid data structure from API');
                 }
-                
+
                 if (!Array.isArray(data.features)) {
                     throw new Error('Invalid features array from API');
                 }
-                
+
                 // Successfully loaded live data
                 setFadaaData(data);
                 setFadaaLayerLoaded(true);
                 setIsLoadingFadaa(false);
-                
+
                 if (data.features.length > 0) {
                     console.log(`[Fadaa LIVE API] ✓ Loaded ${data.features.length} cadastral features`);
                 } else {
                     console.warn('[Fadaa LIVE API] No features found in response');
                 }
-                
+
             } catch (error: any) {
                 // CRITICAL: Catch all errors and show notification - DON'T CRASH
                 console.error('[Fadaa LIVE API] Fetch failed:', error?.message || error);
-                
+
                 setFadaaLayerLoaded(false);
                 setFadaaLoadError(error?.message || 'فشل الاتصال بالخادم');
                 setFadaaData(null);
                 setIsLoadingFadaa(false);
-                
+
                 // Show user-friendly toast notification (Arabic)
                 toast({
                     title: 'تنبيه',
@@ -295,7 +383,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 });
             }
         };
-        
+
         loadFadaaLiveApiData();
     }, [toast]);
 
@@ -462,14 +550,14 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
         if (!fadaaData || !Array.isArray(fadaaData.features) || fadaaData.features.length === 0) {
             return null;
         }
-        
+
         // Validate each feature has proper geometry
-        const validFeatures = fadaaData.features.filter((f: any) => 
+        const validFeatures = fadaaData.features.filter((f: any) =>
             f && f.type === 'Feature' && hasGeometry(f?.geometry)
         );
-        
+
         if (validFeatures.length === 0) return null;
-        
+
         return { ...fadaaData, features: validFeatures };
     }, [fadaaData]);
 
@@ -516,6 +604,11 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
                 {/* Local GeoJSON cadastral data */}
                 {geoJsonLayer}
+
+                {/* Municipality labels layer - displayed above map */}
+                {geojsonData && geojsonData.features && geojsonData.features.length > 0 && (
+                    <MunicipalityLabels geojsonData={geojsonData} />
+                )}
 
                 {/* Official Fadaa El Djazair LIVE API vector data overlay (auto-loaded, no checkbox) */}
                 {validFadaaData && (
