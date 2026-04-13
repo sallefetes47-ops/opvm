@@ -179,6 +179,43 @@ export default defineConfig({
           });
         },
       },
+      // ========================================================================
+      // Direct /geoserver shortcut route — bypasses CORS & TLS for GeoServer
+      // Usage: fetch('/geoserver/wfs?SERVICE=WFS&REQUEST=GetFeature&...')
+      // ========================================================================
+      '/geoserver': {
+        target: 'https://fadaeldjazair.mf.gov.dz',
+        changeOrigin: true,
+        secure: false, // Bypass local SSL/TLS certificate validation
+        ws: false,
+        timeout: 60000,
+        proxyTimeout: 60000,
+        agent: httpsAgent,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.setHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+            proxyReq.setHeader('Referer', 'https://fadaeldjazair.mf.gov.dz/');
+            proxyReq.setHeader('Accept', 'application/json, application/xml, text/plain, */*');
+            proxyReq.setHeader('Accept-Language', 'ar-DZ,ar;q=0.9,fr;q=0.8,en;q=0.7');
+            (proxyReq as any).agent = httpsAgent;
+            console.log(`[GeoServer Proxy] → ${proxyReq.path}`);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            const contentType = proxyRes.headers['content-type'] || 'application/json';
+            if (!contentType.includes('charset')) {
+              res.setHeader('Content-Type', contentType + '; charset=utf-8');
+            }
+            console.log(`[GeoServer Proxy] ← ${proxyRes.statusCode}`);
+          });
+          proxy.on('error', (err, req, res) => {
+            const code = (err as any).code || 'UNKNOWN';
+            console.error('[GeoServer Proxy] Error:', code, err.message);
+            res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'GeoServer proxy error', code, message: err.message }));
+          });
+        },
+      },
     },
   },
 });
