@@ -174,8 +174,8 @@ export default defineConfig({
             }));
           });
 
-          proxy.on('close', (req, res) => {
-            console.log(`[Fadaa Proxy] ✓ Connection closed: ${res.statusCode}`);
+          proxy.on('close', (req, res: any) => {
+            console.log(`[Fadaa Proxy] ✓ Connection closed: ${res?.statusCode ?? ''}`);
           });
         },
       },
