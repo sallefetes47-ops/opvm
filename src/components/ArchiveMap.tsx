@@ -184,12 +184,17 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     .addTo(map);
             });
 
-            // Set GeoJSON data from static import
-            const source = map.getSource('cadastre-parcels') as GeoJSONSource;
-            if (source && geoData) {
-                source.setData(geoData as GeoJSON.GeoJSON);
-                console.log('[Archive Map] ✅ GeoJSON data set:', geoData.features?.length || 0, 'features');
-            }
+            // Load GeoJSON data dynamically
+            fetch('./mzab_cadastre_map.json')
+                .then(r => r.json())
+                .then(geoData => {
+                    const source = map.getSource('cadastre-parcels') as GeoJSONSource;
+                    if (source && geoData) {
+                        source.setData(geoData as GeoJSON.GeoJSON);
+                        console.log('[Archive Map] ✅ GeoJSON data set:', geoData.features?.length || 0, 'features');
+                    }
+                })
+                .catch(err => console.error('[Archive Map] Failed to load GeoJSON:', err));
 
             // Debug: Log errors
             map.on('error', (e) => {
