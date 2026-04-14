@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import MapSelector from "@/components/MapSelector";
 import ArchiveMap from "@/components/ArchiveMap";
 import PermitLocationPicker from "@/components/PermitLocationPicker";
 
@@ -388,11 +387,7 @@ export default function ArchivePage() {
             </Button>
           </div>
           <div className="flex-1 rounded-xl overflow-hidden border shadow-sm h-full">
-            <MapSelector
-              selectedContractId={selectedContractId}
-              flyToLocation={flyToLocation}
-              onContractSelect={handleMapSelect}
-            />
+            <ArchiveMap onParcelSelect={handleParcelSelect} />
           </div>
         </div>
       </div>
