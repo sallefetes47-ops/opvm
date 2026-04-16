@@ -7,8 +7,47 @@ import type { GeoJSONSource, LngLatLike } from 'mapbox-gl';
 
 // Loaded dynamically to avoid OOM during build
 
+const CADASTRE_GEOJSON_URL = `${import.meta.env.BASE_URL}mzab_cadastre_map.json`;
+
 // Ghardaia center coordinates
 const GHARDAIA_CENTER: LngLatLike = [3.6900, 32.4810];
+
+function extendBoundsFromCoordinates(
+    bounds: mapboxgl.LngLatBounds,
+    coordinates: unknown,
+): void {
+    if (!Array.isArray(coordinates) || coordinates.length === 0) return;
+
+    if (
+        coordinates.length >= 2 &&
+        typeof coordinates[0] === 'number' &&
+        typeof coordinates[1] === 'number'
+    ) {
+        bounds.extend([coordinates[0], coordinates[1]]);
+        return;
+    }
+
+    coordinates.forEach((entry) => extendBoundsFromCoordinates(bounds, entry));
+}
+
+function fitMapToGeoJson(map: mapboxgl.Map, geoData: any) {
+    const bounds = new mapboxgl.LngLatBounds();
+    let hasBounds = false;
+
+    for (const feature of geoData?.features ?? []) {
+        if (!feature?.geometry?.coordinates) continue;
+        extendBoundsFromCoordinates(bounds, feature.geometry.coordinates);
+        hasBounds = true;
+    }
+
+    if (!hasBounds || bounds.isEmpty()) return;
+
+    map.fitBounds(bounds, {
+        padding: 32,
+        maxZoom: 17,
+        duration: 0,
+    });
+}
 
 // Custom OSM style for Mapbox (free, no token required)
 const OSM_STYLE = {
@@ -190,12 +229,13 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             });
 
             // Load GeoJSON data dynamically
-            fetch('./mzab_cadastre_map.json')
+            fetch(CADASTRE_GEOJSON_URL)
                 .then(r => r.json())
                 .then(geoData => {
                     const source = map.getSource('cadastre-parcels') as GeoJSONSource;
                     if (source && geoData) {
                         source.setData(geoData as GeoJSON.GeoJSON);
+                        fitMapToGeoJson(map, geoData);
                         console.log('[Archive Map] ✅ GeoJSON data set:', geoData.features?.length || 0, 'features');
                     }
                 })
