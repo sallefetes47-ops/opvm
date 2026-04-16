@@ -48,7 +48,7 @@ const OSM_STYLE = {
             type: 'raster' as const,
             source: 'osm',
             minzoom: 0,
-            maxzoom: 19,
+            maxzoom: 22,
         },
     ],
 };
