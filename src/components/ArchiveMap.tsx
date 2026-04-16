@@ -1,19 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Satellite } from 'lucide-react';
-import type { GeoJSONSource, LngLatLike } from 'mapbox-gl';
 
 // Loaded dynamically to avoid OOM during build
 
 const CADASTRE_GEOJSON_URL = `${import.meta.env.BASE_URL}mzab_cadastre_map.json`;
 
 // Ghardaia center coordinates
-const GHARDAIA_CENTER: LngLatLike = [3.6900, 32.4810];
+const GHARDAIA_CENTER: [number, number] = [3.6900, 32.4810];
 
 function extendBoundsFromCoordinates(
-    bounds: mapboxgl.LngLatBounds,
+    bounds: maplibregl.LngLatBounds,
     coordinates: unknown,
 ): void {
     if (!Array.isArray(coordinates) || coordinates.length === 0) return;
@@ -30,8 +29,8 @@ function extendBoundsFromCoordinates(
     coordinates.forEach((entry) => extendBoundsFromCoordinates(bounds, entry));
 }
 
-function fitMapToGeoJson(map: mapboxgl.Map, geoData: any) {
-    const bounds = new mapboxgl.LngLatBounds();
+function fitMapToGeoJson(map: maplibregl.Map, geoData: any) {
+    const bounds = new maplibregl.LngLatBounds();
     let hasBounds = false;
 
     for (const feature of geoData?.features ?? []) {
@@ -78,33 +77,29 @@ export interface ArchiveMapProps {
 
 export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<mapboxgl.Map | null>(null);
+    const mapRef = useRef<maplibregl.Map | null>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
 
-    // Initialize vanilla Mapbox GL map
+    // Initialize MapLibre GL map
     useEffect(() => {
         if (!mapContainerRef.current) {
-            console.error('[Archive Map] ❌ Map container ref is null');
+            console.error('[Archive Map] Map container ref is null');
             return;
         }
 
-        // Set Mapbox access token (empty string works for OSM-only style)
-        mapboxgl.accessToken = '';
-
-        // Initialize vanilla Mapbox GL map
-        const map = new mapboxgl.Map({
+        const map = new maplibregl.Map({
             container: mapContainerRef.current,
             style: OSM_STYLE,
             center: GHARDAIA_CENTER,
             zoom: 14,
             maxZoom: 22,
-            attributionControl: true,
-            preserveDrawingBuffer: true,
+            attributionControl: false,
         });
 
         // Add navigation controls
-        map.addControl(new mapboxgl.NavigationControl({ showCompass: true, showZoom: true }), 'top-right');
-        map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+        map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+        map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 
         mapRef.current = map;
 
@@ -116,10 +111,10 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             // Add GeoJSON source for cadastral parcels
             map.addSource('cadastre-parcels', {
                 type: 'geojson',
-                data: {
+                data: ({
                     type: 'FeatureCollection',
                     features: [],
-                } as GeoJSON.GeoJSON,
+                }) as any,
             });
 
             // Add fill layer with transparent slate gray
@@ -217,11 +212,10 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     </div>
                 `;
 
-                new mapboxgl.Popup({
+                new maplibregl.Popup({
                     closeButton: true,
                     closeOnClick: false,
                     maxWidth: '280px',
-                    anchor: 'top',
                 })
                     .setLngLat(e.lngLat)
                     .setHTML(popupContent)
@@ -232,9 +226,9 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             fetch(CADASTRE_GEOJSON_URL)
                 .then(r => r.json())
                 .then(geoData => {
-                    const source = map.getSource('cadastre-parcels') as GeoJSONSource;
+                    const source = map.getSource('cadastre-parcels') as any;
                     if (source && geoData) {
-                        source.setData(geoData as GeoJSON.GeoJSON);
+                        source.setData(geoData);
                         fitMapToGeoJson(map, geoData);
                         console.log('[Archive Map] ✅ GeoJSON data set:', geoData.features?.length || 0, 'features');
                     }
