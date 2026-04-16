@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -48,10 +49,25 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
 
-    if (guestPassword !== "OPVM2026") {
+    try {
+      // Validate password server-side via edge function
+      const { data, error: fnError } = await supabase.functions.invoke('verify-viewer-password', {
+        body: { password: guestPassword },
+      });
+
+      if (fnError || !data?.valid) {
+        toast({
+          title: "خطأ",
+          description: "كلمة المرور غير صحيحة",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+    } catch {
       toast({
         title: "خطأ",
-        description: "كلمة المرور غير صحيحة",
+        description: "فشل في التحقق من كلمة المرور",
         variant: "destructive",
       });
       setIsLoading(false);

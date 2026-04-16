@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,12 +14,43 @@ const GOV_DOMAINS = [
   "joradp.dz",
 ];
 
+async function authenticateRequest(req: Request): Promise<{ userId: string } | Response> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(
+      JSON.stringify({ error: "Authorization required" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims) {
+    return new Response(
+      JSON.stringify({ error: "Invalid token" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  return { userId: data.claims.sub as string };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Authenticate the request
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+
     const { query } = await req.json();
 
     if (!query || typeof query !== "string" || !query.trim()) {
@@ -28,10 +60,18 @@ serve(async (req) => {
       );
     }
 
+    // Validate query length
+    if (query.length > 500) {
+      return new Response(
+        JSON.stringify({ error: "Query too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
+        JSON.stringify({ error: "API key not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -100,8 +140,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const status = response.status;
-      const text = await response.text();
-      console.error("AI gateway error:", status, text);
+      console.error("AI gateway error:", status);
 
       if (status === 429) {
         return new Response(
@@ -123,7 +162,6 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log("AI response received");
 
     // Extract tool call results
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
@@ -142,9 +180,9 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("gov-search error:", error);
+    console.error("gov-search error");
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "خطأ غير متوقع" }),
+      JSON.stringify({ error: "خطأ غير متوقع" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
