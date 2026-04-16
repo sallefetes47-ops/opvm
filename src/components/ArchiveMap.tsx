@@ -29,24 +29,6 @@ function extendBoundsFromCoordinates(
     coordinates.forEach((entry) => extendBoundsFromCoordinates(bounds, entry));
 }
 
-function fitMapToGeoJson(map: maplibregl.Map, geoData: any) {
-    const bounds = new maplibregl.LngLatBounds();
-    let hasBounds = false;
-
-    for (const feature of geoData?.features ?? []) {
-        if (!feature?.geometry?.coordinates) continue;
-        extendBoundsFromCoordinates(bounds, feature.geometry.coordinates);
-        hasBounds = true;
-    }
-
-    if (!hasBounds || bounds.isEmpty()) return;
-
-    map.fitBounds(bounds, {
-        padding: 32,
-        maxZoom: 17,
-        duration: 0,
-    });
-}
 
 // Custom OSM style for Mapbox (free, no token required)
 const OSM_STYLE = {
@@ -126,7 +108,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 maxzoom: 24,
                 paint: {
                     'fill-color': '#64748b',
-                    'fill-opacity': 0.1,
+                    'fill-opacity': 0.25,
                 },
             });
 
@@ -139,7 +121,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 maxzoom: 24,
                 paint: {
                     'line-color': '#64748b',
-                    'line-width': 1.5,
+                    'line-width': 2,
                     'line-opacity': 1,
                 },
             });
@@ -229,7 +211,6 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     const source = map.getSource('cadastre-parcels') as any;
                     if (source && geoData) {
                         source.setData(geoData);
-                        fitMapToGeoJson(map, geoData);
                         console.log('[Archive Map] ✅ GeoJSON data set:', geoData.features?.length || 0, 'features');
                     }
                 })
