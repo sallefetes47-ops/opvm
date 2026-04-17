@@ -59,6 +59,8 @@ export interface ArchiveMapProps {
 export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<maplibregl.Map | null>(null);
+    const popupRef = useRef<maplibregl.Popup | null>(null);
+    const selectedFeatureIdRef = useRef<string | number | null>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
 
     // Initialize MapLibre GL map
@@ -77,28 +79,33 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             attributionControl: false,
         });
 
-        // Add navigation controls
         map.addControl(new maplibregl.NavigationControl(), 'top-right');
         map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
         map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 
         mapRef.current = map;
 
-        // Map load event
+        const clearSelection = () => {
+            if (selectedFeatureIdRef.current !== null) {
+                map.setFeatureState(
+                    { source: 'cadastre-parcels', id: selectedFeatureIdRef.current },
+                    { selected: false },
+                );
+                selectedFeatureIdRef.current = null;
+            }
+        };
+
         map.on('load', () => {
             console.log('[Archive Map] ✅ Map loaded');
             setIsMapLoaded(true);
 
-            // Add GeoJSON source for cadastral parcels
             map.addSource('cadastre-parcels', {
                 type: 'geojson',
-                data: ({
-                    type: 'FeatureCollection',
-                    features: [],
-                }) as any,
+                data: ({ type: 'FeatureCollection', features: [] }) as any,
+                generateId: true, // required for feature-state
             });
 
-            // Add fill layer with transparent slate gray
+            // Fill: highlight selected parcel
             map.addLayer({
                 id: 'cadastre-parcels-fill',
                 type: 'fill',
@@ -106,12 +113,22 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 minzoom: 0,
                 maxzoom: 24,
                 paint: {
-                    'fill-color': '#64748b',
-                    'fill-opacity': 0.25,
+                    'fill-color': [
+                        'case',
+                        ['boolean', ['feature-state', 'selected'], false],
+                        '#dc2626', // red when selected
+                        '#64748b', // slate gray default
+                    ],
+                    'fill-opacity': [
+                        'case',
+                        ['boolean', ['feature-state', 'selected'], false],
+                        0.45,
+                        0.25,
+                    ],
                 },
             });
 
-            // Add line layer with slate gray outline
+            // Outline: thicker red when selected
             map.addLayer({
                 id: 'cadastre-parcels-line',
                 type: 'line',
@@ -119,55 +136,59 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 minzoom: 0,
                 maxzoom: 24,
                 paint: {
-                    'line-color': '#64748b',
-                    'line-width': 2,
+                    'line-color': [
+                        'case',
+                        ['boolean', ['feature-state', 'selected'], false],
+                        '#dc2626',
+                        '#64748b',
+                    ],
+                    'line-width': [
+                        'case',
+                        ['boolean', ['feature-state', 'selected'], false],
+                        3,
+                        2,
+                    ],
                     'line-opacity': 1,
                 },
             });
 
             console.log('[Archive Map] ✅ Cadastral layers added');
 
-            // Change cursor to pointer on hover
             map.on('mouseenter', 'cadastre-parcels-fill', () => {
                 map.getCanvas().style.cursor = 'pointer';
             });
-
             map.on('mouseleave', 'cadastre-parcels-fill', () => {
                 map.getCanvas().style.cursor = '';
             });
 
-            // Handle parcel click - AUTO-FILL ARCHIVE SEARCH & SHOW POPUP
             map.on('click', 'cadastre-parcels-fill', (e) => {
-                console.log('[Archive Map] 🖱️ Parcel clicked');
-
-                if (!e.features || e.features.length === 0) {
-                    console.warn('[Archive Map] ⚠️ No features found');
-                    return;
-                }
+                if (!e.features || e.features.length === 0) return;
 
                 const feature = e.features[0];
                 const properties = feature.properties || {};
-                console.log('[Archive Map] 📋 Parcel properties:', properties);
 
-                // Extract SECTION and ILOT from properties (uppercase as per GeoJSON)
+                // Update selection (feature-state highlight)
+                clearSelection();
+                if (feature.id !== undefined && feature.id !== null) {
+                    map.setFeatureState(
+                        { source: 'cadastre-parcels', id: feature.id },
+                        { selected: true },
+                    );
+                    selectedFeatureIdRef.current = feature.id;
+                }
+
                 const sectionRaw = properties.SECTION ?? properties.Section ?? properties.section ?? '';
                 const ilotRaw = properties.ILOT ?? properties.Ilot ?? properties.ilot ?? properties.group ?? '';
                 const communeRaw = properties.COMMUNE ?? properties.Commune ?? properties.commune ?? 'غير متوفر';
 
-                // Format section (3 digits) and ilot (4 digits)
                 const section = String(sectionRaw).padStart(3, '0');
                 const ilot = String(ilotRaw).padStart(4, '0');
                 const commune = String(communeRaw);
 
-                console.log('[Archive Map] 📊 Extracted & formatted:', { section, ilot, commune });
-
-                // CRITICAL: Auto-fill archive search filters using React state setters
                 if (onParcelSelect && section && ilot) {
                     onParcelSelect(section, ilot);
-                    console.log('[Archive Map] ✅ Called onParcelSelect with:', section, ilot);
                 }
 
-                // Show popup with Arabic survey data (معلومات المسح)
                 const popupContent = `
                     <div style="font-family: 'Cairo', sans-serif; padding: 12px; text-align: right; direction: rtl; min-width: 220px;">
                         <h4 style="margin: 0 0 10px 0; color: #dc2626; border-bottom: 2px solid #fecaca; padding-bottom: 6px; font-size: 15px; font-weight: bold;">
@@ -193,17 +214,25 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     </div>
                 `;
 
-                new maplibregl.Popup({
-                    closeButton: true,
-                    closeOnClick: false,
-                    maxWidth: '280px',
-                })
+                // Reuse a single pinned popup
+                if (!popupRef.current) {
+                    popupRef.current = new maplibregl.Popup({
+                        closeButton: true,
+                        closeOnClick: false,
+                        closeOnMove: false,
+                        maxWidth: '280px',
+                    });
+                    popupRef.current.on('close', () => {
+                        clearSelection();
+                    });
+                }
+
+                popupRef.current
                     .setLngLat(e.lngLat)
                     .setHTML(popupContent)
                     .addTo(map);
             });
 
-            // Load GeoJSON data dynamically
             fetch(CADASTRE_GEOJSON_URL)
                 .then(r => r.json())
                 .then(geoData => {
@@ -215,19 +244,22 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 })
                 .catch(err => console.error('[Archive Map] Failed to load GeoJSON:', err));
 
-            // Debug: Log errors
             map.on('error', (e) => {
                 console.error('[Archive Map] ❌ Error:', e);
             });
         });
 
-        // Cleanup function
         return () => {
             console.log('[Archive Map] 🧹 Cleaning up map instance...');
+            if (popupRef.current) {
+                popupRef.current.remove();
+                popupRef.current = null;
+            }
             if (mapRef.current) {
                 mapRef.current.remove();
                 mapRef.current = null;
             }
+            selectedFeatureIdRef.current = null;
             setIsMapLoaded(false);
         };
     }, [onParcelSelect]);
