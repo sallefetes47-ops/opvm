@@ -48,7 +48,6 @@ const OSM_STYLE = {
             type: 'raster' as const,
             source: 'osm',
             minzoom: 0,
-            maxzoom: 22,
         },
     ],
 };
@@ -74,7 +73,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             style: OSM_STYLE,
             center: GHARDAIA_CENTER,
             zoom: 14,
-            maxZoom: 22,
+            maxZoom: 20,
             attributionControl: false,
         });
 
