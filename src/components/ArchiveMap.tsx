@@ -73,7 +73,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             style: OSM_STYLE,
             center: GHARDAIA_CENTER,
             zoom: 14,
-            maxZoom: 22,
+            maxZoom: 20,
             attributionControl: false,
         });
 
