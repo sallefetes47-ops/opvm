@@ -25,6 +25,7 @@ import Backup from "@/pages/Backup";
 import RecycleBin from "@/pages/RecycleBin";
 import UrbanMap from "@/pages/UrbanMap";
 import GovSearch from "@/pages/GovSearch";
+import MzabHeritage from "@/pages/MzabHeritage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const App = () => (
                   <Route path="/urban-map" element={<UrbanMap />} />
                   <Route path="/recycle-bin" element={<RecycleBin />} />
                   <Route path="/gov-search" element={<GovSearch />} />
+                  <Route path="/mzab-heritage" element={<MzabHeritage />} />
                 </Route>
 
                 {/* 404 */}

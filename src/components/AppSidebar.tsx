@@ -16,7 +16,7 @@ import {
 import {
   LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
   FileText, Users2, Scale, Trash2, Database as DatabaseIcon, MapPin,
-  ShieldCheck, Settings, Search,
+  ShieldCheck, Settings, Search, Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -56,6 +56,7 @@ const newModulesItems: SidebarItem[] = [
 const publicModulesItems: SidebarItem[] = [
   { title: "المراسيم والتعليمات", url: "/legal-archive", icon: Scale },
   { title: "البحث الحكومي", url: "/gov-search", icon: Search },
+  { title: "تراث وادي مزاب", url: "/mzab-heritage", icon: Landmark },
 ];
 
 // Data Management - hidden from viewers
