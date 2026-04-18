@@ -1,7 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ExternalLink, Landmark, BookOpen, Globe } from "lucide-react";
+import { ExternalLink, Landmark, BookOpen, Globe, FolderSearch } from "lucide-react";
 
 interface Ksar {
   nameAr: string;
@@ -42,7 +43,7 @@ const ksour: Ksar[] = [
     nameBerber: "آتْ بُونُورْ (At Bounour)",
     nameFr: "Bounoura",
     founded: "1046م / 437هـ",
-    municipality: "بونورة",
+    municipality: "بنورة",
     description: "من أقدم القصور، مبني على صخرة مرتفعة مع أزقة ضيقة متشعبة. يضم جامعاً عتيقاً ومنازل ذات طابع دفاعي واضح.",
   },
   {
@@ -78,6 +79,12 @@ const references = [
 ];
 
 export default function MzabHeritage() {
+  const navigate = useNavigate();
+
+  const openArchiveForKsar = (municipality: string) => {
+    navigate(`/archive?municipality=${encodeURIComponent(municipality)}`);
+  };
+
   return (
     <div dir="rtl" className="container mx-auto p-6 space-y-6">
       <div className="space-y-2">
@@ -110,7 +117,19 @@ export default function MzabHeritage() {
         <h2 className="text-2xl font-semibold mb-4">القصور السبعة</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {ksour.map((k) => (
-            <Card key={k.nameAr} className="hover:border-[#D4AF37] transition-colors">
+            <Card
+              key={k.nameAr}
+              role="button"
+              tabIndex={0}
+              onClick={() => openArchiveForKsar(k.municipality)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openArchiveForKsar(k.municipality);
+                }
+              }}
+              className="cursor-pointer hover:border-[#D4AF37] hover:shadow-lg transition-all group"
+            >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg">{k.nameAr}</CardTitle>
@@ -124,9 +143,15 @@ export default function MzabHeritage() {
               <CardContent className="space-y-3">
                 <p className="text-sm leading-relaxed text-muted-foreground">{k.description}</p>
                 <Separator />
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Landmark className="h-3 w-3" />
-                  <span>بلدية: {k.municipality}</span>
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Landmark className="h-3 w-3" />
+                    <span>بلدية: {k.municipality}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity">
+                    <FolderSearch className="h-3 w-3" />
+                    <span>عرض الملفات</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
