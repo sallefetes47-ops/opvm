@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,8 +56,18 @@ export default function ArchivePage() {
   const canEdit = !isViewer && role !== "viewer";
 
   // Search & Filter State
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
-  const [municipalityFilter, setMunicipalityFilter] = useState<string>("all");
+  const [municipalityFilter, setMunicipalityFilter] = useState<string>(
+    searchParams.get("municipality") || "all"
+  );
+
+  // Sync filter from URL (e.g., when navigating from Mzab Heritage)
+  useEffect(() => {
+    const m = searchParams.get("municipality");
+    if (m && m !== municipalityFilter) setMunicipalityFilter(m);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [opinionFilter, setOpinionFilter] = useState<string>("all");
   
   // Section and Ilot filters (for map auto-fill)
