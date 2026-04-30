@@ -1,0 +1,10 @@
+project_id = "cpuvxlujlioqqkqrwujj"
+
+[functions.extract-document]
+verify_jwt = false
+
+[functions.gov-search]
+verify_jwt = false
+
+[functions.verify-viewer-password]
+verify_jwt = false

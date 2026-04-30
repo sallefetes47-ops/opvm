@@ -473,17 +473,33 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                             maxZoom={22}
                         />
                     </LayersControl.BaseLayer>
-                    {GOOGLE_MAPS_API_KEY && (
-                        <LayersControl.BaseLayer name='جوجل مابس - هجين'>
-                            <TileLayer
-                                attribution=""
-                                url={`https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}`}
-                                subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
-                                maxNativeZoom={20}
-                                maxZoom={22}
-                            />
-                        </LayersControl.BaseLayer>
-                    )}
+                    <LayersControl.BaseLayer name='خريطة جوجل (Google Maps)'>
+                        <TileLayer
+                            attribution=""
+                            url='https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
+                            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                            maxNativeZoom={20}
+                            maxZoom={22}
+                        />
+                    </LayersControl.BaseLayer>
+                    <LayersControl.BaseLayer name='جوجل إيرث (Google Earth)'>
+                        <TileLayer
+                            attribution=""
+                            url='https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
+                            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                            maxNativeZoom={20}
+                            maxZoom={22}
+                        />
+                    </LayersControl.BaseLayer>
+                    <LayersControl.BaseLayer name='جوجل إيرث هجين (Hybrid)'>
+                        <TileLayer
+                            attribution=""
+                            url='https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+                            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                            maxNativeZoom={20}
+                            maxZoom={22}
+                        />
+                    </LayersControl.BaseLayer>
                 </LayersControl>
 
                 {/* Local GeoJSON cadastral data — statically imported, no fetch */}
