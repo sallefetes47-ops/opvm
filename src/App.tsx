@@ -27,6 +27,7 @@ import UrbanMap from "@/pages/UrbanMap";
 import GovSearch from "@/pages/GovSearch";
 import MzabHeritage from "@/pages/MzabHeritage";
 import Analytics from "@/pages/Analytics";
+import SessionsCalendar from "@/pages/SessionsCalendar";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,6 +75,7 @@ const App = () => (
                   <Route path="/gov-search" element={<GovSearch />} />
                   <Route path="/mzab-heritage" element={<MzabHeritage />} />
                   <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/sessions-calendar" element={<SessionsCalendar />} />
                 </Route>
 
                 {/* 404 */}

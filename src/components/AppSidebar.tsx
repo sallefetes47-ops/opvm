@@ -16,7 +16,7 @@ import {
 import {
   LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
   FileText, Users2, Scale, Trash2, Database as DatabaseIcon, MapPin,
-  ShieldCheck, Settings, Search, Landmark, BarChart3,
+  ShieldCheck, Settings, Search, Landmark, BarChart3, CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -41,6 +41,7 @@ interface AdminSidebarItem {
 const mainMenuItems: SidebarItem[] = [
   { title: "لوحة التحكم", url: "/", icon: LayoutDashboard },
   { title: "التحليلات", url: "/analytics", icon: BarChart3 },
+  { title: "تقويم الجلسات", url: "/sessions-calendar", icon: CalendarDays },
   { title: "ملف جديد", url: "/new-file", icon: FilePlus, requiresEdit: true },
   { title: "إعادة الدراسة", url: "/restudy", icon: RefreshCw, requiresEdit: true },
   { title: "الأرشيف", url: "/archive", icon: Archive },
