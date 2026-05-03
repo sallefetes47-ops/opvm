@@ -29,6 +29,7 @@ import MzabHeritage from "@/pages/MzabHeritage";
 import Analytics from "@/pages/Analytics";
 import SessionsCalendar from "@/pages/SessionsCalendar";
 import UrbanHeatmap from "@/pages/UrbanHeatmap";
+import AIFileAssistant from "@/pages/AIFileAssistant";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -78,6 +79,7 @@ const App = () => (
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/sessions-calendar" element={<SessionsCalendar />} />
                   <Route path="/urban-heatmap" element={<UrbanHeatmap />} />
+                  <Route path="/ai-assistant" element={<AIFileAssistant />} />
                 </Route>
 
                 {/* 404 */}
