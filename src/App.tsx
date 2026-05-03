@@ -81,6 +81,7 @@ const App = () => (
                   <Route path="/sessions-calendar" element={<SessionsCalendar />} />
                   <Route path="/urban-heatmap" element={<UrbanHeatmap />} />
                   <Route path="/ai-assistant" element={<AIFileAssistant />} />
+                  <Route path="/similar-files" element={<SimilarFiles />} />
                 </Route>
 
                 {/* 404 */}
