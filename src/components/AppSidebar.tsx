@@ -16,7 +16,7 @@ import {
 import {
   LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
   FileText, Users2, Scale, Trash2, Database as DatabaseIcon, MapPin,
-  ShieldCheck, Settings, Search, Landmark, BarChart3, CalendarDays, Flame, Sparkles,
+  ShieldCheck, Settings, Search, Landmark, BarChart3, CalendarDays, Flame, Sparkles, GitCompare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -48,6 +48,7 @@ const mainMenuItems: SidebarItem[] = [
   { title: "الخريطة العمرانية", url: "/urban-map", icon: MapPin },
   { title: "الخريطة الحرارية", url: "/urban-heatmap", icon: Flame },
   { title: "المساعد الذكي", url: "/ai-assistant", icon: Sparkles },
+  { title: "الملفات المتشابهة", url: "/similar-files", icon: GitCompare },
 ];
 
 // These modules are hidden from viewers (requires edit permissions)
