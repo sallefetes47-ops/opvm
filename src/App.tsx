@@ -30,6 +30,7 @@ import Analytics from "@/pages/Analytics";
 import SessionsCalendar from "@/pages/SessionsCalendar";
 import UrbanHeatmap from "@/pages/UrbanHeatmap";
 import AIFileAssistant from "@/pages/AIFileAssistant";
+import SimilarFiles from "@/pages/SimilarFiles";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
