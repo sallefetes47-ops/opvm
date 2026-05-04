@@ -83,6 +83,7 @@ const App = () => (
                   <Route path="/urban-heatmap" element={<UrbanHeatmap />} />
                   <Route path="/ai-assistant" element={<AIFileAssistant />} />
                   <Route path="/similar-files" element={<SimilarFiles />} />
+                  <Route path="/kpi" element={<KPIDashboard />} />
                 </Route>
 
                 {/* 404 */}
