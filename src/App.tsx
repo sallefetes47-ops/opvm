@@ -31,6 +31,7 @@ import SessionsCalendar from "@/pages/SessionsCalendar";
 import UrbanHeatmap from "@/pages/UrbanHeatmap";
 import AIFileAssistant from "@/pages/AIFileAssistant";
 import SimilarFiles from "@/pages/SimilarFiles";
+import KPIDashboard from "@/pages/KPIDashboard";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -82,6 +83,7 @@ const App = () => (
                   <Route path="/urban-heatmap" element={<UrbanHeatmap />} />
                   <Route path="/ai-assistant" element={<AIFileAssistant />} />
                   <Route path="/similar-files" element={<SimilarFiles />} />
+                  <Route path="/kpi" element={<KPIDashboard />} />
                 </Route>
 
                 {/* 404 */}
