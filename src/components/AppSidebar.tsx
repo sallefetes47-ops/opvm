@@ -49,6 +49,7 @@ const mainMenuItems: SidebarItem[] = [
   { title: "الخريطة الحرارية", url: "/urban-heatmap", icon: Flame },
   { title: "المساعد الذكي", url: "/ai-assistant", icon: Sparkles },
   { title: "الملفات المتشابهة", url: "/similar-files", icon: GitCompare },
+  { title: "مؤشرات الأداء", url: "/kpi", icon: Target },
 ];
 
 // These modules are hidden from viewers (requires edit permissions)
