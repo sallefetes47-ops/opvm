@@ -334,6 +334,22 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     />
                 </div>
 
+                {/* Fadaa WMS Toggle - Top Right */}
+                <div className="absolute top-4 right-16 z-[45]">
+                    <Button
+                        size="sm"
+                        variant={fadaaVisible ? 'default' : 'outline'}
+                        onClick={() => setFadaaVisible(v => !v)}
+                        className="shadow-lg gap-2 bg-white text-slate-800 hover:bg-slate-100 border-2 border-slate-200"
+                        title="إظهار/إخفاء طبقة فضاء الجزائر الرسمية"
+                    >
+                        <Layers className="w-4 h-4" />
+                        <span className="text-xs font-bold">
+                            فضاء الجزائر {fadaaVisible ? '●' : '○'}
+                        </span>
+                    </Button>
+                </div>
+
                 {/* Info Banner - Top Left */}
                 <div className="absolute top-4 left-4 bg-white/98 backdrop-blur-sm p-4 rounded-xl shadow-xl z-[40] text-xs text-right rtl border-2 border-slate-200 max-w-[300px]">
                     <div className="flex items-start gap-3">
@@ -345,6 +361,11 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                             <p className="text-slate-600 leading-relaxed">
                                 انقر على أي قطعة عقارية لتصفية الأرشيف حسب <span className="font-mono font-bold text-red-600">القسم</span> و <span className="font-mono font-bold text-red-600">مجموعة الملكية</span>
                             </p>
+                            {fadaaVisible && (
+                                <p className="mt-2 text-[11px] text-emerald-700 font-semibold">
+                                    ✓ طبقة فضاء الجزائر الرسمية مفعّلة
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
