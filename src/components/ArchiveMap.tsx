@@ -2,11 +2,24 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Satellite } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Satellite, Layers } from 'lucide-react';
+import {
+    WMS_ENDPOINT,
+    CADASTRAL_LAYERS,
+    fetchThroughProxy,
+    buildWFSGetFeatureUrl,
+} from '@/lib/fadaa-el-djazair';
 
 // Loaded dynamically to avoid OOM during build
 
 const CADASTRE_GEOJSON_URL = `${import.meta.env.BASE_URL}mzab_cadastre_map.json`;
+
+// Fadaa El Djazair WMS tile URL (EPSG:3857, used by MapLibre internally)
+const FADAA_WMS_TILE_URL =
+    `${WMS_ENDPOINT}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap` +
+    `&LAYERS=${encodeURIComponent(CADASTRAL_LAYERS.SECTIONS + ',' + CADASTRAL_LAYERS.PROPERTY_GROUPS + ',' + CADASTRAL_LAYERS.PARCELS)}` +
+    `&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}`;
 
 // Ghardaia center coordinates
 const GHARDAIA_CENTER: [number, number] = [3.6900, 32.4810];
