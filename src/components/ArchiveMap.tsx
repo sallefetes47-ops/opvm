@@ -7,8 +7,6 @@ import { Satellite, Layers } from 'lucide-react';
 import {
     WMS_ENDPOINT,
     CADASTRAL_LAYERS,
-    fetchThroughProxy,
-    buildWFSGetFeatureUrl,
 } from '@/lib/fadaa-el-djazair';
 
 // Loaded dynamically to avoid OOM during build
