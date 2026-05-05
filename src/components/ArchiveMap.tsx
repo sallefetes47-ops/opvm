@@ -54,6 +54,13 @@ const OSM_STYLE = {
             attribution: '© OpenStreetMap contributors',
             maxzoom: 19,
         },
+        'fadaa-wms': {
+            type: 'raster' as const,
+            tiles: [FADAA_WMS_TILE_URL],
+            tileSize: 256,
+            attribution: '© Fadaa El Djazair - Ministère des Finances',
+            maxzoom: 22,
+        },
     },
     layers: [
         {
@@ -61,6 +68,14 @@ const OSM_STYLE = {
             type: 'raster' as const,
             source: 'osm',
             minzoom: 0,
+        },
+        {
+            id: 'fadaa-wms-layer',
+            type: 'raster' as const,
+            source: 'fadaa-wms',
+            minzoom: 0,
+            paint: { 'raster-opacity': 0.75 },
+            layout: { visibility: 'visible' as const },
         },
     ],
 };
@@ -75,6 +90,8 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const popupRef = useRef<maplibregl.Popup | null>(null);
     const selectedFeatureIdRef = useRef<string | number | null>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
+    const [fadaaVisible, setFadaaVisible] = useState(true);
+    const [fadaaInfoLoading, setFadaaInfoLoading] = useState(false);
 
     // Initialize MapLibre GL map
     useEffect(() => {
