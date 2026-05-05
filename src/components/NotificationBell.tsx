@@ -8,7 +8,10 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Bell, CalendarClock, FilePlus2, AlertCircle, CheckCheck, Inbox,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Bell, CalendarClock, FilePlus2, AlertCircle, CheckCheck, Inbox, Trash2, Settings2,
 } from "lucide-react";
 
 const formatDateDDMMYYYY = (iso: string) => {
@@ -32,16 +35,24 @@ interface Notification {
 
 const READ_KEY = "opvm.notifications.read";
 const READ_ALL_KEY = "opvm.notifications.readAt";
+const HIDDEN_KEY = "opvm.notifications.hidden"; // { id: hiddenAtMs }
+const RETENTION_KEY = "opvm.notifications.retentionDays"; // "30" | "60" | "90" | "0"
+
+type HiddenMap = Record<string, number>;
 
 function loadReadIds(): Set<string> {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(READ_KEY) || "[]"));
-  } catch {
-    return new Set();
-  }
+  try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) || "[]")); }
+  catch { return new Set(); }
 }
 function saveReadIds(s: Set<string>) {
   localStorage.setItem(READ_KEY, JSON.stringify([...s]));
+}
+function loadHidden(): HiddenMap {
+  try { return JSON.parse(localStorage.getItem(HIDDEN_KEY) || "{}"); }
+  catch { return {}; }
+}
+function saveHidden(h: HiddenMap) {
+  localStorage.setItem(HIDDEN_KEY, JSON.stringify(h));
 }
 
 const GOLD = "#D4AF37";
@@ -50,10 +61,36 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const [items, setItems] = useState<Notification[]>([]);
   const [readIds, setReadIds] = useState<Set<string>>(() => loadReadIds());
+  const [hidden, setHidden] = useState<HiddenMap>(() => loadHidden());
+  const [retention, setRetention] = useState<string>(
+    () => localStorage.getItem(RETENTION_KEY) || "60"
+  );
   const [open, setOpen] = useState(false);
-  const [readAt, setReadAt] = useState<number>(() =>
+  const [, setReadAt] = useState<number>(() =>
     Number(localStorage.getItem(READ_ALL_KEY) || 0)
   );
+
+  // Auto-cleanup hidden entries older than retention
+  useEffect(() => {
+    const days = Number(retention);
+    if (!days) return;
+    const cutoff = Date.now() - days * 86400000;
+    const next: HiddenMap = {};
+    let changed = false;
+    for (const [id, ts] of Object.entries(hidden)) {
+      if (ts >= cutoff) next[id] = ts;
+      else changed = true;
+    }
+    if (changed) {
+      setHidden(next);
+      saveHidden(next);
+      // Also prune readIds that are no longer relevant
+      const nextRead = new Set([...readIds].filter(id => !(id in hidden) || id in next));
+      setReadIds(nextRead);
+      saveReadIds(nextRead);
+    }
+    localStorage.setItem(RETENTION_KEY, retention);
+  }, [retention, hidden, readIds]);
 
   const fetchAll = async () => {
     const today = new Date();
@@ -146,26 +183,48 @@ export function NotificationBell() {
     return () => clearInterval(t);
   }, []);
 
+  // Filter: hidden + retention by item date
+  const visibleItems = useMemo(() => {
+    const days = Number(retention);
+    const cutoff = days ? Date.now() - days * 86400000 : 0;
+    return items.filter(i => {
+      if (hidden[i.id]) return false;
+      if (cutoff && i.date) {
+        const t = new Date(i.date).getTime();
+        if (!isNaN(t) && t < cutoff) return false;
+      }
+      return true;
+    });
+  }, [items, hidden, retention]);
+
   const unreadCount = useMemo(
-    () => items.filter(i => !readIds.has(i.id)).length,
-    [items, readIds]
+    () => visibleItems.filter(i => !readIds.has(i.id)).length,
+    [visibleItems, readIds]
   );
 
-  const grouped = useMemo(() => {
-    return {
-      session: items.filter(i => i.type === "session"),
-      "new-file": items.filter(i => i.type === "new-file"),
-      pending: items.filter(i => i.type === "pending"),
-    };
-  }, [items]);
+  const grouped = useMemo(() => ({
+    session: visibleItems.filter(i => i.type === "session"),
+    "new-file": visibleItems.filter(i => i.type === "new-file"),
+    pending: visibleItems.filter(i => i.type === "pending"),
+  }), [visibleItems]);
 
   const markAllRead = () => {
-    const all = new Set(items.map(i => i.id));
+    const all = new Set([...readIds, ...visibleItems.map(i => i.id)]);
     setReadIds(all);
     saveReadIds(all);
     const now = Date.now();
     setReadAt(now);
     localStorage.setItem(READ_ALL_KEY, String(now));
+  };
+
+  const deleteRead = () => {
+    const now = Date.now();
+    const next = { ...hidden };
+    visibleItems.forEach(i => {
+      if (readIds.has(i.id)) next[i.id] = now;
+    });
+    setHidden(next);
+    saveHidden(next);
   };
 
   const handleClick = (n: Notification) => {
@@ -179,6 +238,8 @@ export function NotificationBell() {
 
   const sevColor = (s: Severity) =>
     s === "danger" ? "text-red-500" : s === "warning" ? "text-amber-500" : "text-blue-500";
+
+  const readVisibleCount = visibleItems.filter(i => readIds.has(i.id)).length;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -206,7 +267,7 @@ export function NotificationBell() {
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4" style={{ color: GOLD }} />
             <span className="font-semibold">الإشعارات</span>
-            <Badge variant="outline" className="text-xs">{items.length}</Badge>
+            <Badge variant="outline" className="text-xs">{visibleItems.length}</Badge>
           </div>
           {unreadCount > 0 && (
             <Button variant="ghost" size="sm" onClick={markAllRead} className="h-7 text-xs">
@@ -216,8 +277,37 @@ export function NotificationBell() {
           )}
         </div>
 
-        <ScrollArea className="h-[420px]">
-          {items.length === 0 ? (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b bg-muted/20">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Settings2 className="h-3.5 w-3.5" />
+            <span>التنظيف التلقائي:</span>
+            <Select value={retention} onValueChange={setRetention}>
+              <SelectTrigger className="h-7 w-[110px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="30">آخر 30 يوم</SelectItem>
+                <SelectItem value="60">آخر 60 يوم</SelectItem>
+                <SelectItem value="90">آخر 90 يوم</SelectItem>
+                <SelectItem value="0">بدون تنظيف</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={deleteRead}
+            disabled={readVisibleCount === 0}
+            className="h-7 text-xs text-red-500 hover:text-red-600"
+            title="حذف الإشعارات المقروءة"
+          >
+            <Trash2 className="h-3 w-3 ml-1" />
+            حذف المقروءة ({readVisibleCount})
+          </Button>
+        </div>
+
+        <ScrollArea className="h-[400px]">
+          {visibleItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-muted-foreground py-12">
               <Inbox className="h-10 w-10 mb-2 opacity-40" />
               <p className="text-sm">لا توجد إشعارات</p>
