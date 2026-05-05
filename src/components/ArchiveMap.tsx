@@ -2,11 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Satellite } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Satellite, Layers } from 'lucide-react';
+import {
+    WMS_ENDPOINT,
+    CADASTRAL_LAYERS,
+} from '@/lib/fadaa-el-djazair';
 
 // Loaded dynamically to avoid OOM during build
 
 const CADASTRE_GEOJSON_URL = `${import.meta.env.BASE_URL}mzab_cadastre_map.json`;
+
+// Fadaa El Djazair WMS tile URL (EPSG:3857, used by MapLibre internally)
+const FADAA_WMS_TILE_URL =
+    `${WMS_ENDPOINT}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap` +
+    `&LAYERS=${encodeURIComponent(CADASTRAL_LAYERS.SECTIONS + ',' + CADASTRAL_LAYERS.PROPERTY_GROUPS + ',' + CADASTRAL_LAYERS.PARCELS)}` +
+    `&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}`;
 
 // Ghardaia center coordinates
 const GHARDAIA_CENTER: [number, number] = [3.6900, 32.4810];
@@ -41,6 +52,13 @@ const OSM_STYLE = {
             attribution: '© OpenStreetMap contributors',
             maxzoom: 19,
         },
+        'fadaa-wms': {
+            type: 'raster' as const,
+            tiles: [FADAA_WMS_TILE_URL],
+            tileSize: 256,
+            attribution: '© Fadaa El Djazair - Ministère des Finances',
+            maxzoom: 22,
+        },
     },
     layers: [
         {
@@ -48,6 +66,14 @@ const OSM_STYLE = {
             type: 'raster' as const,
             source: 'osm',
             minzoom: 0,
+        },
+        {
+            id: 'fadaa-wms-layer',
+            type: 'raster' as const,
+            source: 'fadaa-wms',
+            minzoom: 0,
+            paint: { 'raster-opacity': 0.75 },
+            layout: { visibility: 'visible' as const },
         },
     ],
 };
@@ -62,6 +88,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const popupRef = useRef<maplibregl.Popup | null>(null);
     const selectedFeatureIdRef = useRef<string | number | null>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
+    const [fadaaVisible, setFadaaVisible] = useState(true);
 
     // Initialize MapLibre GL map
     useEffect(() => {
@@ -264,6 +291,19 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
         };
     }, [onParcelSelect]);
 
+    // Toggle Fadaa WMS layer visibility
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !isMapLoaded) return;
+        if (map.getLayer('fadaa-wms-layer')) {
+            map.setLayoutProperty(
+                'fadaa-wms-layer',
+                'visibility',
+                fadaaVisible ? 'visible' : 'none',
+            );
+        }
+    }, [fadaaVisible, isMapLoaded]);
+
     return (
         <Card className="w-full h-full flex flex-col border-2 border-slate-200 rounded-xl shadow-lg text-right" dir="rtl">
             <CardHeader className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-4 shrink-0">
@@ -291,6 +331,22 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     />
                 </div>
 
+                {/* Fadaa WMS Toggle - Top Right */}
+                <div className="absolute top-4 right-16 z-[45]">
+                    <Button
+                        size="sm"
+                        variant={fadaaVisible ? 'default' : 'outline'}
+                        onClick={() => setFadaaVisible(v => !v)}
+                        className="shadow-lg gap-2 bg-white text-slate-800 hover:bg-slate-100 border-2 border-slate-200"
+                        title="إظهار/إخفاء طبقة فضاء الجزائر الرسمية"
+                    >
+                        <Layers className="w-4 h-4" />
+                        <span className="text-xs font-bold">
+                            فضاء الجزائر {fadaaVisible ? '●' : '○'}
+                        </span>
+                    </Button>
+                </div>
+
                 {/* Info Banner - Top Left */}
                 <div className="absolute top-4 left-4 bg-white/98 backdrop-blur-sm p-4 rounded-xl shadow-xl z-[40] text-xs text-right rtl border-2 border-slate-200 max-w-[300px]">
                     <div className="flex items-start gap-3">
@@ -302,6 +358,11 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                             <p className="text-slate-600 leading-relaxed">
                                 انقر على أي قطعة عقارية لتصفية الأرشيف حسب <span className="font-mono font-bold text-red-600">القسم</span> و <span className="font-mono font-bold text-red-600">مجموعة الملكية</span>
                             </p>
+                            {fadaaVisible && (
+                                <p className="mt-2 text-[11px] text-emerald-700 font-semibold">
+                                    ✓ طبقة فضاء الجزائر الرسمية مفعّلة
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
