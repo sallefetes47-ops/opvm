@@ -294,6 +294,19 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
         };
     }, [onParcelSelect]);
 
+    // Toggle Fadaa WMS layer visibility
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !isMapLoaded) return;
+        if (map.getLayer('fadaa-wms-layer')) {
+            map.setLayoutProperty(
+                'fadaa-wms-layer',
+                'visibility',
+                fadaaVisible ? 'visible' : 'none',
+            );
+        }
+    }, [fadaaVisible, isMapLoaded]);
+
     return (
         <Card className="w-full h-full flex flex-col border-2 border-slate-200 rounded-xl shadow-lg text-right" dir="rtl">
             <CardHeader className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-4 shrink-0">
