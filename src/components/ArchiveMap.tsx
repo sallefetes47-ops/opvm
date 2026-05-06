@@ -154,7 +154,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 generateId: true, // required for feature-state
             });
 
-            // Fill: highlight selected parcel
+            // Fill: colorful by commune (Fadaa El Djazair style)
             map.addLayer({
                 id: 'cadastre-parcels-fill',
                 type: 'fill',
@@ -165,19 +165,33 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     'fill-color': [
                         'case',
                         ['boolean', ['feature-state', 'selected'], false],
-                        '#dc2626', // red when selected
-                        '#64748b', // slate gray default
+                        '#fbbf24', // gold when selected
+                        [
+                            'match',
+                            ['coalesce', ['get', 'COMMUNE'], ['get', 'Commune'], ['get', 'commune'], ''],
+                            'غرداية', '#a855f7',
+                            'GHARDAIA', '#a855f7',
+                            'بنورة', '#dc2626',
+                            'BOUNOURA', '#dc2626',
+                            'العطف', '#7c2d12',
+                            'EL ATTEUF', '#7c2d12',
+                            'متليلي', '#f97316',
+                            'METLILI', '#f97316',
+                            'ضاية بن ضحوة', '#0ea5e9',
+                            'DAYA BEN DAHOUA', '#0ea5e9',
+                            '#64748b',
+                        ],
                     ],
                     'fill-opacity': [
                         'case',
                         ['boolean', ['feature-state', 'selected'], false],
+                        0.65,
                         0.45,
-                        0.25,
                     ],
                 },
             });
 
-            // Outline: thicker red when selected
+            // Outline: grid lines
             map.addLayer({
                 id: 'cadastre-parcels-line',
                 type: 'line',
@@ -188,16 +202,16 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     'line-color': [
                         'case',
                         ['boolean', ['feature-state', 'selected'], false],
-                        '#dc2626',
-                        '#64748b',
+                        '#fbbf24',
+                        '#1e293b',
                     ],
                     'line-width': [
                         'case',
                         ['boolean', ['feature-state', 'selected'], false],
                         3,
-                        2,
+                        0.6,
                     ],
-                    'line-opacity': 1,
+                    'line-opacity': 0.85,
                 },
             });
 
