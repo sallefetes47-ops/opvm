@@ -276,16 +276,34 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
         };
     }, [onParcelSelect]);
 
-    // Toggle Fadaa WMS layer visibility
+    // Toggle Fadaa WMS layer visibility (added on-demand to avoid CORS errors on load)
     useEffect(() => {
         const map = mapRef.current;
         if (!map || !isMapLoaded) return;
-        if (map.getLayer('fadaa-wms-layer')) {
-            map.setLayoutProperty(
-                'fadaa-wms-layer',
-                'visibility',
-                fadaaVisible ? 'visible' : 'none',
-            );
+
+        if (fadaaVisible) {
+            if (!map.getSource('fadaa-wms')) {
+                map.addSource('fadaa-wms', {
+                    type: 'raster',
+                    tiles: [FADAA_WMS_TILE_URL],
+                    tileSize: 256,
+                    attribution: '© Fadaa El Djazair',
+                    maxzoom: 22,
+                } as any);
+            }
+            if (!map.getLayer('fadaa-wms-layer')) {
+                // Insert above OSM but below cadastre fill
+                const beforeId = map.getLayer('cadastre-parcels-fill') ? 'cadastre-parcels-fill' : undefined;
+                map.addLayer({
+                    id: 'fadaa-wms-layer',
+                    type: 'raster',
+                    source: 'fadaa-wms',
+                    paint: { 'raster-opacity': 0.75 },
+                }, beforeId);
+            }
+        } else {
+            if (map.getLayer('fadaa-wms-layer')) map.removeLayer('fadaa-wms-layer');
+            if (map.getSource('fadaa-wms')) map.removeSource('fadaa-wms');
         }
     }, [fadaaVisible, isMapLoaded]);
 
