@@ -73,7 +73,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const popupRef = useRef<maplibregl.Popup | null>(null);
     const selectedFeatureIdRef = useRef<string | number | null>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
-    const [fadaaVisible, setFadaaVisible] = useState(true);
+    const [fadaaVisible, setFadaaVisible] = useState(false);
 
     // Initialize MapLibre GL map
     useEffect(() => {
