@@ -121,7 +121,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
 
         const map = new maplibregl.Map({
             container: mapContainerRef.current,
-            style: OSM_STYLE,
+            style: makeStyle(basemap),
             center: GHARDAIA_CENTER,
             zoom: 14,
             maxZoom: 20,
