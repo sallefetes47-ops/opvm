@@ -413,7 +413,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 </div>
 
                 {/* Fadaa WMS Toggle - Top Right */}
-                <div className="absolute top-4 right-16 z-[45]">
+                <div className="absolute top-4 right-16 z-[45] flex flex-col gap-2 items-end">
                     <Button
                         size="sm"
                         variant={fadaaVisible ? 'default' : 'outline'}
@@ -426,6 +426,24 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                             فضاء الجزائر {fadaaVisible ? '●' : '○'}
                         </span>
                     </Button>
+
+                    {/* Basemap Switcher */}
+                    <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border-2 border-slate-200 p-1 flex flex-col gap-1">
+                        {(Object.keys(BASEMAPS) as BasemapKey[]).map((key) => (
+                            <button
+                                key={key}
+                                onClick={() => setBasemap(key)}
+                                className={`text-[11px] font-bold px-3 py-1.5 rounded transition-colors text-right ${
+                                    basemap === key
+                                        ? 'bg-slate-900 text-white'
+                                        : 'text-slate-700 hover:bg-slate-100'
+                                }`}
+                            >
+                                <MapIcon className="w-3 h-3 inline-block ml-1" />
+                                {BASEMAPS[key].label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Info Banner - Top Left */}
