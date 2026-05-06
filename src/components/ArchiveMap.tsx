@@ -109,7 +109,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const selectedFeatureIdRef = useRef<string | number | null>(null);
     const cadastreDataRef = useRef<any>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
-    const [fadaaVisible, setFadaaVisible] = useState(true);
+    const [fadaaVisible, setFadaaVisible] = useState(false);
     const [basemap, setBasemap] = useState<BasemapKey>('osm');
 
     // Initialize MapLibre GL map
@@ -304,6 +304,18 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     if (source && geoData) {
                         source.setData(geoData);
                         console.log('[Archive Map] ✅ GeoJSON data set:', geoData.features?.length || 0, 'features');
+                        // Auto-fit map to cadastre bounds so parcels are visible
+                        try {
+                            const bounds = new maplibregl.LngLatBounds();
+                            (geoData.features || []).forEach((f: any) => {
+                                extendBoundsFromCoordinates(bounds, f?.geometry?.coordinates);
+                            });
+                            if (!bounds.isEmpty()) {
+                                map.fitBounds(bounds, { padding: 40, maxZoom: 18, duration: 800 });
+                            }
+                        } catch (e) {
+                            console.warn('[Archive Map] fitBounds failed', e);
+                        }
                     }
                 })
                 .catch(err => console.error('[Archive Map] Failed to load GeoJSON:', err));
