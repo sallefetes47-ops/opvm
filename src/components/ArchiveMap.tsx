@@ -314,6 +314,32 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
         };
     }, [onParcelSelect]);
 
+    // Switch basemap by replacing only the basemap source/layer, preserving other layers
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !isMapLoaded) return;
+        const b = BASEMAPS[basemap];
+        try {
+            if (map.getLayer('basemap-layer')) map.removeLayer('basemap-layer');
+            if (map.getSource('basemap')) map.removeSource('basemap');
+            map.addSource('basemap', {
+                type: 'raster',
+                tiles: [...b.tiles],
+                tileSize: 256,
+                attribution: b.attribution,
+                maxzoom: b.maxzoom,
+            } as any);
+            // Insert basemap below all other layers
+            const firstLayerId = map.getStyle().layers?.[0]?.id;
+            map.addLayer(
+                { id: 'basemap-layer', type: 'raster', source: 'basemap', minzoom: 0 },
+                firstLayerId,
+            );
+        } catch (err) {
+            console.error('[Archive Map] basemap switch failed', err);
+        }
+    }, [basemap, isMapLoaded]);
+
     // Toggle Fadaa WMS layer visibility (added on-demand to avoid CORS errors on load)
     useEffect(() => {
         const map = mapRef.current;
