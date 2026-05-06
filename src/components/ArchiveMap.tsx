@@ -285,6 +285,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             fetch(CADASTRE_GEOJSON_URL)
                 .then(r => r.json())
                 .then(geoData => {
+                    cadastreDataRef.current = geoData;
                     const source = map.getSource('cadastre-parcels') as any;
                     if (source && geoData) {
                         source.setData(geoData);
