@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Satellite, Layers } from 'lucide-react';
+import { Satellite, Layers, Map as MapIcon } from 'lucide-react';
 import {
     WMS_ENDPOINT,
     CADASTRAL_LAYERS,
@@ -41,27 +41,62 @@ function extendBoundsFromCoordinates(
 }
 
 
-// Custom OSM style for Mapbox (free, no token required)
-const OSM_STYLE = {
-    version: 8 as const,
-    sources: {
-        'osm': {
-            type: 'raster' as const,
-            tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors',
-            maxzoom: 19,
-        },
+// Basemap tile providers
+const BASEMAPS = {
+    osm: {
+        label: 'OSM',
+        tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        attribution: '© OpenStreetMap contributors',
+        maxzoom: 19,
     },
-    layers: [
-        {
-            id: 'osm-layer',
-            type: 'raster' as const,
-            source: 'osm',
-            minzoom: 0,
+    google_sat: {
+        label: 'Google Satellite',
+        tiles: [
+            'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        ],
+        attribution: '© Google',
+        maxzoom: 20,
+    },
+    google_hybrid: {
+        label: 'Google Hybrid',
+        tiles: [
+            'https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+            'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        ],
+        attribution: '© Google',
+        maxzoom: 20,
+    },
+    esri_sat: {
+        label: 'OSM Satellite',
+        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+        attribution: '© Esri, Maxar, Earthstar Geographics',
+        maxzoom: 19,
+    },
+} as const;
+
+type BasemapKey = keyof typeof BASEMAPS;
+
+function makeStyle(key: BasemapKey) {
+    const b = BASEMAPS[key];
+    return {
+        version: 8 as const,
+        sources: {
+            basemap: {
+                type: 'raster' as const,
+                tiles: [...b.tiles],
+                tileSize: 256,
+                attribution: b.attribution,
+                maxzoom: b.maxzoom,
+            },
         },
-    ],
-};
+        layers: [
+            { id: 'basemap-layer', type: 'raster' as const, source: 'basemap', minzoom: 0 },
+        ],
+    };
+}
 
 export interface ArchiveMapProps {
     onParcelSelect?: (section: string, ilot: string) => void;
@@ -72,8 +107,10 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const mapRef = useRef<maplibregl.Map | null>(null);
     const popupRef = useRef<maplibregl.Popup | null>(null);
     const selectedFeatureIdRef = useRef<string | number | null>(null);
+    const cadastreDataRef = useRef<any>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
-    const [fadaaVisible, setFadaaVisible] = useState(false);
+    const [fadaaVisible, setFadaaVisible] = useState(true);
+    const [basemap, setBasemap] = useState<BasemapKey>('osm');
 
     // Initialize MapLibre GL map
     useEffect(() => {
@@ -84,7 +121,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
 
         const map = new maplibregl.Map({
             container: mapContainerRef.current,
-            style: OSM_STYLE,
+            style: makeStyle(basemap),
             center: GHARDAIA_CENTER,
             zoom: 14,
             maxZoom: 20,
@@ -117,7 +154,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 generateId: true, // required for feature-state
             });
 
-            // Fill: highlight selected parcel
+            // Fill: colorful by commune (Fadaa El Djazair style)
             map.addLayer({
                 id: 'cadastre-parcels-fill',
                 type: 'fill',
@@ -128,19 +165,33 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     'fill-color': [
                         'case',
                         ['boolean', ['feature-state', 'selected'], false],
-                        '#dc2626', // red when selected
-                        '#64748b', // slate gray default
+                        '#fbbf24', // gold when selected
+                        [
+                            'match',
+                            ['coalesce', ['get', 'COMMUNE'], ['get', 'Commune'], ['get', 'commune'], ''],
+                            'غرداية', '#a855f7',
+                            'GHARDAIA', '#a855f7',
+                            'بنورة', '#dc2626',
+                            'BOUNOURA', '#dc2626',
+                            'العطف', '#7c2d12',
+                            'EL ATTEUF', '#7c2d12',
+                            'متليلي', '#f97316',
+                            'METLILI', '#f97316',
+                            'ضاية بن ضحوة', '#0ea5e9',
+                            'DAYA BEN DAHOUA', '#0ea5e9',
+                            '#64748b',
+                        ],
                     ],
                     'fill-opacity': [
                         'case',
                         ['boolean', ['feature-state', 'selected'], false],
+                        0.65,
                         0.45,
-                        0.25,
                     ],
                 },
             });
 
-            // Outline: thicker red when selected
+            // Outline: grid lines
             map.addLayer({
                 id: 'cadastre-parcels-line',
                 type: 'line',
@@ -151,16 +202,16 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     'line-color': [
                         'case',
                         ['boolean', ['feature-state', 'selected'], false],
-                        '#dc2626',
-                        '#64748b',
+                        '#fbbf24',
+                        '#1e293b',
                     ],
                     'line-width': [
                         'case',
                         ['boolean', ['feature-state', 'selected'], false],
                         3,
-                        2,
+                        0.6,
                     ],
-                    'line-opacity': 1,
+                    'line-opacity': 0.85,
                 },
             });
 
@@ -248,6 +299,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             fetch(CADASTRE_GEOJSON_URL)
                 .then(r => r.json())
                 .then(geoData => {
+                    cadastreDataRef.current = geoData;
                     const source = map.getSource('cadastre-parcels') as any;
                     if (source && geoData) {
                         source.setData(geoData);
@@ -275,6 +327,32 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
             setIsMapLoaded(false);
         };
     }, [onParcelSelect]);
+
+    // Switch basemap by replacing only the basemap source/layer, preserving other layers
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !isMapLoaded) return;
+        const b = BASEMAPS[basemap];
+        try {
+            if (map.getLayer('basemap-layer')) map.removeLayer('basemap-layer');
+            if (map.getSource('basemap')) map.removeSource('basemap');
+            map.addSource('basemap', {
+                type: 'raster',
+                tiles: [...b.tiles],
+                tileSize: 256,
+                attribution: b.attribution,
+                maxzoom: b.maxzoom,
+            } as any);
+            // Insert basemap below all other layers
+            const firstLayerId = map.getStyle().layers?.[0]?.id;
+            map.addLayer(
+                { id: 'basemap-layer', type: 'raster', source: 'basemap', minzoom: 0 },
+                firstLayerId,
+            );
+        } catch (err) {
+            console.error('[Archive Map] basemap switch failed', err);
+        }
+    }, [basemap, isMapLoaded]);
 
     // Toggle Fadaa WMS layer visibility (added on-demand to avoid CORS errors on load)
     useEffect(() => {
@@ -335,7 +413,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                 </div>
 
                 {/* Fadaa WMS Toggle - Top Right */}
-                <div className="absolute top-4 right-16 z-[45]">
+                <div className="absolute top-4 right-16 z-[45] flex flex-col gap-2 items-end">
                     <Button
                         size="sm"
                         variant={fadaaVisible ? 'default' : 'outline'}
@@ -348,6 +426,24 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                             فضاء الجزائر {fadaaVisible ? '●' : '○'}
                         </span>
                     </Button>
+
+                    {/* Basemap Switcher */}
+                    <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border-2 border-slate-200 p-1 flex flex-col gap-1">
+                        {(Object.keys(BASEMAPS) as BasemapKey[]).map((key) => (
+                            <button
+                                key={key}
+                                onClick={() => setBasemap(key)}
+                                className={`text-[11px] font-bold px-3 py-1.5 rounded transition-colors text-right ${
+                                    basemap === key
+                                        ? 'bg-slate-900 text-white'
+                                        : 'text-slate-700 hover:bg-slate-100'
+                                }`}
+                            >
+                                <MapIcon className="w-3 h-3 inline-block ml-1" />
+                                {BASEMAPS[key].label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Info Banner - Top Left */}
