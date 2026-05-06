@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Satellite, Layers } from 'lucide-react';
+import { Satellite, Layers, Map as MapIcon } from 'lucide-react';
 import {
     WMS_ENDPOINT,
     CADASTRAL_LAYERS,
