@@ -41,27 +41,62 @@ function extendBoundsFromCoordinates(
 }
 
 
-// Custom OSM style for Mapbox (free, no token required)
-const OSM_STYLE = {
-    version: 8 as const,
-    sources: {
-        'osm': {
-            type: 'raster' as const,
-            tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors',
-            maxzoom: 19,
-        },
+// Basemap tile providers
+const BASEMAPS = {
+    osm: {
+        label: 'OSM',
+        tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        attribution: '© OpenStreetMap contributors',
+        maxzoom: 19,
     },
-    layers: [
-        {
-            id: 'osm-layer',
-            type: 'raster' as const,
-            source: 'osm',
-            minzoom: 0,
+    google_sat: {
+        label: 'Google Satellite',
+        tiles: [
+            'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        ],
+        attribution: '© Google',
+        maxzoom: 20,
+    },
+    google_hybrid: {
+        label: 'Google Hybrid',
+        tiles: [
+            'https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+            'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        ],
+        attribution: '© Google',
+        maxzoom: 20,
+    },
+    esri_sat: {
+        label: 'OSM Satellite',
+        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+        attribution: '© Esri, Maxar, Earthstar Geographics',
+        maxzoom: 19,
+    },
+} as const;
+
+type BasemapKey = keyof typeof BASEMAPS;
+
+function makeStyle(key: BasemapKey) {
+    const b = BASEMAPS[key];
+    return {
+        version: 8 as const,
+        sources: {
+            basemap: {
+                type: 'raster' as const,
+                tiles: [...b.tiles],
+                tileSize: 256,
+                attribution: b.attribution,
+                maxzoom: b.maxzoom,
+            },
         },
-    ],
-};
+        layers: [
+            { id: 'basemap-layer', type: 'raster' as const, source: 'basemap', minzoom: 0 },
+        ],
+    };
+}
 
 export interface ArchiveMapProps {
     onParcelSelect?: (section: string, ilot: string) => void;
@@ -72,8 +107,10 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const mapRef = useRef<maplibregl.Map | null>(null);
     const popupRef = useRef<maplibregl.Popup | null>(null);
     const selectedFeatureIdRef = useRef<string | number | null>(null);
+    const cadastreDataRef = useRef<any>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
-    const [fadaaVisible, setFadaaVisible] = useState(false);
+    const [fadaaVisible, setFadaaVisible] = useState(true);
+    const [basemap, setBasemap] = useState<BasemapKey>('osm');
 
     // Initialize MapLibre GL map
     useEffect(() => {
