@@ -454,7 +454,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 }}
             />
         );
-    }, [geojsonData, hoveredParcelKey, selectedParcelKey, foundParcelKey]);
+    }, [geojsonData, hoveredParcelKey, selectedParcelKey, foundParcelKey, parcelColors]);
 
     return (
         <div className='relative' style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
