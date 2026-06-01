@@ -30,6 +30,8 @@ export type MzabValleyMapHandle = {
 
 interface MzabValleyMapProps {
     onParcelSelect?: (data: ParcelSelectionData) => void;
+    parcelColors?: Record<string, string>; // key: `${section}|${propertyGroup}` -> fill color
+    legend?: React.ReactNode; // custom legend (replaces default municipality legend)
 }
 
 const CADASTRAL_LINE_STYLE = {
