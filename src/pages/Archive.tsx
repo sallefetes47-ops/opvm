@@ -399,7 +399,13 @@ export default function ArchivePage() {
             </Button>
           </div>
           <div className="flex-1 rounded-xl overflow-hidden border shadow-sm h-full">
-            <ArchiveMap onParcelSelect={handleParcelSelect} />
+            <MapErrorBoundary>
+              <MzabValleyMap
+                onParcelSelect={(data: ParcelSelectionData) =>
+                  handleParcelSelect(data.section, data.propertyGroup)
+                }
+              />
+            </MapErrorBoundary>
           </div>
         </div>
       </div>
