@@ -30,6 +30,8 @@ export type MzabValleyMapHandle = {
 
 interface MzabValleyMapProps {
     onParcelSelect?: (data: ParcelSelectionData) => void;
+    parcelColors?: Record<string, string>; // key: `${section}|${propertyGroup}` -> fill color
+    legend?: React.ReactNode; // custom legend (replaces default municipality legend)
 }
 
 const CADASTRAL_LINE_STYLE = {
@@ -272,7 +274,7 @@ const loadGeoData = () => {
         .then(d => { _geoDataCache = d; return d; });
 };
 
-const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(({ onParcelSelect }, ref) => {
+const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(({ onParcelSelect, parcelColors, legend }, ref) => {
     const { toast } = useToast();
     const [hoveredParcelKey, setHoveredParcelKey] = useState('');
     const [selectedParcelKey, setSelectedParcelKey] = useState('');
@@ -366,7 +368,16 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
                     const communeCode = getCommuneCodeFromProps(props);
                     const baseColor = getMunicipalityBorderColor(communeCode);
-                    const fillColor = getMunicipalityColor(communeCode);
+                    const defaultFill = getMunicipalityColor(communeCode);
+
+                    // Override fill color by permit type if available
+                    const section = getSectionFromProps(props);
+                    const group = getGroupFromProps(props);
+                    const overrideKey = `${section}|${group}`;
+                    const overrideColor = parcelColors?.[overrideKey];
+                    const fillColor = overrideColor ?? defaultFill;
+                    const borderColor = overrideColor ?? baseColor;
+                    const fillOpacityBase = overrideColor ? 0.65 : 0.3;
 
                     if (isFound) {
                         return {
@@ -379,27 +390,27 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     }
                     if (isSelected) {
                         return {
-                            color: baseColor,
+                            color: borderColor,
                             weight: 4,
                             fillColor,
-                            fillOpacity: 0.3,
+                            fillOpacity: Math.min(fillOpacityBase + 0.1, 0.85),
                             opacity: 1,
                         };
                     }
                     if (isHovered) {
                         return {
-                            color: baseColor,
+                            color: borderColor,
                             weight: 3.5,
                             fillColor,
-                            fillOpacity: 0.2,
+                            fillOpacity: Math.min(fillOpacityBase + 0.05, 0.8),
                             opacity: 1,
                         };
                     }
                     return {
-                        color: baseColor,
+                        color: borderColor,
                         weight: 2.5,
                         fillColor,
-                        fillOpacity: 0.3,
+                        fillOpacity: fillOpacityBase,
                         opacity: 1,
                     };
                 }}
@@ -443,7 +454,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 }}
             />
         );
-    }, [geojsonData, hoveredParcelKey, selectedParcelKey, foundParcelKey]);
+    }, [geojsonData, hoveredParcelKey, selectedParcelKey, foundParcelKey, parcelColors]);
 
     return (
         <div className='relative' style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
@@ -514,32 +525,36 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 <MapSearchController targetFeature={searchedFeature} resetSignal={resetSignal} />
             </MapContainer>
 
-            {/* Municipality color legend */}
-            <div className='pointer-events-none absolute right-4 top-[4.5rem] z-[500] w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
-                <p className='mb-2 text-xs font-semibold text-slate-700 sticky top-0 bg-white/90 p-1'>دليل الألوان - بلديات ولاية غرداية</p>
-                <div className='space-y-1.5 text-xs text-slate-700'>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>غرداية</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#1e3a8a', boxShadow: '0 0 0 1px #1e3a8a' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>العطف</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#dc2626', boxShadow: '0 0 0 1px #dc2626' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>بنورة</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#a21caf', boxShadow: '0 0 0 1px #a21caf' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>متليلي</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#ea580c', boxShadow: '0 0 0 1px #ea580c' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>الضاية</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#047857', boxShadow: '0 0 0 1px #047857' }} />
+            {/* Legend (custom or default municipality) */}
+            {legend !== undefined ? (
+                legend
+            ) : (
+                <div className='pointer-events-none absolute right-4 top-[4.5rem] z-[500] w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
+                    <p className='mb-2 text-xs font-semibold text-slate-700 sticky top-0 bg-white/90 p-1'>دليل الألوان - بلديات ولاية غرداية</p>
+                    <div className='space-y-1.5 text-xs text-slate-700'>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>غرداية</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#1e3a8a', boxShadow: '0 0 0 1px #1e3a8a' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>العطف</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#dc2626', boxShadow: '0 0 0 1px #dc2626' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>بنورة</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#a21caf', boxShadow: '0 0 0 1px #a21caf' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>متليلي</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#ea580c', boxShadow: '0 0 0 1px #ea580c' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>الضاية</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#047857', boxShadow: '0 0 0 1px #047857' }} />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 });
