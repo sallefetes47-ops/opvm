@@ -274,7 +274,7 @@ const loadGeoData = () => {
         .then(d => { _geoDataCache = d; return d; });
 };
 
-const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(({ onParcelSelect }, ref) => {
+const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(({ onParcelSelect, parcelColors, legend }, ref) => {
     const { toast } = useToast();
     const [hoveredParcelKey, setHoveredParcelKey] = useState('');
     const [selectedParcelKey, setSelectedParcelKey] = useState('');
