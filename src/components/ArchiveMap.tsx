@@ -109,7 +109,7 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const selectedFeatureIdRef = useRef<string | number | null>(null);
     const cadastreDataRef = useRef<any>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
-    const [fadaaVisible, setFadaaVisible] = useState(false);
+    const [fadaaVisible, setFadaaVisible] = useState(true);
     const [basemap, setBasemap] = useState<BasemapKey>('osm');
 
     // Initialize MapLibre GL map
