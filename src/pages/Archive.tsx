@@ -440,6 +440,8 @@ export default function ArchivePage() {
                 onParcelSelect={(data: ParcelSelectionData) =>
                   handleParcelSelect(data.section, data.propertyGroup)
                 }
+                parcelColors={parcelColors}
+                legend={permitLegend}
               />
             </MapErrorBoundary>
           </div>
