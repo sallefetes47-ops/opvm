@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import ArchiveMap from "@/components/ArchiveMap";
+import MzabValleyMap, { type ParcelSelectionData } from "@/components/MzabValleyMap";
+import { MapErrorBoundary } from "@/components/MapErrorBoundary";
 import PermitLocationPicker from "@/components/PermitLocationPicker";
 
 
@@ -398,7 +399,13 @@ export default function ArchivePage() {
             </Button>
           </div>
           <div className="flex-1 rounded-xl overflow-hidden border shadow-sm h-full">
-            <ArchiveMap onParcelSelect={handleParcelSelect} />
+            <MapErrorBoundary>
+              <MzabValleyMap
+                onParcelSelect={(data: ParcelSelectionData) =>
+                  handleParcelSelect(data.section, data.propertyGroup)
+                }
+              />
+            </MapErrorBoundary>
           </div>
         </div>
       </div>
