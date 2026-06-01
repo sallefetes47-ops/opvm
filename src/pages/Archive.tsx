@@ -171,6 +171,42 @@ export default function ArchivePage() {
     });
   }, [toast]);
 
+  /* ── Permit-type → color (auto coloring on map by permit type) ── */
+  const PERMIT_TYPE_COLORS: Record<string, string> = {
+    "رخصة بناء": "#2563eb",       // blue
+    "رخصة تجزئة": "#16a34a",     // green
+    "رخصة هدم": "#dc2626",        // red
+    "شهادة تقسيم": "#9333ea",    // purple
+    "شهادة إستفادة": "#ea580c",  // orange
+  };
+
+  // Build parcel color overrides from files: key = `${section}|${propertyGroup}`
+  const parcelColors = useMemo(() => {
+    const map: Record<string, string> = {};
+    files?.forEach((f) => {
+      if (!f.section || !f.property_group || !f.permit_type) return;
+      const color = PERMIT_TYPE_COLORS[f.permit_type];
+      if (!color) return;
+      const key = `${String(f.section).trim()}|${String(f.property_group).trim()}`;
+      map[key] = color;
+    });
+    return map;
+  }, [files]);
+
+  const permitLegend = (
+    <div className='pointer-events-none absolute right-4 top-[4.5rem] z-[500] w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
+      <p className='mb-2 text-xs font-semibold text-slate-700 sticky top-0 bg-white/90 p-1'>دليل الألوان - عقود التعمير</p>
+      <div className='space-y-1.5 text-xs text-slate-700'>
+        {Object.entries(PERMIT_TYPE_COLORS).map(([label, color]) => (
+          <div key={label} className='flex items-center justify-between gap-2'>
+            <span>{label}</span>
+            <span className='h-2 w-6 rounded-sm' style={{ backgroundColor: color, boxShadow: `0 0 0 1px ${color}` }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   /* ── Mutations ── */
 
   const softDeleteMutation = useMutation({
