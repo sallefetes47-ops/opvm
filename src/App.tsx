@@ -28,7 +28,7 @@ import GovSearch from "@/pages/GovSearch";
 import MzabHeritage from "@/pages/MzabHeritage";
 import Analytics from "@/pages/Analytics";
 import SessionsCalendar from "@/pages/SessionsCalendar";
-import UrbanHeatmap from "@/pages/UrbanHeatmap";
+
 import AIFileAssistant from "@/pages/AIFileAssistant";
 import SimilarFiles from "@/pages/SimilarFiles";
 import KPIDashboard from "@/pages/KPIDashboard";
@@ -80,7 +80,7 @@ const App = () => (
                   <Route path="/mzab-heritage" element={<MzabHeritage />} />
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/sessions-calendar" element={<SessionsCalendar />} />
-                  <Route path="/urban-heatmap" element={<UrbanHeatmap />} />
+                  
                   <Route path="/ai-assistant" element={<AIFileAssistant />} />
                   <Route path="/similar-files" element={<SimilarFiles />} />
                   <Route path="/kpi" element={<KPIDashboard />} />
