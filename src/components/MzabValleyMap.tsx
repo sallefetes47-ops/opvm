@@ -525,32 +525,36 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 <MapSearchController targetFeature={searchedFeature} resetSignal={resetSignal} />
             </MapContainer>
 
-            {/* Municipality color legend */}
-            <div className='pointer-events-none absolute right-4 top-[4.5rem] z-[500] w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
-                <p className='mb-2 text-xs font-semibold text-slate-700 sticky top-0 bg-white/90 p-1'>دليل الألوان - بلديات ولاية غرداية</p>
-                <div className='space-y-1.5 text-xs text-slate-700'>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>غرداية</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#1e3a8a', boxShadow: '0 0 0 1px #1e3a8a' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>العطف</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#dc2626', boxShadow: '0 0 0 1px #dc2626' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>بنورة</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#a21caf', boxShadow: '0 0 0 1px #a21caf' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>متليلي</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#ea580c', boxShadow: '0 0 0 1px #ea580c' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>الضاية</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#047857', boxShadow: '0 0 0 1px #047857' }} />
+            {/* Legend (custom or default municipality) */}
+            {legend !== undefined ? (
+                legend
+            ) : (
+                <div className='pointer-events-none absolute right-4 top-[4.5rem] z-[500] w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
+                    <p className='mb-2 text-xs font-semibold text-slate-700 sticky top-0 bg-white/90 p-1'>دليل الألوان - بلديات ولاية غرداية</p>
+                    <div className='space-y-1.5 text-xs text-slate-700'>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>غرداية</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#1e3a8a', boxShadow: '0 0 0 1px #1e3a8a' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>العطف</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#dc2626', boxShadow: '0 0 0 1px #dc2626' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>بنورة</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#a21caf', boxShadow: '0 0 0 1px #a21caf' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>متليلي</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#ea580c', boxShadow: '0 0 0 1px #ea580c' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>الضاية</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#047857', boxShadow: '0 0 0 1px #047857' }} />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 });
