@@ -46,7 +46,7 @@ const mainMenuItems: SidebarItem[] = [
   { title: "إعادة الدراسة", url: "/restudy", icon: RefreshCw, requiresEdit: true },
   { title: "الأرشيف", url: "/archive", icon: Archive },
   { title: "الخريطة العمرانية", url: "/urban-map", icon: MapPin },
-  { title: "الخريطة الحرارية", url: "/urban-heatmap", icon: Flame },
+  
   { title: "المساعد الذكي", url: "/ai-assistant", icon: Sparkles },
   { title: "الملفات المتشابهة", url: "/similar-files", icon: GitCompare },
   { title: "مؤشرات الأداء", url: "/kpi", icon: Target },
