@@ -368,7 +368,16 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
                     const communeCode = getCommuneCodeFromProps(props);
                     const baseColor = getMunicipalityBorderColor(communeCode);
-                    const fillColor = getMunicipalityColor(communeCode);
+                    const defaultFill = getMunicipalityColor(communeCode);
+
+                    // Override fill color by permit type if available
+                    const section = getSectionFromProps(props);
+                    const group = getGroupFromProps(props);
+                    const overrideKey = `${section}|${group}`;
+                    const overrideColor = parcelColors?.[overrideKey];
+                    const fillColor = overrideColor ?? defaultFill;
+                    const borderColor = overrideColor ?? baseColor;
+                    const fillOpacityBase = overrideColor ? 0.65 : 0.3;
 
                     if (isFound) {
                         return {
@@ -381,27 +390,27 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     }
                     if (isSelected) {
                         return {
-                            color: baseColor,
+                            color: borderColor,
                             weight: 4,
                             fillColor,
-                            fillOpacity: 0.3,
+                            fillOpacity: Math.min(fillOpacityBase + 0.1, 0.85),
                             opacity: 1,
                         };
                     }
                     if (isHovered) {
                         return {
-                            color: baseColor,
+                            color: borderColor,
                             weight: 3.5,
                             fillColor,
-                            fillOpacity: 0.2,
+                            fillOpacity: Math.min(fillOpacityBase + 0.05, 0.8),
                             opacity: 1,
                         };
                     }
                     return {
-                        color: baseColor,
+                        color: borderColor,
                         weight: 2.5,
                         fillColor,
-                        fillOpacity: 0.3,
+                        fillOpacity: fillOpacityBase,
                         opacity: 1,
                     };
                 }}
