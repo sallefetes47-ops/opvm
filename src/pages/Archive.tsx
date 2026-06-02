@@ -194,9 +194,9 @@ export default function ArchivePage() {
   }, [files]);
 
   const permitLegend = (
-    <div className='pointer-events-none absolute right-4 top-[4.5rem] z-[500] w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
-      <p className='mb-2 text-xs font-semibold text-slate-700 sticky top-0 bg-white/90 p-1'>دليل الألوان - عقود التعمير</p>
-      <div className='space-y-1.5 text-xs text-slate-700'>
+    <div className='mt-2 rounded-lg border bg-card p-3 text-right shadow-sm'>
+      <p className='mb-2 text-xs font-semibold text-foreground'>دليل الألوان - عقود التعمير</p>
+      <div className='flex flex-col gap-1.5 text-xs text-foreground'>
         {Object.entries(PERMIT_TYPE_COLORS).map(([label, color]) => (
           <div key={label} className='flex items-center justify-between gap-2'>
             <span>{label}</span>
@@ -441,10 +441,11 @@ export default function ArchivePage() {
                   handleParcelSelect(data.section, data.propertyGroup)
                 }
                 parcelColors={parcelColors}
-                legend={permitLegend}
+                legend={null}
               />
             </MapErrorBoundary>
           </div>
+          {permitLegend}
         </div>
       </div>
 
