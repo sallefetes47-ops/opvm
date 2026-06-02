@@ -177,7 +177,6 @@ export default function ArchivePage() {
     "رخصة تجزئة": "#16a34a",     // green
     "رخصة هدم": "#dc2626",        // red
     "شهادة تقسيم": "#9333ea",    // purple
-    "شهادة إستفادة": "#ea580c",  // orange
   };
 
   // Build parcel color overrides from files: key = `${section}|${propertyGroup}`
@@ -194,13 +193,13 @@ export default function ArchivePage() {
   }, [files]);
 
   const permitLegend = (
-    <div className='mt-2 rounded-lg border bg-card p-3 text-right shadow-sm'>
-      <p className='mb-2 text-xs font-semibold text-foreground'>دليل الألوان - عقود التعمير</p>
-      <div className='flex flex-col gap-1.5 text-xs text-foreground'>
+    <div className='mt-2 rounded-lg border bg-card px-3 py-2 text-right shadow-sm'>
+      <div className='flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs text-foreground' dir='rtl'>
+        <span className='font-semibold'>دليل الألوان - عقود التعمير:</span>
         {Object.entries(PERMIT_TYPE_COLORS).map(([label, color]) => (
-          <div key={label} className='flex items-center justify-between gap-2'>
+          <div key={label} className='flex items-center gap-1.5'>
             <span>{label}</span>
-            <span className='h-2 w-6 rounded-sm' style={{ backgroundColor: color, boxShadow: `0 0 0 1px ${color}` }} />
+            <span className='h-2 w-5 rounded-sm' style={{ backgroundColor: color, boxShadow: `0 0 0 1px ${color}` }} />
           </div>
         ))}
       </div>
