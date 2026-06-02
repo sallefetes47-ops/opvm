@@ -19,6 +19,14 @@ import {
 } from "@/components/ui/select";
 import { DateInput } from "@/components/ui/date-input";
 import { Loader2, FilePlus, FileUp } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import PermitLocationPicker from "@/components/PermitLocationPicker";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
