@@ -872,6 +872,47 @@ export default function NewFile() {
           </Button>
         </div>
       </form>
+
+      {savedRows.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>جدول المعاينة - الملفات المحفوظة</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">رقم الملف</TableHead>
+                    <TableHead className="text-right">الاسم الكامل</TableHead>
+                    <TableHead className="text-right">البلدية</TableHead>
+                    <TableHead className="text-right">نوع العقد</TableHead>
+                    <TableHead className="text-right">السنة</TableHead>
+                    <TableHead className="text-right">رأي اللجنة</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {savedRows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="text-right font-medium">{row.file_number}</TableCell>
+                      <TableCell className="text-right">{row.full_name}</TableCell>
+                      <TableCell className="text-right">{row.municipality}</TableCell>
+                      <TableCell className="text-right">{row.permit_type || "—"}</TableCell>
+                      <TableCell className="text-right">{row.year}</TableCell>
+                      <TableCell className="text-right">{row.committee_opinion || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button type="button" variant="outline" onClick={() => navigate("/archive")}>
+                الذهاب إلى الأرشيف
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
