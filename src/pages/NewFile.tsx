@@ -303,14 +303,29 @@ export default function NewFile() {
 
       return insertData;
     },
-    onSuccess: () => {
+    onSuccess: (insertData: any) => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-files"] });
       queryClient.invalidateQueries({ queryKey: ["archive-files"] });
       toast({
         title: "تم الحفظ بنجاح",
-        description: "تم تسجيل الملف في قاعدة البيانات",
+        description: "تم تسجيل الملف وعرضه في جدول المعاينة",
       });
-      navigate("/archive");
+      if (insertData) {
+        setSavedRows((prev) => [
+          {
+            id: insertData.id,
+            full_name: insertData.full_name,
+            municipality: insertData.municipality,
+            permit_type: insertData.permit_type,
+            file_number: insertData.file_number,
+            year: insertData.year,
+            committee_opinion: insertData.committee_opinion,
+            created_at: insertData.created_at,
+          },
+          ...prev,
+        ]);
+      }
+      resetForm();
     },
     onError: (error) => {
       toast({
