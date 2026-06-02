@@ -100,6 +100,46 @@ export default function NewFile() {
     location_lng: null,
   });
 
+  // Locally-saved files in this session, shown directly in the preview table
+  const [savedRows, setSavedRows] = useState<Array<{
+    id: string;
+    full_name: string;
+    municipality: string;
+    permit_type: string | null;
+    file_number: string;
+    year: number;
+    committee_opinion: string | null;
+    created_at: string;
+  }>>([]);
+
+  const resetForm = () => {
+    setFormData({
+      full_name: "",
+      municipality: "",
+      permit_type: "",
+      file_number: "",
+      year: currentYear,
+      ownership_type: "عقد ملكية",
+      address: "",
+      section: "",
+      property_group: "",
+      plot_area: "",
+      built_area: "",
+      engineer_name: "",
+      shares_count: "",
+      plots_count: "",
+      lot_number: "",
+      subdivision_name: "",
+      submission_date: undefined,
+      session_date: undefined,
+      committee_opinion: "",
+      rejection_reason: "",
+      electronic_permit_file: null,
+      location_lat: null,
+      location_lng: null,
+    });
+  };
+
   // Fetch and Auto-fill Area based on GeoJSON
   useEffect(() => {
     const fetchAreaFromCadastre = async () => {
