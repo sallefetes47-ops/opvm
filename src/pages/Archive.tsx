@@ -193,8 +193,8 @@ export default function ArchivePage() {
   }, [files]);
 
   const permitLegend = (
-    <div className='mt-2 rounded-lg border bg-card px-3 py-2 text-right shadow-sm'>
-      <div className='flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs text-foreground' dir='rtl'>
+    <div className='mt-2 flex justify-center'>
+      <div className='inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-lg border bg-card px-3 py-2 text-xs text-foreground shadow-sm' dir='rtl'>
         <span className='font-semibold'>دليل الألوان - عقود التعمير:</span>
         {Object.entries(PERMIT_TYPE_COLORS).map(([label, color]) => (
           <div key={label} className='flex items-center gap-1.5'>
