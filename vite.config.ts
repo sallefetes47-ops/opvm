@@ -46,7 +46,12 @@ const httpAgent = new http.Agent({
 });
 
 export default defineConfig({
+  // Desktop build (Electron) needs relative asset paths so file:// loads correctly.
+  base: process.env.VITE_APP_MODE === 'desktop' ? './' : '/',
   plugins: [react()],
+  optimizeDeps: {
+    exclude: ['@electric-sql/pglite'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
