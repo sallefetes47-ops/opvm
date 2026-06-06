@@ -80,6 +80,7 @@ function createMainWindow() {
 }
 
 ipcMain.handle('app:getUserDataPath', () => app.getPath('userData'));
+ipcMain.handle('app:getDataPath', () => DATA_PATH);
 
 app.whenReady().then(() => {
   createSplash();
