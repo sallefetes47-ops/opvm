@@ -175,11 +175,16 @@ export async function getLocalDb(): Promise<PGlite> {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
-    // In Electron, persist under userData; in browser (dev), use idb://opvm
+    // In Electron: use the path chosen in the installer (DataPath from
+    // opvm-config.ini, exposed via electronAPI.getDataPath). Fallback to
+    // userData/opvm-db. In browser dev: use idb://opvm-local.
     let dataDir = 'idb://opvm-local';
     try {
       const w: any = window as any;
-      if (w?.electronAPI?.getUserDataPath) {
+      if (w?.electronAPI?.getDataPath) {
+        const chosen = await w.electronAPI.getDataPath();
+        if (chosen) dataDir = chosen;
+      } else if (w?.electronAPI?.getUserDataPath) {
         const userData = await w.electronAPI.getUserDataPath();
         dataDir = `${userData}/opvm-db`;
       }

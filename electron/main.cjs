@@ -1,10 +1,36 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.ico');
 
 let splashWin = null;
 let mainWin = null;
+
+// Read data path chosen by the user during installation (opvm-config.ini next
+// to the executable). Falls back to %APPDATA%/OPVM/opvm-db.
+function resolveDataPath() {
+  try {
+    const exeDir = path.dirname(app.getPath('exe'));
+    const iniPath = path.join(exeDir, 'opvm-config.ini');
+    if (fs.existsSync(iniPath)) {
+      const txt = fs.readFileSync(iniPath, 'utf8');
+      const m = txt.match(/DataPath\s*=\s*(.+)/i);
+      if (m && m[1]) {
+        const p = m[1].trim();
+        if (p) {
+          try { fs.mkdirSync(p, { recursive: true }); } catch {}
+          return p;
+        }
+      }
+    }
+  } catch {}
+  const fallback = path.join(app.getPath('userData'), 'opvm-db');
+  try { fs.mkdirSync(fallback, { recursive: true }); } catch {}
+  return fallback;
+}
+
+const DATA_PATH = (() => { try { return resolveDataPath(); } catch { return null; } })();
 
 function createSplash() {
   splashWin = new BrowserWindow({
@@ -54,6 +80,7 @@ function createMainWindow() {
 }
 
 ipcMain.handle('app:getUserDataPath', () => app.getPath('userData'));
+ipcMain.handle('app:getDataPath', () => DATA_PATH);
 
 app.whenReady().then(() => {
   createSplash();
