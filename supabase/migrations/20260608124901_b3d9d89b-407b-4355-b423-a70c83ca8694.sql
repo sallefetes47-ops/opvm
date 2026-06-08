@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.soft_delete_file(uuid) FROM PUBLIC, anon;
