@@ -7,6 +7,8 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { Outlet } from "react-router-dom";
 import { Menu, Keyboard } from "lucide-react";
 import { useIdleLock, useIdleTimeoutSetting } from "@/hooks/useIdleLock";
+import { useAutoBackupScheduler } from "@/hooks/useAutoBackupScheduler";
+import { useAuth } from "@/contexts/AuthContext";
 import { IdleLockScreen } from "@/components/IdleLockScreen";
 import {
   KeyboardShortcutsProvider,
