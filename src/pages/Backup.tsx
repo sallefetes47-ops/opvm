@@ -16,6 +16,7 @@ import autoTable from 'jspdf-autotable';
 import { format as formatDate } from "date-fns";
 import { AMIRI_FONT_BASE64 } from "@/lib/fonts";
 import { fixArabicText } from "@/lib/pdf-utils";
+import { AutoBackupPanel } from "@/components/AutoBackupPanel";
 
 interface ExportStats {
   files: number;
@@ -590,7 +591,11 @@ export default function Backup() {
         </div>
       </div>
 
+      <AutoBackupPanel canEdit={canEdit} />
+
       <div className="grid gap-6 md:grid-cols-2">
+
+
         {/* Export Section */}
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader>
