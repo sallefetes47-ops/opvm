@@ -588,9 +588,11 @@ export default function Backup() {
           <h1 className="text-3xl font-bold">📊 إدارة النسخ الاحتياطية</h1>
           <p className="text-muted-foreground">تصدير واستيراد بيانات النظام بأمان</p>
         </div>
-      </div>
+
+      <AutoBackupPanel canEdit={canEdit} />
 
       <div className="grid gap-6 md:grid-cols-2">
+
         {/* Export Section */}
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader>
