@@ -33,8 +33,10 @@ function HeaderShortcutsButton() {
 function DashboardInner() {
   const [locked, setLocked] = useState(false);
   const [timeoutMin] = useIdleTimeoutSetting();
+  const { isViewer } = useAuth();
 
   useIdleLock(timeoutMin * 60 * 1000, () => setLocked(true), !locked);
+  useAutoBackupScheduler(!isViewer);
 
   return (
     <SidebarProvider>
