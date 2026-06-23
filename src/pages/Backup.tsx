@@ -16,6 +16,7 @@ import autoTable from 'jspdf-autotable';
 import { format as formatDate } from "date-fns";
 import { AMIRI_FONT_BASE64 } from "@/lib/fonts";
 import { fixArabicText } from "@/lib/pdf-utils";
+import { AutoBackupPanel } from "@/components/AutoBackupPanel";
 
 interface ExportStats {
   files: number;
