@@ -1,11 +1,39 @@
+import { useState } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/AppSidebar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Outlet } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { Menu, Keyboard } from "lucide-react";
+import { useIdleLock, useIdleTimeoutSetting } from "@/hooks/useIdleLock";
+import { IdleLockScreen } from "@/components/IdleLockScreen";
+import {
+  KeyboardShortcutsProvider,
+  useKeyboardShortcuts,
+} from "@/components/KeyboardShortcutsProvider";
 
-export function DashboardLayout() {
+function HeaderShortcutsButton() {
+  const { open } = useKeyboardShortcuts();
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={open}
+      title="اختصارات لوحة المفاتيح (Shift + ?)"
+      aria-label="اختصارات لوحة المفاتيح"
+    >
+      <Keyboard className="h-5 w-5" />
+    </Button>
+  );
+}
+
+function DashboardInner() {
+  const [locked, setLocked] = useState(false);
+  const [timeoutMin] = useIdleTimeoutSetting();
+
+  useIdleLock(timeoutMin * 60 * 1000, () => setLocked(true), !locked);
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -31,6 +59,7 @@ export function DashboardLayout() {
               </span>
             </div>
             <div className="flex-1" />
+            <HeaderShortcutsButton />
             <NotificationBell />
           </header>
           <div className="flex-1 p-6 overflow-auto">
@@ -38,6 +67,15 @@ export function DashboardLayout() {
           </div>
         </SidebarInset>
       </div>
+      {locked && <IdleLockScreen onUnlock={() => setLocked(false)} />}
     </SidebarProvider>
+  );
+}
+
+export function DashboardLayout() {
+  return (
+    <KeyboardShortcutsProvider>
+      <DashboardInner />
+    </KeyboardShortcutsProvider>
   );
 }
