@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -242,12 +242,6 @@ export default function Login() {
                     "تسجيل الدخول"
                   )}
                 </Button>
-                <p className="text-sm text-white/70 text-center">
-                  ليس لديك حساب؟{" "}
-                  <Link to="/register" className="font-medium hover:underline" style={{ color: '#D4AF37' }}>
-                    إنشاء حساب جديد
-                  </Link>
-                </p>
               </CardFooter>
             </form>
           </TabsContent>

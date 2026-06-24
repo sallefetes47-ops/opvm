@@ -1,0 +1,82 @@
+# OPVM full self-hosted stack
+#
+# Brings up a local Supabase (Postgres + Auth + PostgREST + Storage + Studio)
+# plus an nginx that serves the built Vite frontend (./web).
+#
+# Quick start:
+#   1) cp .env.example .env  and edit secrets
+#   2) put the production build inside ./web   (npm run build then copy dist/* to web/)
+#   3) docker compose up -d
+#   4) open http://SERVER_IP/   (frontend) and http://SERVER_IP:8000/  (Supabase API)
+#
+# Default login (created automatically the first time the app calls
+# the edge function or by running scripts/seed-opvm-user.sql):
+#   username: OPVM   password: OPVM2026
+
+version: "3.8"
+
+services:
+  db:
+    image: supabase/postgres:15.6.1.143
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+
+  auth:
+    image: supabase/gotrue:v2.158.1
+    restart: unless-stopped
+    depends_on: [db]
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+
+  rest:
+    image: postgrest/postgrest:v12.2.0
+    restart: unless-stopped
+    depends_on: [db]
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+
+  kong:
+    image: kong:2.8.1
+    restart: unless-stopped
+    depends_on: [auth, rest]
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: cors
+    volumes:
+      - ./kong.yml:/etc/kong/kong.yml:ro
+    ports:
+      - "8000:8000"
+
+  web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "80:80"
+
+volumes:
+  db-data:
