@@ -12,7 +12,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 
 // Pages
 import Login from "@/pages/Login";
-import Register from "@/pages/Register";
+
 import Dashboard from "@/pages/Dashboard";
 import NewFile from "@/pages/NewFile";
 import Restudy from "@/pages/Restudy";
