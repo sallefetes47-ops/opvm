@@ -38,7 +38,21 @@ export default function Login() {
     setIsLoading(true);
 
     const email = resolveUsernameToEmail(username);
-    const { error } = await signIn(email, password);
+    let { error } = await signIn(email, password);
+
+    // First-run auto-provision for the built-in OPVM user.
+    if (
+      error &&
+      email === "opvm@opvm.local" &&
+      /invalid login credentials/i.test(error.message)
+    ) {
+      try {
+        await supabase.functions.invoke("bootstrap-opvm-user", { body: {} });
+        ({ error } = await signIn(email, password));
+      } catch {
+        // fall through to the original error toast below
+      }
+    }
 
     if (error) {
       toast({
