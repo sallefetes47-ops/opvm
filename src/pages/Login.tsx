@@ -5,13 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
+import { User as UserIcon, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 
+// Map local usernames to internal emails used by Supabase auth.
+// Create a matching user in your backend with this email + chosen password.
+const USERNAME_TO_EMAIL: Record<string, string> = {
+  OPVM: "opvm@opvm.local",
+};
+
+function resolveUsernameToEmail(input: string): string {
+  const trimmed = input.trim();
+  if (trimmed.includes("@")) return trimmed; // backward-compat: accept email too
+  const key = trimmed.toUpperCase();
+  return USERNAME_TO_EMAIL[key] ?? `${trimmed.toLowerCase()}@opvm.local`;
+}
+
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [guestPassword, setGuestPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
