@@ -37,6 +37,7 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
 
+    const email = resolveUsernameToEmail(username);
     const { error } = await signIn(email, password);
 
     if (error) {
