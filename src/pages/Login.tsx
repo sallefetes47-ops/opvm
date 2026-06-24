@@ -242,12 +242,6 @@ export default function Login() {
                     "تسجيل الدخول"
                   )}
                 </Button>
-                <p className="text-sm text-white/70 text-center">
-                  ليس لديك حساب؟{" "}
-                  <Link to="/register" className="font-medium hover:underline" style={{ color: '#D4AF37' }}>
-                    إنشاء حساب جديد
-                  </Link>
-                </p>
               </CardFooter>
             </form>
           </TabsContent>
