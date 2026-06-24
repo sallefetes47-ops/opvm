@@ -172,17 +172,18 @@ export default function Login() {
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-white">البريد الإلكتروني</Label>
+                  <Label htmlFor="username" className="text-white">اسم المستخدم</Label>
                   <div className="relative">
-                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
+                    <UserIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="أدخل بريدك الإلكتروني"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="username"
+                      type="text"
+                      placeholder="أدخل اسم المستخدم"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
                       className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/50"
                       required
+                      autoComplete="username"
                       dir="ltr"
                     />
                   </div>
