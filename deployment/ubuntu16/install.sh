@@ -34,6 +34,33 @@ systemctl disable --now nginx.service 2>/dev/null || true
 # تُضمن تفعيل opvm تلقائياً بعد إعادة تشغيل النظام
 systemctl enable --now opvm.service
 
+echo "==> ضبط تدوير السجلات (journald + logrotate) لتجنّب امتلاء القرص..."
+# 1) إعدادات journald خاصة بخدمة opvm
+mkdir -p /etc/systemd/journald@opvm.conf.d
+cp "$BUNDLE_DIR/systemd/opvm-journald.conf" /etc/systemd/journald@opvm.conf.d/00-opvm.conf
+
+# إعدادات journald عامة كحد أمان (في حال لم يدعم الإصدار journald@)
+mkdir -p /etc/systemd/journald.conf.d
+cat > /etc/systemd/journald.conf.d/00-opvm-limits.conf <<'EOF'
+[Journal]
+SystemMaxUse=500M
+SystemKeepFree=1G
+SystemMaxFileSize=50M
+MaxRetentionSec=30day
+MaxFileSec=1week
+Compress=yes
+Storage=persistent
+EOF
+
+systemctl restart systemd-journald || true
+
+# 2) logrotate لسجلات nginx الخاصة بـ opvm
+cp "$BUNDLE_DIR/logrotate/opvm" /etc/logrotate.d/opvm
+chmod 0644 /etc/logrotate.d/opvm
+# اختبار مبدئي (بدون تنفيذ فعلي)
+logrotate -d /etc/logrotate.d/opvm >/dev/null 2>&1 || true
+
+
 
 echo ""
 echo "✅ تم التثبيت بنجاح."

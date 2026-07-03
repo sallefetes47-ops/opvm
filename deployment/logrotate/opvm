@@ -1,0 +1,23 @@
+# /etc/logrotate.d/opvm
+# تدوير سجلات nginx الخاصة بواجهة opvm لتجنّب امتلاء القرص
+
+/var/log/nginx/opvm_access.log
+/var/log/nginx/opvm_error.log
+/var/log/opvm/*.log
+{
+    daily
+    rotate 14
+    maxsize 50M
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    create 0640 www-data adm
+    postrotate
+        if [ -f /var/run/nginx.pid ]; then
+            kill -USR1 `cat /var/run/nginx.pid`
+        fi
+        systemctl kill -s USR1 opvm.service 2>/dev/null || true
+    endscript
+}
