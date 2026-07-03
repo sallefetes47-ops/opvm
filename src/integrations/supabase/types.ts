@@ -368,6 +368,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
       soft_delete_file: { Args: { _file_id: string }; Returns: undefined }
     }
     Enums: {
