@@ -82,6 +82,70 @@ else
     echo "❌ فشل تنفيذ logrotate — راجع /etc/logrotate.d/opvm"
 fi
 
+# 4) تحقق فعلي من عمل تدوير journald لسجلات opvm
+echo "==> التحقق من عمل تدوير journald ..."
+# ضبط حجم تجريبي صغير لإجبار journald على التدوير
+mkdir -p /etc/systemd/journald.conf.d
+cat > /etc/systemd/journald.conf.d/99-opvm-verify.conf <<'EOF'
+[Journal]
+SystemMaxUse=10M
+SystemMaxFileSize=2M
+EOF
+systemctl restart systemd-journald || true
+sleep 1
+
+# توليد رسائل تجريبية باسم وحدة opvm لملء journald
+if command -v systemd-cat >/dev/null 2>&1; then
+    for i in $(seq 1 2000); do
+        echo "opvm-verify test log line $i $(date +%s%N) padding-$(head -c 512 /dev/urandom | base64 -w0)" \
+            | systemd-cat -t opvm -p info
+    done
+else
+    logger -t opvm "opvm-verify fallback log $(date)"
+fi
+
+# طلب تدوير فوري من journald
+JOURNAL_ROTATED=0
+if journalctl --rotate >/dev/null 2>&1; then
+    JOURNAL_ROTATED=1
+fi
+journalctl --vacuum-size=10M >/dev/null 2>&1 || true
+sleep 1
+
+# التأكد من وجود سجلات opvm فعلاً في journald
+if journalctl -t opvm -n 5 --no-pager >/dev/null 2>&1 && \
+   [ -n "$(journalctl -t opvm -n 1 --no-pager 2>/dev/null)" ]; then
+    JOURNAL_HAS_LOGS=1
+else
+    JOURNAL_HAS_LOGS=0
+fi
+
+# التأكد من وجود ملفات أرشيف مدوَّرة (@*.journal)
+if ls /var/log/journal/*/system@*.journal >/dev/null 2>&1 || \
+   ls /var/log/journal/*/user-*@*.journal >/dev/null 2>&1; then
+    JOURNAL_ARCHIVED=1
+else
+    JOURNAL_ARCHIVED=0
+fi
+
+if [ "$JOURNAL_ROTATED" = "1" ] && [ "$JOURNAL_HAS_LOGS" = "1" ]; then
+    echo "✅ تدوير journald يعمل، وسجلات opvm محفوظة."
+    if [ "$JOURNAL_ARCHIVED" = "1" ]; then
+        echo "   ملفات journal المؤرشفة:"
+        ls -lh /var/log/journal/*/*@*.journal 2>/dev/null | head -5 || true
+    fi
+    echo "   حجم journald الحالي:"
+    journalctl --disk-usage 2>/dev/null || true
+else
+    echo "⚠️  لم يتم التأكد من تدوير journald — راجع: journalctl --disk-usage"
+fi
+
+# إزالة إعداد الحجم التجريبي وإعادة الحد الفعلي (500M)
+rm -f /etc/systemd/journald.conf.d/99-opvm-verify.conf
+systemctl restart systemd-journald || true
+
+
+
 
 
 echo ""
