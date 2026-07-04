@@ -11,23 +11,77 @@ NGINX_CONF="/etc/nginx/sites-available/opvm.conf"
 SYSTEMD_UNIT="/etc/systemd/system/opvm.service"
 BUNDLE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# ==== وضع المحاكاة ====
-# عند تفعيله: لا يتم كتابة/تعديل ملفات إعدادات journald أو logrotate النهائية،
-# ويُستخدم فقط دليل مؤقت لاختبار عملية التدوير، ثم يُحذف كلياً.
+# ==== دالة المساعدة ====
+show_help() {
+    cat <<'HLP'
+سكريبت تثبيت منصة OPVM على Ubuntu (16.04 وأحدث)
+
+الاستخدام:
+  sudo bash install.sh [خيارات]
+
+الخيارات:
+  -h, --help              عرض هذه الرسالة والخروج.
+  -s, --simulate          تفعيل وضع المحاكاة (لا يعدّل إعدادات النظام النهائية).
+      --dry-run           اسم بديل لـ --simulate.
+
+متغيرات البيئة:
+  OPVM_SIMULATE=1
+      يفعّل وضع المحاكاة (مكافئ لـ --simulate). في هذا الوضع:
+        • لا تُكتب أي ملفات في /etc/systemd/journald*/ ولا في /etc/logrotate.d/.
+        • تُنشأ إعدادات وسجلات اختبار داخل دليل مؤقت واحد فقط.
+        • يُحذف الدليل المؤقت بالكامل عند انتهاء السكريبت (trap EXIT).
+
+  OPVM_SIM_DIR=/مسار/دليل
+      اختيار مسار مخصص للدليل المؤقت بدلاً من mktemp الافتراضي.
+      إن لم يكن موجوداً يُنشأ، ويُحذف عند الخروج (إلا إذا استخدمت OPVM_SIM_KEEP=1).
+
+  OPVM_SIM_PREFIX=<اسم>
+      بادئة اسم دليل mktemp (الافتراضي: opvm-simulate).
+      يُنتج مسار من الشكل:  $TMPDIR/<اسم>-XXXXXX
+
+  OPVM_SIM_TMPDIR=/مسار
+      جذر بديل يُمرَّر إلى mktemp عبر -p (الافتراضي: $TMPDIR أو /tmp).
+
+  OPVM_SIM_KEEP=1
+      عدم حذف الدليل المؤقت بعد الانتهاء (مفيد للتفتيش اليدوي).
+
+أمثلة:
+  sudo OPVM_SIMULATE=1 bash install.sh
+  sudo bash install.sh --simulate
+  sudo OPVM_SIMULATE=1 OPVM_SIM_PREFIX=opvm-test OPVM_SIM_TMPDIR=/var/tmp bash install.sh
+  sudo OPVM_SIMULATE=1 OPVM_SIM_DIR=/var/tmp/opvm-check OPVM_SIM_KEEP=1 bash install.sh
+HLP
+}
+
+# ==== تحليل الخيارات ====
 SIMULATE=0
 for arg in "$@"; do
     case "$arg" in
-        --simulate|--dry-run) SIMULATE=1 ;;
+        -h|--help)          show_help; exit 0 ;;
+        -s|--simulate|--dry-run) SIMULATE=1 ;;
+        *) echo "خيار غير معروف: $arg (استخدم --help)"; exit 2 ;;
     esac
 done
 if [ "${OPVM_SIMULATE:-0}" = "1" ]; then
     SIMULATE=1
 fi
 
+# ==== تهيئة دليل المحاكاة ====
 if [ "$SIMULATE" = "1" ]; then
     echo "🧪 وضع المحاكاة مُفعَّل — لن يتم تعديل إعدادات journald/logrotate النهائية."
-    SIM_ROOT="$(mktemp -d -t opvm-simulate-XXXXXX)"
-    trap 'echo "🧹 تنظيف دليل المحاكاة: $SIM_ROOT"; rm -rf "$SIM_ROOT"' EXIT
+    SIM_PREFIX="${OPVM_SIM_PREFIX:-opvm-simulate}"
+    SIM_TMPDIR="${OPVM_SIM_TMPDIR:-${TMPDIR:-/tmp}}"
+    if [ -n "${OPVM_SIM_DIR:-}" ]; then
+        SIM_ROOT="$OPVM_SIM_DIR"
+        mkdir -p "$SIM_ROOT"
+    else
+        SIM_ROOT="$(mktemp -d -p "$SIM_TMPDIR" "${SIM_PREFIX}-XXXXXX")"
+    fi
+    if [ "${OPVM_SIM_KEEP:-0}" = "1" ]; then
+        trap 'echo "📁 الاحتفاظ بدليل المحاكاة: $SIM_ROOT"' EXIT
+    else
+        trap 'echo "🧹 تنظيف دليل المحاكاة: $SIM_ROOT"; rm -rf "$SIM_ROOT"' EXIT
+    fi
     echo "   دليل المحاكاة: $SIM_ROOT"
 fi
 
