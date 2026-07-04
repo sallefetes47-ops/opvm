@@ -60,6 +60,28 @@ chmod 0644 /etc/logrotate.d/opvm
 # اختبار مبدئي (بدون تنفيذ فعلي)
 logrotate -d /etc/logrotate.d/opvm >/dev/null 2>&1 || true
 
+# 3) تحقق فعلي من عمل تدوير السجلات
+echo "==> التحقق من عمل تدوير السجلات (logrotate) ..."
+mkdir -p /var/log/nginx /var/log/opvm
+TEST_LOG="/var/log/nginx/opvm_access.log"
+# توليد سجل تجريبي بحجم يتجاوز حد التدوير لضمان التنفيذ
+head -c 1048576 /dev/urandom | base64 > "$TEST_LOG" 2>/dev/null || \
+    dd if=/dev/zero of="$TEST_LOG" bs=1M count=2 >/dev/null 2>&1
+chown www-data:adm "$TEST_LOG" 2>/dev/null || true
+
+# تنفيذ التدوير قسراً
+if logrotate -f /etc/logrotate.d/opvm; then
+    # التأكد من وجود ملف مدوَّر (opvm_access.log.1 أو .1.gz)
+    if ls /var/log/nginx/opvm_access.log.1* >/dev/null 2>&1; then
+        echo "✅ تدوير السجلات يعمل بنجاح."
+        ls -lh /var/log/nginx/opvm_access.log* 2>/dev/null || true
+    else
+        echo "⚠️  تم تنفيذ logrotate لكن لم يُعثر على ملف مدوَّر — راجع الإعدادات."
+    fi
+else
+    echo "❌ فشل تنفيذ logrotate — راجع /etc/logrotate.d/opvm"
+fi
+
 
 
 echo ""
