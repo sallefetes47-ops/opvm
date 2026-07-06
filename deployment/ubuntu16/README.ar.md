@@ -216,6 +216,28 @@ sudo OPVM_SIMULATE=1 OPVM_SIM_KEEP=1 OPVM_SIM_PREFIX=opvm-debug OPVM_SIM_TMPDIR=
 📁 الاحتفاظ بدليل المحاكاة: /tmp/opvm-simulate-a1B2c3
 ```
 
+### محتويات دليل المحاكاة بعد الاحتفاظ به
+
+عند استخدام `OPVM_SIM_KEEP=1` يبقى الدليل المؤقت وتحتوي أغلفته على ما يلي:
+
+```text
+/tmp/opvm-simulate-a1B2c3/
+├── logrotate-opvm.conf      إعداد logrotate المؤقت
+├── logrotate.state          حالة التدوير المؤقتة
+├── nginx/
+│   ├── opvm_access.log      سجل nginx التجريبي
+│   ├── opvm_access.log.1*   النسخة المدوّرة (بعد التدوير الناجح)
+│   └── opvm_error.log       سجل nginx التجريبي
+└── journal/
+    └── ...                  سجلات journald التجريبية (إن توفرت)
+```
+
+- **`logrotate-opvm.conf`**: نسخة مؤقتة من إعداد تدوير سجلات `nginx`، تشير إلى الملفات داخل `nginx/`.
+- **`nginx/`**: يحتوي السجلات التجريبية التي يُطبَّق عليها `logrotate`، ويظهر داخله ملف `opvm_access.log.1*` بعد التدوير الناجح.
+- **`journal/`**: يحتوي سجلات `journald` التجريبية التي كُتبت عبر `systemd-cat` خلال الاختبار.
+
+> ملاحظة: لا تُكتب هذه الملفات في المسارات النهائية (`/etc/logrotate.d/` أو `/var/log/nginx/` أو `/etc/systemd/journald*`) أثناء وضع المحاكاة.
+
 ## ملاحظة مهمة
 
 هذا المستودع لا يحتوي على بيانات قاعدة البيانات نفسها بشكل صريح، بل يحتوي على:
