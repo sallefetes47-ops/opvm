@@ -187,7 +187,19 @@ sudo OPVM_SIMULATE=1 OPVM_SIM_PREFIX=opvm-test OPVM_SIM_TMPDIR=/var/tmp bash ins
 sudo OPVM_SIMULATE=1 OPVM_SIM_DIR=/var/tmp/opvm-check OPVM_SIM_KEEP=1 bash install.sh
 ```
 
-سيكون الخرج مشابهاً لما يلي:
+الاحتفاظ بدليل المحاكاة الافتراضي بعد الاختبار (مفيد للتفتيش):
+
+```bash
+sudo OPVM_SIMULATE=1 OPVM_SIM_KEEP=1 bash install.sh
+```
+
+الاحتفاظ بدليل محاكاة ببادئة مخصصة في `/var/tmp`:
+
+```bash
+sudo OPVM_SIMULATE=1 OPVM_SIM_KEEP=1 OPVM_SIM_PREFIX=opvm-debug OPVM_SIM_TMPDIR=/var/tmp bash install.sh
+```
+
+سيكون الخرج مشابهاً لما يلي (عند عدم الاحتفاظ):
 
 ```text
 🧪 وضع المحاكاة مُفعَّل — لن يتم تعديل إعدادات journald/logrotate النهائية.
@@ -196,6 +208,12 @@ sudo OPVM_SIMULATE=1 OPVM_SIM_DIR=/var/tmp/opvm-check OPVM_SIM_KEEP=1 bash insta
 ✅ [محاكاة] تدوير logrotate يعمل بنجاح.
 ✅ [محاكاة] سجلات opvm-sim مرئية في journald.
 🧹 تنظيف دليل المحاكاة: /tmp/opvm-simulate-a1B2c3
+```
+
+وعند استخدام `OPVM_SIM_KEEP=1` سيظهر بدلاً من تنظيف الدليل:
+
+```text
+📁 الاحتفاظ بدليل المحاكاة: /tmp/opvm-simulate-a1B2c3
 ```
 
 ## ملاحظة مهمة
