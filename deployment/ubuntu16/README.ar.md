@@ -149,6 +149,55 @@ sudo systemctl restart nginx
 5. تعديل `VITE_SUPABASE_URL` و `VITE_SUPABASE_PUBLISHABLE_KEY`.
 6. بناء الواجهة من جديد ثم نشرها.
 
+## اختبار التثبيت بدون تعديل النظام (وضع المحاكاة)
+
+يقدّم `install.sh` وضع محاكاة يختبر تدوير السجلات (journald + logrotate) داخل دليل مؤقت فقط، دون تغيير إعدادات النظام النهائية.
+
+### متغيرات التحكم
+
+- `OPVM_SIMULATE=1` — تفعيل وضع المحاكاة.
+- `OPVM_SIM_DIR=/مسار/دليل` — تحديد دليل مؤقت ثابت.
+- `OPVM_SIM_PREFIX=<اسم>` — بادئة اسم الدليل المؤقت (`opvm-simulate-XXXXXX`).
+- `OPVM_SIM_TMPDIR=/مسار` — جذر بديل لـ `mktemp`.
+- `OPVM_SIM_KEEP=1` — الاحتفاظ بالدليل المؤقت بعد الانتهاء للتفتيش.
+
+### أمثلة تشغيل
+
+تشغيل المحاكاة بإعدادات افتراضية:
+
+```bash
+sudo OPVM_SIMULATE=1 bash install.sh
+```
+
+أو باستخدام الخيار المختصر:
+
+```bash
+sudo bash install.sh --simulate
+```
+
+تحديد بادئة وجذر مخصص للدليل المؤقت:
+
+```bash
+sudo OPVM_SIMULATE=1 OPVM_SIM_PREFIX=opvm-test OPVM_SIM_TMPDIR=/var/tmp bash install.sh
+```
+
+تحديد مسار الدليل المؤقت يدوياً والاحتفاظ به بعد الاختبار:
+
+```bash
+sudo OPVM_SIMULATE=1 OPVM_SIM_DIR=/var/tmp/opvm-check OPVM_SIM_KEEP=1 bash install.sh
+```
+
+سيكون الخرج مشابهاً لما يلي:
+
+```text
+🧪 وضع المحاكاة مُفعَّل — لن يتم تعديل إعدادات journald/logrotate النهائية.
+   دليل المحاكاة: /tmp/opvm-simulate-a1B2c3
+...
+✅ [محاكاة] تدوير logrotate يعمل بنجاح.
+✅ [محاكاة] سجلات opvm-sim مرئية في journald.
+🧹 تنظيف دليل المحاكاة: /tmp/opvm-simulate-a1B2c3
+```
+
 ## ملاحظة مهمة
 
 هذا المستودع لا يحتوي على بيانات قاعدة البيانات نفسها بشكل صريح، بل يحتوي على:
