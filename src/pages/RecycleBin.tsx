@@ -67,7 +67,7 @@ export default function RecycleBin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("files")
-        .select("id, municipality, section, property_group, deleted_at")
+        .select("id, municipality, section, property_group, deleted_at, full_name, file_number, permit_type")
         .is("is_deleted", true)
         .order("deleted_at", { ascending: false, nullsFirst: false });
 
