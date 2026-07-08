@@ -33,6 +33,9 @@ interface DeletedFile {
   section: string | null;
   property_group: string | null;
   deleted_at: string | null;
+  full_name: string | null;
+  file_number: string | null;
+  permit_type: string | null;
 }
 
 const CORE_MUNICIPALITIES = ["غرداية", "العطف", "بنورة", "الضاية", "متليلي"] as const;
