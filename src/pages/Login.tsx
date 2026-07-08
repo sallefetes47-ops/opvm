@@ -292,6 +292,22 @@ export default function Login() {
           </TabsContent>
         </Tabs>
       </Card>
+
+      {/* Credits / Version card */}
+      <Card className="w-full max-w-md relative z-10 mt-4 backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
+        <CardContent className="py-4 text-center space-y-1.5">
+          <p className="text-sm text-[#D4AF37] font-semibold">
+            صممت المنصة من طرف: حمو علي حاج داود
+          </p>
+          <p className="text-xs text-white/80">
+            مهندس معماري للممتلكات الثقافية
+          </p>
+          <p className="text-xs text-white/70 pt-1">الإصدار v1.0.0</p>
+          <p className="text-xs text-white/60">
+            © 2026 ديوان حماية وادي ميزاب وترقيته
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
