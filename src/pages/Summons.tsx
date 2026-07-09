@@ -155,7 +155,7 @@ export default function Summons() {
                           <DateInput
                             value={formData.summons_date}
                             onChange={(date) => setFormData({ ...formData, summons_date: date })}
-                            placeholder="YYYY/MM/DD"
+                            placeholder="DD/MM/YYYY"
                           />
                         </div>
                         <div className="space-y-2">

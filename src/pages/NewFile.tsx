@@ -734,7 +734,7 @@ export default function NewFile() {
               <DateInput
                 value={formData.submission_date}
                 onChange={(date) => setFormData({ ...formData, submission_date: date })}
-                placeholder="YYYY/MM/DD"
+                placeholder="DD/MM/YYYY"
               />
             </div>
             <div className="space-y-2">
@@ -742,7 +742,7 @@ export default function NewFile() {
               <DateInput
                 value={formData.session_date}
                 onChange={(date) => setFormData({ ...formData, session_date: date })}
-                placeholder="YYYY/MM/DD"
+                placeholder="DD/MM/YYYY"
               />
             </div>
             <div className="space-y-2 md:col-span-2">
