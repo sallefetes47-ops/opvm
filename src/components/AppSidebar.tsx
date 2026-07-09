@@ -16,7 +16,7 @@ import {
 import {
   LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
   FileText, Users2, Scale, Trash2, Database as DatabaseIcon, MapPin,
-  ShieldCheck, Settings, Search, Landmark, BarChart3, CalendarDays, Flame, Sparkles, GitCompare, Target,
+  ShieldCheck, Settings, Search, Landmark, BarChart3, CalendarDays, Flame, Sparkles, GitCompare, Target, History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -69,6 +69,7 @@ const publicModulesItems: SidebarItem[] = [
 const dataManagementItems: SidebarItem[] = [
   { title: "النسخة الاحتياطية", url: "/backup", icon: DatabaseIcon },
   { title: "سلة المحذوفات", url: "/recycle-bin", icon: Trash2 },
+  { title: "سجل التحديثات", url: "/changelog", icon: History },
 ];
 
 const adminMenuItems = [
