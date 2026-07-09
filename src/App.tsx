@@ -32,6 +32,7 @@ import SessionsCalendar from "@/pages/SessionsCalendar";
 import AIFileAssistant from "@/pages/AIFileAssistant";
 import SimilarFiles from "@/pages/SimilarFiles";
 import KPIDashboard from "@/pages/KPIDashboard";
+import Changelog from "@/pages/Changelog";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,6 +85,7 @@ const App = () => (
                   <Route path="/ai-assistant" element={<AIFileAssistant />} />
                   <Route path="/similar-files" element={<SimilarFiles />} />
                   <Route path="/kpi" element={<KPIDashboard />} />
+                  <Route path="/changelog" element={<Changelog />} />
                 </Route>
 
                 {/* 404 */}
