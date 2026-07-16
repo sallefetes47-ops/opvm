@@ -1,18 +1,13 @@
-import React, { useEffect, useImperativeHandle, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import L from 'leaflet';
 import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import type { GeoJsonObject } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 import { formatPropertyGroup, formatSection } from '@/lib/cadastre';
 import { extractCadastralMetadata, generateTooltipContent, type CadastralFeature } from '@/lib/fadaa-dzair';
-import {
-    WILAYA_47_CODE,
-    extractFeatureInfo,
-    fetchOfficialCadastralData,
-    parseArabicProperties,
-    type WFSFeatureCollection,
-} from '@/lib/fadaa-el-djazair';
 import { useToast } from '@/hooks/use-toast';
+
+// Loaded dynamically to avoid OOM during build
 
 export type ParcelSelectionData = {
     municipality: string;
@@ -35,32 +30,13 @@ export type MzabValleyMapHandle = {
 
 interface MzabValleyMapProps {
     onParcelSelect?: (data: ParcelSelectionData) => void;
+    parcelColors?: Record<string, string>; // key: `${section}|${propertyGroup}` -> fill color
+    legend?: React.ReactNode; // custom legend (replaces default municipality legend)
 }
 
-/**
- * Cadastral layer styling - RED LINES ONLY (no fill)
- * Following strict GIS integration rules:
- * - color: '#FF0000' (Solid Red)
- * - weight: 2px
- * - fillOpacity: 0 (Transparent fill, lines only)
- */
 const CADASTRAL_LINE_STYLE = {
     color: '#FF0000',
     weight: 2,
-    fillOpacity: 0,
-    opacity: 1,
-} as const;
-
-const CADASTRAL_HOVER_STYLE = {
-    color: '#FF0000',
-    weight: 3.5,
-    fillOpacity: 0,
-    opacity: 1,
-} as const;
-
-const CADASTRAL_SELECTED_STYLE = {
-    color: '#FF0000',
-    weight: 4,
     fillOpacity: 0,
     opacity: 1,
 } as const;
@@ -163,7 +139,7 @@ const AutoFitBounds = ({ geojsonData }: { geojsonData: GeoJsonFeatureCollectionL
     const map = useMap();
     const hasFitted = useRef(false);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!geojsonData || !geojsonData.features.length || hasFitted.current) return;
         try {
             const layer = L.geoJSON(geojsonData as any);
@@ -190,7 +166,7 @@ const MapSearchController = ({
 }) => {
     const map = useMap();
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!targetFeature) return;
         const layer = L.geoJSON(targetFeature as any);
         const bounds = layer.getBounds();
@@ -199,105 +175,118 @@ const MapSearchController = ({
         }
     }, [map, targetFeature]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (resetSignal === 0) return;
-        map.flyTo([32.49, 3.67], 11, { duration: 1 });
+        map.flyTo([32.545, 3.602], 14, { duration: 1 });
     }, [map, resetSignal]);
 
     return null;
 };
 
-const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(({ onParcelSelect }, ref) => {
+const MunicipalityLabels = ({ geojsonData }: { geojsonData: GeoJsonFeatureCollectionLike | null }) => {
+    const map = useMap();
+    const labelLayerRef = useRef<L.LayerGroup | null>(null);
+
+    React.useEffect(() => {
+        if (!geojsonData || !geojsonData.features || geojsonData.features.length === 0) return;
+
+        if (!labelLayerRef.current) {
+            labelLayerRef.current = L.layerGroup().addTo(map);
+        }
+
+        const layerGroup = labelLayerRef.current;
+        layerGroup.clearLayers();
+
+        const municipalityCenters = new Map<string, { center: [number, number]; count: number }>();
+
+        geojsonData.features.forEach((feature) => {
+            const props = (feature?.properties || {}) as Record<string, unknown>;
+            const communeCode = getCommuneCodeFromProps(props);
+            const municipalityName = resolveMunicipalityName(communeCode);
+
+            if (!municipalityName) return;
+
+            try {
+                const layer = L.geoJSON(feature as any);
+                const bounds = layer.getBounds();
+                if (bounds.isValid()) {
+                    const center = bounds.getCenter();
+                    const existing = municipalityCenters.get(municipalityName);
+
+                    if (existing) {
+                        existing.center = [
+                            (existing.center[0] + center.lat) / 2,
+                            (existing.center[1] + center.lng) / 2,
+                        ];
+                        existing.count += 1;
+                    } else {
+                        municipalityCenters.set(municipalityName, { center: [center.lat, center.lng], count: 1 });
+                    }
+                }
+            } catch (e) {
+                // ignore invalid geometries
+            }
+        });
+
+        municipalityCenters.forEach((data, municipalityName) => {
+            const label = L.marker(data.center, {
+                icon: L.divIcon({
+                    className: 'municipality-label font-cairo',
+                    html: `<div style="
+                        font-family: 'Cairo', sans-serif;
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: #1e293b;
+                        background: rgba(255, 255, 255, 0.85);
+                        padding: 4px 10px;
+                        border-radius: 6px;
+                        border: 2px solid #3b82f6;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+                        white-space: nowrap;
+                        text-align: center;
+                        pointer-events: none;
+                    ">${municipalityName}</div>`,
+                    iconSize: [0, 0],
+                    iconAnchor: [0, 0],
+                }),
+                interactive: false,
+            });
+            layerGroup.addLayer(label);
+        });
+
+        return () => {
+            if (labelLayerRef.current) {
+                map.removeLayer(labelLayerRef.current);
+                labelLayerRef.current = null;
+            }
+        };
+    }, [map, geojsonData]);
+
+    return null;
+};
+
+// GeoJSON loaded dynamically
+let _geoDataCache: any = null;
+const loadGeoData = () => {
+    if (_geoDataCache) return Promise.resolve(_geoDataCache);
+    return fetch('./mzab_cadastre_map.json')
+        .then(r => r.json())
+        .then(d => { _geoDataCache = d; return d; });
+};
+
+const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(({ onParcelSelect, parcelColors, legend }, ref) => {
     const { toast } = useToast();
-    const [geojsonData, setGeojsonData] = useState<GeoJsonFeatureCollectionLike | null>(null);
     const [hoveredParcelKey, setHoveredParcelKey] = useState('');
     const [selectedParcelKey, setSelectedParcelKey] = useState('');
     const [foundParcelKey, setFoundParcelKey] = useState('');
     const [searchedFeature, setSearchedFeature] = useState<GeoJsonFeatureCollectionLike['features'][number] | null>(null);
     const [resetSignal, setResetSignal] = useState(0);
-
-    // Official Fadaa El Djazair LIVE API layer state
-    const [fadaaLayerLoaded, setFadaaLayerLoaded] = useState(false);
-    const [fadaaData, setFadaaData] = useState<WFSFeatureCollection | null>(null);
-    const [fadaaLoadError, setFadaaLoadError] = useState<string | null>(null);
-    const [isLoadingFadaa, setIsLoadingFadaa] = useState(true);
     const mapRef = useRef<L.Map | null>(null);
+    const [geojsonData, setGeojsonData] = useState<GeoJsonFeatureCollectionLike | null>(null);
 
-    // Load local cadastral data with error handling
     useEffect(() => {
-        const loadLocalData = async () => {
-            try {
-                const res = await fetch('/mzab_cadastre_map.geojson');
-                if (!res.ok) {
-                    throw new Error('البيانات العقارية غير متوفرة');
-                }
-                const data = await res.json();
-                setGeojsonData(normalizeGeoJson(data));
-            } catch (err) {
-                console.error('خطأ في تحميل بيانات القطع:', err);
-                // Don't crash - just use empty data
-                setGeojsonData({ type: 'FeatureCollection', features: [] });
-            }
-        };
-        loadLocalData();
+        loadGeoData().then(d => setGeojsonData(normalizeGeoJson(d)));
     }, []);
-
-    // ========================================================================
-    // LIVE API FETCH - Fadaa El Djazair Official Cadastral Data
-    // BULLETPROOF ERROR HANDLING - Map will NOT crash on failure
-    // ========================================================================
-    useEffect(() => {
-        const loadFadaaLiveApiData = async () => {
-            setIsLoadingFadaa(true);
-            setFadaaLoadError(null);
-            
-            try {
-                console.log('[Fadaa LIVE API] Fetching data from https://fadaeldjazair.mf.gov.dz...');
-                
-                // LIVE API FETCH with crash prevention
-                const data = await fetchOfficialCadastralData(WILAYA_47_CODE, undefined, true);
-                
-                // Validate data structure before setting state
-                if (!data || typeof data !== 'object') {
-                    throw new Error('Invalid data structure from API');
-                }
-                
-                if (!Array.isArray(data.features)) {
-                    throw new Error('Invalid features array from API');
-                }
-                
-                // Successfully loaded live data
-                setFadaaData(data);
-                setFadaaLayerLoaded(true);
-                setIsLoadingFadaa(false);
-                
-                if (data.features.length > 0) {
-                    console.log(`[Fadaa LIVE API] ✓ Loaded ${data.features.length} cadastral features`);
-                } else {
-                    console.warn('[Fadaa LIVE API] No features found in response');
-                }
-                
-            } catch (error: any) {
-                // CRITICAL: Catch all errors and show notification - DON'T CRASH
-                console.error('[Fadaa LIVE API] Fetch failed:', error?.message || error);
-                
-                setFadaaLayerLoaded(false);
-                setFadaaLoadError(error?.message || 'فشل الاتصال بالخادم');
-                setFadaaData(null);
-                setIsLoadingFadaa(false);
-                
-                // Show user-friendly toast notification (Arabic)
-                toast({
-                    title: 'تنبيه',
-                    description: 'تعذر الاتصال بخادم فضاء الجزائر مؤقتاً',
-                    variant: 'default',
-                    duration: 6000,
-                });
-            }
-        };
-        
-        loadFadaaLiveApiData();
-    }, [toast]);
 
     const emitSelection = (props: Record<string, unknown>) => {
         if (!onParcelSelect) return;
@@ -353,7 +342,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
         setResetSignal((prev) => prev + 1);
     };
 
-    useImperativeHandle(
+    React.useImperativeHandle(
         ref,
         () => ({
             searchParcel,
@@ -368,6 +357,7 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
         return (
             <GeoJSON
+                key="cadastre-layer"
                 data={geojsonData as unknown as GeoJsonObject}
                 style={(feature) => {
                     const props = (feature?.properties || {}) as Record<string, unknown>;
@@ -378,7 +368,16 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
 
                     const communeCode = getCommuneCodeFromProps(props);
                     const baseColor = getMunicipalityBorderColor(communeCode);
-                    const fillColor = getMunicipalityColor(communeCode);
+                    const defaultFill = getMunicipalityColor(communeCode);
+
+                    // Override fill color by permit type if available
+                    const section = getSectionFromProps(props);
+                    const group = getGroupFromProps(props);
+                    const overrideKey = `${section}|${group}`;
+                    const overrideColor = parcelColors?.[overrideKey];
+                    const fillColor = overrideColor ?? defaultFill;
+                    const borderColor = overrideColor ?? baseColor;
+                    const fillOpacityBase = overrideColor ? 0.65 : 0.3;
 
                     if (isFound) {
                         return {
@@ -391,27 +390,27 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                     }
                     if (isSelected) {
                         return {
-                            color: baseColor,
+                            color: borderColor,
                             weight: 4,
                             fillColor,
-                            fillOpacity: 0.3,
+                            fillOpacity: Math.min(fillOpacityBase + 0.1, 0.85),
                             opacity: 1,
                         };
                     }
                     if (isHovered) {
                         return {
-                            color: baseColor,
+                            color: borderColor,
                             weight: 3.5,
                             fillColor,
-                            fillOpacity: 0.2,
+                            fillOpacity: Math.min(fillOpacityBase + 0.05, 0.8),
                             opacity: 1,
                         };
                     }
                     return {
-                        color: baseColor,
+                        color: borderColor,
                         weight: 2.5,
                         fillColor,
-                        fillOpacity: 0.3,
+                        fillOpacity: fillOpacityBase,
                         opacity: 1,
                     };
                 }}
@@ -455,34 +454,18 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                 }}
             />
         );
-    }, [geojsonData, hoveredParcelKey, selectedParcelKey, foundParcelKey]);
-
-    // Validate Fadaa data before rendering - CRITICAL for preventing crashes
-    const validFadaaData = useMemo(() => {
-        if (!fadaaData || !Array.isArray(fadaaData.features) || fadaaData.features.length === 0) {
-            return null;
-        }
-        
-        // Validate each feature has proper geometry
-        const validFeatures = fadaaData.features.filter((f: any) => 
-            f && f.type === 'Feature' && hasGeometry(f?.geometry)
-        );
-        
-        if (validFeatures.length === 0) return null;
-        
-        return { ...fadaaData, features: validFeatures };
-    }, [fadaaData]);
+    }, [geojsonData, hoveredParcelKey, selectedParcelKey, foundParcelKey, parcelColors]);
 
     return (
         <div className='relative' style={{ height: '100%', width: '100%', borderRadius: '12px', overflow: 'hidden' }}>
-            {/* CRITICAL FIX: Explicit CRS projection to prevent "crs.project is not a function" error */}
             <MapContainer
-                center={[32.49, 3.67]}
-                zoom={11}
+                center={[32.545, 3.602]}
+                zoom={14}
                 maxZoom={22}
                 crs={L.CRS.EPSG3857}
                 style={{ height: '100%', width: '100%' }}
                 ref={mapRef}
+                preferCanvas
             >
                 <LayersControl position='topright'>
                     <LayersControl.BaseLayer checked name='خريطة الشارع (OSM)'>
@@ -501,120 +484,77 @@ const MzabValleyMap = React.forwardRef<MzabValleyMapHandle, MzabValleyMapProps>(
                             maxZoom={22}
                         />
                     </LayersControl.BaseLayer>
-                    {GOOGLE_MAPS_API_KEY && (
-                        <LayersControl.BaseLayer name='جوجل مابس - هجين'>
-                            <TileLayer
-                                attribution=""
-                                url={`https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&key=${GOOGLE_MAPS_API_KEY}`}
-                                subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
-                                maxNativeZoom={20}
-                                maxZoom={22}
-                            />
-                        </LayersControl.BaseLayer>
-                    )}
+                    <LayersControl.BaseLayer name='خريطة جوجل (Google Maps)'>
+                        <TileLayer
+                            attribution=""
+                            url='https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
+                            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                            maxNativeZoom={20}
+                            maxZoom={22}
+                        />
+                    </LayersControl.BaseLayer>
+                    <LayersControl.BaseLayer name='جوجل إيرث (Google Earth)'>
+                        <TileLayer
+                            attribution=""
+                            url='https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
+                            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                            maxNativeZoom={20}
+                            maxZoom={22}
+                        />
+                    </LayersControl.BaseLayer>
+                    <LayersControl.BaseLayer name='جوجل إيرث هجين (Hybrid)'>
+                        <TileLayer
+                            attribution=""
+                            url='https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+                            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                            maxNativeZoom={20}
+                            maxZoom={22}
+                        />
+                    </LayersControl.BaseLayer>
                 </LayersControl>
 
-                {/* Local GeoJSON cadastral data */}
+                {/* Local GeoJSON cadastral data — statically imported, no fetch */}
                 {geoJsonLayer}
 
-                {/* Official Fadaa El Djazair LIVE API vector data overlay (auto-loaded, no checkbox) */}
-                {validFadaaData && (
-                    <GeoJSON
-                        data={validFadaaData as unknown as GeoJsonObject}
-                        style={() => CADASTRAL_LINE_STYLE}
-                        eventHandlers={{
-                            mouseover: (e) => {
-                                const feature = e?.propagatedFrom?.feature;
-                                const props = (feature as any)?.properties || {};
-
-                                const info = extractFeatureInfo(props as Record<string, unknown>);
-                                const tooltipContent = generateTooltipContent({
-                                    section: info.section,
-                                    propertyGroup: info.propertyGroup,
-                                    municipality: info.municipality,
-                                    area: info.area,
-                                });
-
-                                if (tooltipContent && e.target) {
-                                    const tooltip = L.tooltip({
-                                        className: 'cadastral-tooltip font-cairo',
-                                        direction: 'top',
-                                        offset: L.point(0, -10),
-                                        sticky: true,
-                                    }).setContent(`<div style="font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 600; white-space: nowrap;">${tooltipContent}</div>`);
-
-                                    (e.target as L.Layer).bindTooltip(tooltip);
-                                    (e.target as L.Layer).openTooltip();
-                                }
-                            },
-                            mouseout: (e) => {
-                                if (e.target) {
-                                    (e.target as L.Layer).closeTooltip();
-                                    (e.target as L.Layer).unbindTooltip();
-                                }
-                            },
-                            click: (e) => {
-                                const feature = e?.propagatedFrom?.feature;
-                                const props = (feature as any)?.properties || {};
-
-                                const info = extractFeatureInfo(props as Record<string, unknown>);
-                                parseArabicProperties(props as Record<string, unknown>);
-
-                                if (onParcelSelect) {
-                                    const rawArea = typeof info.area === 'number' ? info.area : Number(props.Area ?? props.AREA ?? NaN);
-                                    const actualArea = Number.isFinite(rawArea) ? Number(rawArea.toFixed(2)) : null;
-                                    const cadastralArea = actualArea === null ? null : toCadastralArea(actualArea);
-
-                                    onParcelSelect({
-                                        municipality: info.municipality || resolveMunicipalityName(props.commune_code ?? props.COMMUNE ?? ''),
-                                        section: info.section || formatSection(props.Section ?? props.SECTION ?? ''),
-                                        propertyGroup: info.propertyGroup || formatPropertyGroup(props.PropertyGroup ?? props.ILOT ?? ''),
-                                        actualArea,
-                                        cadastralArea,
-                                    });
-                                }
-                            },
-                        }}
-                    />
+                {/* Municipality labels — displayed above map */}
+                {geojsonData && geojsonData.features && geojsonData.features.length > 0 && (
+                    <MunicipalityLabels geojsonData={geojsonData} />
                 )}
 
                 <AutoFitBounds geojsonData={geojsonData} />
                 <MapSearchController targetFeature={searchedFeature} resetSignal={resetSignal} />
             </MapContainer>
 
-            {/* Fadaa El Djazair load error indicator - non-intrusive */}
-            {fadaaLoadError && (
-                <div className='absolute left-4 top-20 z-[650] rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800 shadow'>
-                    <span className='font-cairo'>⚠️ تعذر تحميل البيانات العقارية الرسمية</span>
+            {/* Legend (custom or default municipality) */}
+            {legend !== undefined ? (
+                legend
+            ) : (
+                <div className='pointer-events-none absolute right-4 top-[4.5rem] z-[500] w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
+                    <p className='mb-2 text-xs font-semibold text-slate-700 sticky top-0 bg-white/90 p-1'>دليل الألوان - بلديات ولاية غرداية</p>
+                    <div className='space-y-1.5 text-xs text-slate-700'>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>غرداية</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#1e3a8a', boxShadow: '0 0 0 1px #1e3a8a' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>العطف</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#dc2626', boxShadow: '0 0 0 1px #dc2626' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>بنورة</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#a21caf', boxShadow: '0 0 0 1px #a21caf' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>متليلي</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#ea580c', boxShadow: '0 0 0 1px #ea580c' }} />
+                        </div>
+                        <div className='flex items-center justify-between gap-2'>
+                            <span>الضاية</span>
+                            <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#047857', boxShadow: '0 0 0 1px #047857' }} />
+                        </div>
+                    </div>
                 </div>
             )}
-
-            {/* Municipality color legend */}
-            <div className='pointer-events-none absolute right-4 top-[4.5rem] z-[500] w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-white/50 bg-white/90 p-3 text-right shadow-lg backdrop-blur-sm'>
-                <p className='mb-2 text-xs font-semibold text-slate-700 sticky top-0 bg-white/90 p-1'>دليل الألوان - بلديات ولاية غرداية</p>
-                <div className='space-y-1.5 text-xs text-slate-700'>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>غرداية</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#1e3a8a', boxShadow: '0 0 0 1px #1e3a8a' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>العطف</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#dc2626', boxShadow: '0 0 0 1px #dc2626' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>بنورة</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#a21caf', boxShadow: '0 0 0 1px #a21caf' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>متليلي</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#ea580c', boxShadow: '0 0 0 1px #ea580c' }} />
-                    </div>
-                    <div className='flex items-center justify-between gap-2'>
-                        <span>الضاية</span>
-                        <span className='h-0.5 w-6 rounded-sm' style={{ backgroundColor: '#047857', boxShadow: '0 0 0 1px #047857' }} />
-                    </div>
-                </div>
-            </div>
         </div>
     );
 });

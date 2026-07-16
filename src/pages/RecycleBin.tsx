@@ -33,6 +33,9 @@ interface DeletedFile {
   section: string | null;
   property_group: string | null;
   deleted_at: string | null;
+  full_name: string | null;
+  file_number: string | null;
+  permit_type: string | null;
 }
 
 const CORE_MUNICIPALITIES = ["غرداية", "العطف", "بنورة", "الضاية", "متليلي"] as const;
@@ -64,7 +67,7 @@ export default function RecycleBin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("files")
-        .select("id, municipality, section, property_group, deleted_at")
+        .select("id, municipality, section, property_group, deleted_at, full_name, file_number, permit_type")
         .is("is_deleted", true)
         .order("deleted_at", { ascending: false, nullsFirst: false });
 
@@ -169,9 +172,12 @@ export default function RecycleBin() {
                 <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                   <TableRow>
                     <TableHead className="w-[160px]">البلدية</TableHead>
-                    <TableHead className="w-[120px]">القسم</TableHead>
-                    <TableHead className="w-[160px]">مجموعة الملكية</TableHead>
-                    <TableHead className="w-[160px]">تاريخ الحذف</TableHead>
+                    <TableHead className="w-[160px]">صاحب الملف</TableHead>
+                    <TableHead className="w-[130px]">رقم الملف</TableHead>
+                    <TableHead className="w-[140px]">نوع عقد التعمير</TableHead>
+                    <TableHead className="w-[100px]">القسم</TableHead>
+                    <TableHead className="w-[140px]">مجموعة الملكية</TableHead>
+                    <TableHead className="w-[140px]">تاريخ الحذف</TableHead>
                     <TableHead className="w-[170px]">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -179,6 +185,9 @@ export default function RecycleBin() {
                   {deletedFiles.map((file) => (
                     <TableRow key={file.id} className="hover:bg-muted/50 transition-colors">
                       <TableCell className="font-medium text-sm">{cleanMunicipality(file.municipality)}</TableCell>
+                      <TableCell className="text-sm">{file.full_name || "---"}</TableCell>
+                      <TableCell className="font-mono text-sm">{file.file_number || "---"}</TableCell>
+                      <TableCell className="text-sm">{file.permit_type || "---"}</TableCell>
                       <TableCell className="font-mono text-sm">{formatSection(file.section)}</TableCell>
                       <TableCell className="font-mono text-sm">{formatPropertyGroup(file.property_group)}</TableCell>
                       <TableCell className="text-sm text-slate-600">

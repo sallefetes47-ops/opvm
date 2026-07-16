@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -69,12 +70,43 @@ function getSystemPrompt(documentType: string): string {
   }
 }
 
+async function authenticateRequest(req: Request): Promise<{ userId: string } | Response> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(
+      JSON.stringify({ error: "Authorization required" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims) {
+    return new Response(
+      JSON.stringify({ error: "Invalid token" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  return { userId: data.claims.sub as string };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    // Authenticate the request
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const documentType = formData.get("documentType") as string || "general";
@@ -99,7 +131,7 @@ serve(async (req) => {
     const isPdf = mimeType === "application/pdf";
     const fileSizeMB = arrayBuffer.byteLength / (1024 * 1024);
 
-    console.log(`Processing file: ${file.name}, size: ${fileSizeMB.toFixed(2)}MB, type: ${mimeType}`);
+    console.log(`Processing file for user ${authResult.userId}: size ${fileSizeMB.toFixed(2)}MB`);
 
     const systemPrompt = getSystemPrompt(documentType);
 
@@ -137,14 +169,14 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
+      console.error("AI Gateway error:", response.status);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "تم تجاوز حد الطلبات، يرجى المحاولة لاحقاً" }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
       return new Response(
-        JSON.stringify({ error: "AI processing failed", details: errorText }),
+        JSON.stringify({ error: "AI processing failed" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -159,10 +191,10 @@ serve(async (req) => {
     );
 
   } catch (error: unknown) {
-    console.error("Error:", error);
+    console.error("Error processing document");
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: "Processing failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -187,9 +219,7 @@ async function processLargePdf(
   documentType: string,
   apiKey: string,
 ): Promise<Response> {
-  // For large PDFs, we split the buffer into ~3MB chunks and send each,
-  // asking the AI to extract from that portion, then merge results.
-  const MAX_CHUNK = 3 * 1024 * 1024; // 3MB per chunk
+  const MAX_CHUNK = 3 * 1024 * 1024;
   const totalSize = arrayBuffer.byteLength;
   const numChunks = Math.ceil(totalSize / MAX_CHUNK);
 
@@ -199,16 +229,7 @@ async function processLargePdf(
   const errors: string[] = [];
 
   for (let i = 0; i < numChunks; i++) {
-    const start = i * MAX_CHUNK;
-    const end = Math.min(start + MAX_CHUNK, totalSize);
-
-    // For PDF we must send the whole file - Gemini handles multi-page PDFs natively.
-    // So for truly large files, we send the whole thing but with optimized prompt.
-    // The chunking here is a fallback if the single request fails.
     try {
-      console.log(`Processing chunk ${i + 1}/${numChunks}`);
-      
-      // Send the entire PDF (Gemini handles it) but with text-priority prompt
       if (i === 0) {
         const base64 = arrayBufferToBase64(arrayBuffer);
         const optimizedPrompt = `${systemPrompt}\n\nتنبيه: هذا ملف PDF كبير متعدد الصفحات. ركّز على استخراج النصوص والبيانات المنظمة فقط، وتجاهل الصور والرسومات لتسريع المعالجة.`;
@@ -238,25 +259,23 @@ async function processLargePdf(
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Chunk ${i + 1} failed:`, errorText);
-          errors.push(`الجزء ${i + 1}: ${errorText}`);
+          console.error(`Chunk ${i + 1} failed`);
+          errors.push(`الجزء ${i + 1}: فشل في المعالجة`);
           continue;
         }
 
         const aiResult = await response.json();
         const content = aiResult.choices?.[0]?.message?.content || "";
         allResults.push(parseJsonFromResponse(content));
-        break; // If full PDF succeeds, no need for more chunks
+        break;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown";
-      console.error(`Chunk ${i + 1} error:`, msg);
+      console.error(`Chunk ${i + 1} error`);
       errors.push(`الجزء ${i + 1}: ${msg}`);
     }
   }
 
-  // Merge results
   const mergedData: Record<string, unknown> = {};
   for (const result of allResults) {
     for (const [key, value] of Object.entries(result)) {
@@ -272,7 +291,7 @@ async function processLargePdf(
 
   if (Object.keys(mergedData).length === 0 && errors.length > 0) {
     return new Response(
-      JSON.stringify({ error: "فشل في معالجة الملف", details: errors.join("; ") }),
+      JSON.stringify({ error: "فشل في معالجة الملف" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

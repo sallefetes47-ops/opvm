@@ -1,16 +1,30 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
+import { User as UserIcon, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+
+// Map local usernames to internal emails used by Supabase auth.
+// Create a matching user in your backend with this email + chosen password.
+const USERNAME_TO_EMAIL: Record<string, string> = {
+  OPVM: "opvm@opvm.local",
+};
+
+function resolveUsernameToEmail(input: string): string {
+  const trimmed = input.trim();
+  if (trimmed.includes("@")) return trimmed; // backward-compat: accept email too
+  const key = trimmed.toUpperCase();
+  return USERNAME_TO_EMAIL[key] ?? `${trimmed.toLowerCase()}@opvm.local`;
+}
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [guestPassword, setGuestPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -23,7 +37,22 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
+    const email = resolveUsernameToEmail(username);
+    let { error } = await signIn(email, password);
+
+    // First-run auto-provision for the built-in OPVM user.
+    if (
+      error &&
+      email === "opvm@opvm.local" &&
+      /invalid login credentials/i.test(error.message)
+    ) {
+      try {
+        await supabase.functions.invoke("bootstrap-opvm-user", { body: {} });
+        ({ error } = await signIn(email, password));
+      } catch {
+        // fall through to the original error toast below
+      }
+    }
 
     if (error) {
       toast({
@@ -48,10 +77,25 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
 
-    if (guestPassword !== "OPVM2026") {
+    try {
+      // Validate password server-side via edge function
+      const { data, error: fnError } = await supabase.functions.invoke('verify-viewer-password', {
+        body: { password: guestPassword },
+      });
+
+      if (fnError || !data?.valid) {
+        toast({
+          title: "خطأ",
+          description: "كلمة المرور غير صحيحة",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+    } catch {
       toast({
         title: "خطأ",
-        description: "كلمة المرور غير صحيحة",
+        description: "فشل في التحقق من كلمة المرور",
         variant: "destructive",
       });
       setIsLoading(false);
@@ -142,17 +186,18 @@ export default function Login() {
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-white">البريد الإلكتروني</Label>
+                  <Label htmlFor="username" className="text-white">اسم المستخدم</Label>
                   <div className="relative">
-                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
+                    <UserIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="أدخل بريدك الإلكتروني"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      id="username"
+                      type="text"
+                      placeholder="أدخل اسم المستخدم"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
                       className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/50"
                       required
+                      autoComplete="username"
                       dir="ltr"
                     />
                   </div>
@@ -197,12 +242,6 @@ export default function Login() {
                     "تسجيل الدخول"
                   )}
                 </Button>
-                <p className="text-sm text-white/70 text-center">
-                  ليس لديك حساب؟{" "}
-                  <Link to="/register" className="font-medium hover:underline" style={{ color: '#D4AF37' }}>
-                    إنشاء حساب جديد
-                  </Link>
-                </p>
               </CardFooter>
             </form>
           </TabsContent>
@@ -252,6 +291,22 @@ export default function Login() {
             </form>
           </TabsContent>
         </Tabs>
+      </Card>
+
+      {/* Credits / Version card */}
+      <Card className="w-full max-w-md relative z-10 mt-4 backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
+        <CardContent className="py-4 text-center space-y-1.5">
+          <p className="text-sm text-[#D4AF37] font-semibold">
+            صممت المنصة من طرف: حمو علي حاج داود
+          </p>
+          <p className="text-xs text-white/80">
+            مهندس معماري للممتلكات الثقافية
+          </p>
+          <p className="text-xs text-white/70 pt-1">الإصدار v1.0.0</p>
+          <p className="text-xs text-white/60">
+            © 2026 ديوان حماية وادي ميزاب وترقيته
+          </p>
+        </CardContent>
       </Card>
     </div>
   );

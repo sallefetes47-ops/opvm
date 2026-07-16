@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import MapSelector from "@/components/MapSelector";
-import ArchiveMap from "@/components/ArchiveMap";
+import MzabValleyMap, { type ParcelSelectionData } from "@/components/MzabValleyMap";
+import { MapErrorBoundary } from "@/components/MapErrorBoundary";
 import PermitLocationPicker from "@/components/PermitLocationPicker";
 
 
@@ -56,8 +57,18 @@ export default function ArchivePage() {
   const canEdit = !isViewer && role !== "viewer";
 
   // Search & Filter State
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
-  const [municipalityFilter, setMunicipalityFilter] = useState<string>("all");
+  const [municipalityFilter, setMunicipalityFilter] = useState<string>(
+    searchParams.get("municipality") || "all"
+  );
+
+  // Sync filter from URL (e.g., when navigating from Mzab Heritage)
+  useEffect(() => {
+    const m = searchParams.get("municipality");
+    if (m && m !== municipalityFilter) setMunicipalityFilter(m);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [opinionFilter, setOpinionFilter] = useState<string>("all");
   
   // Section and Ilot filters (for map auto-fill)
@@ -159,6 +170,41 @@ export default function ArchivePage() {
       className: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700",
     });
   }, [toast]);
+
+  /* ── Permit-type → color (auto coloring on map by permit type) ── */
+  const PERMIT_TYPE_COLORS: Record<string, string> = {
+    "رخصة بناء": "#2563eb",       // blue
+    "رخصة تجزئة": "#16a34a",     // green
+    "رخصة هدم": "#dc2626",        // red
+    "شهادة تقسيم": "#9333ea",    // purple
+  };
+
+  // Build parcel color overrides from files: key = `${section}|${propertyGroup}`
+  const parcelColors = useMemo(() => {
+    const map: Record<string, string> = {};
+    files?.forEach((f) => {
+      if (!f.section || !f.property_group || !f.permit_type) return;
+      const color = PERMIT_TYPE_COLORS[f.permit_type];
+      if (!color) return;
+      const key = `${String(f.section).trim()}|${String(f.property_group).trim()}`;
+      map[key] = color;
+    });
+    return map;
+  }, [files]);
+
+  const permitLegend = (
+    <div className='mt-2 flex justify-center'>
+      <div className='inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-lg border bg-card px-3 py-2 text-xs text-foreground shadow-sm' dir='rtl'>
+        <span className='font-semibold'>دليل الألوان - عقود التعمير:</span>
+        {Object.entries(PERMIT_TYPE_COLORS).map(([label, color]) => (
+          <div key={label} className='flex items-center gap-1.5'>
+            <span>{label}</span>
+            <span className='h-2 w-5 rounded-sm' style={{ backgroundColor: color, boxShadow: `0 0 0 1px ${color}` }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   /* ── Mutations ── */
 
@@ -388,12 +434,17 @@ export default function ArchivePage() {
             </Button>
           </div>
           <div className="flex-1 rounded-xl overflow-hidden border shadow-sm h-full">
-            <MapSelector
-              selectedContractId={selectedContractId}
-              flyToLocation={flyToLocation}
-              onContractSelect={handleMapSelect}
-            />
+            <MapErrorBoundary>
+              <MzabValleyMap
+                onParcelSelect={(data: ParcelSelectionData) =>
+                  handleParcelSelect(data.section, data.propertyGroup)
+                }
+                parcelColors={parcelColors}
+                legend={null}
+              />
+            </MapErrorBoundary>
           </div>
+          {permitLegend}
         </div>
       </div>
 

@@ -30,10 +30,19 @@ export default function Register() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 10) {
       toast({
         title: "خطأ",
-        description: "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+        description: "يجب أن تكون كلمة المرور 10 أحرف على الأقل",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+      toast({
+        title: "خطأ",
+        description: "يجب أن تحتوي كلمة المرور على حرف كبير ورقم على الأقل",
         variant: "destructive",
       });
       return;

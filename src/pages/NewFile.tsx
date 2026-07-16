@@ -19,6 +19,14 @@ import {
 } from "@/components/ui/select";
 import { DateInput } from "@/components/ui/date-input";
 import { Loader2, FilePlus, FileUp } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import PermitLocationPicker from "@/components/PermitLocationPicker";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -91,6 +99,46 @@ export default function NewFile() {
     location_lat: null,
     location_lng: null,
   });
+
+  // Locally-saved files in this session, shown directly in the preview table
+  const [savedRows, setSavedRows] = useState<Array<{
+    id: string;
+    full_name: string;
+    municipality: string;
+    permit_type: string | null;
+    file_number: string;
+    year: number;
+    committee_opinion: string | null;
+    created_at: string;
+  }>>([]);
+
+  const resetForm = () => {
+    setFormData({
+      full_name: "",
+      municipality: "",
+      permit_type: "",
+      file_number: "",
+      year: currentYear,
+      ownership_type: "عقد ملكية",
+      address: "",
+      section: "",
+      property_group: "",
+      plot_area: "",
+      built_area: "",
+      engineer_name: "",
+      shares_count: "",
+      plots_count: "",
+      lot_number: "",
+      subdivision_name: "",
+      submission_date: undefined,
+      session_date: undefined,
+      committee_opinion: "",
+      rejection_reason: "",
+      electronic_permit_file: null,
+      location_lat: null,
+      location_lng: null,
+    });
+  };
 
   // Fetch and Auto-fill Area based on GeoJSON
   useEffect(() => {
@@ -255,14 +303,29 @@ export default function NewFile() {
 
       return insertData;
     },
-    onSuccess: () => {
+    onSuccess: (insertData: any) => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-files"] });
       queryClient.invalidateQueries({ queryKey: ["archive-files"] });
       toast({
         title: "تم الحفظ بنجاح",
-        description: "تم تسجيل الملف في قاعدة البيانات",
+        description: "تم تسجيل الملف وعرضه في جدول المعاينة",
       });
-      navigate("/archive");
+      if (insertData) {
+        setSavedRows((prev) => [
+          {
+            id: insertData.id,
+            full_name: insertData.full_name,
+            municipality: insertData.municipality,
+            permit_type: insertData.permit_type,
+            file_number: insertData.file_number,
+            year: insertData.year,
+            committee_opinion: insertData.committee_opinion,
+            created_at: insertData.created_at,
+          },
+          ...prev,
+        ]);
+      }
+      resetForm();
     },
     onError: (error) => {
       toast({
@@ -671,7 +734,7 @@ export default function NewFile() {
               <DateInput
                 value={formData.submission_date}
                 onChange={(date) => setFormData({ ...formData, submission_date: date })}
-                placeholder="YYYY/MM/DD"
+                placeholder="DD/MM/YYYY"
               />
             </div>
             <div className="space-y-2">
@@ -679,7 +742,7 @@ export default function NewFile() {
               <DateInput
                 value={formData.session_date}
                 onChange={(date) => setFormData({ ...formData, session_date: date })}
-                placeholder="YYYY/MM/DD"
+                placeholder="DD/MM/YYYY"
               />
             </div>
             <div className="space-y-2 md:col-span-2">
@@ -809,6 +872,47 @@ export default function NewFile() {
           </Button>
         </div>
       </form>
+
+      {savedRows.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>جدول المعاينة - الملفات المحفوظة</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">رقم الملف</TableHead>
+                    <TableHead className="text-right">الاسم الكامل</TableHead>
+                    <TableHead className="text-right">البلدية</TableHead>
+                    <TableHead className="text-right">نوع العقد</TableHead>
+                    <TableHead className="text-right">السنة</TableHead>
+                    <TableHead className="text-right">رأي اللجنة</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {savedRows.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="text-right font-medium">{row.file_number}</TableCell>
+                      <TableCell className="text-right">{row.full_name}</TableCell>
+                      <TableCell className="text-right">{row.municipality}</TableCell>
+                      <TableCell className="text-right">{row.permit_type || "—"}</TableCell>
+                      <TableCell className="text-right">{row.year}</TableCell>
+                      <TableCell className="text-right">{row.committee_opinion || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button type="button" variant="outline" onClick={() => navigate("/archive")}>
+                الذهاب إلى الأرشيف
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

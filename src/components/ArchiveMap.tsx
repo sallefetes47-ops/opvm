@@ -1,35 +1,102 @@
 import { useEffect, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Satellite } from 'lucide-react';
-import type { GeoJSONSource, LngLatLike } from 'mapbox-gl';
+import { Button } from '@/components/ui/button';
+import { Satellite, Layers, Map as MapIcon } from 'lucide-react';
+import {
+    WMS_ENDPOINT,
+    CADASTRAL_LAYERS,
+} from '@/lib/fadaa-el-djazair';
+
+// Loaded dynamically to avoid OOM during build
+
+const CADASTRE_GEOJSON_URL = `${import.meta.env.BASE_URL}mzab_cadastre_map.json`;
+
+// Fadaa El Djazair WMS tile URL (EPSG:3857, used by MapLibre internally)
+const FADAA_WMS_TILE_URL =
+    `${WMS_ENDPOINT}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap` +
+    `&LAYERS=${encodeURIComponent(CADASTRAL_LAYERS.SECTIONS + ',' + CADASTRAL_LAYERS.PROPERTY_GROUPS + ',' + CADASTRAL_LAYERS.PARCELS)}` +
+    `&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}`;
 
 // Ghardaia center coordinates
-const GHARDAIA_CENTER: LngLatLike = [3.6900, 32.4810];
+const GHARDAIA_CENTER: [number, number] = [3.6900, 32.4810];
 
-// Custom OSM style for Mapbox (free, no token required)
-const OSM_STYLE = {
-    version: 8 as const,
-    sources: {
-        'osm': {
-            type: 'raster' as const,
-            tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors',
-            maxzoom: 19,
-        },
+function extendBoundsFromCoordinates(
+    bounds: maplibregl.LngLatBounds,
+    coordinates: unknown,
+): void {
+    if (!Array.isArray(coordinates) || coordinates.length === 0) return;
+
+    if (
+        coordinates.length >= 2 &&
+        typeof coordinates[0] === 'number' &&
+        typeof coordinates[1] === 'number'
+    ) {
+        bounds.extend([coordinates[0], coordinates[1]]);
+        return;
+    }
+
+    coordinates.forEach((entry) => extendBoundsFromCoordinates(bounds, entry));
+}
+
+
+// Basemap tile providers
+const BASEMAPS = {
+    osm: {
+        label: 'OSM',
+        tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        attribution: '© OpenStreetMap contributors',
+        maxzoom: 19,
     },
-    layers: [
-        {
-            id: 'osm-layer',
-            type: 'raster' as const,
-            source: 'osm',
-            minzoom: 0,
-            maxzoom: 19,
+    google_sat: {
+        label: 'Google Satellite',
+        tiles: [
+            'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        ],
+        attribution: '© Google',
+        maxzoom: 20,
+    },
+    google_hybrid: {
+        label: 'Google Hybrid',
+        tiles: [
+            'https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+            'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        ],
+        attribution: '© Google',
+        maxzoom: 20,
+    },
+    esri_sat: {
+        label: 'OSM Satellite',
+        tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+        attribution: '© Esri, Maxar, Earthstar Geographics',
+        maxzoom: 19,
+    },
+} as const;
+
+type BasemapKey = keyof typeof BASEMAPS;
+
+function makeStyle(key: BasemapKey) {
+    const b = BASEMAPS[key];
+    return {
+        version: 8 as const,
+        sources: {
+            basemap: {
+                type: 'raster' as const,
+                tiles: [...b.tiles],
+                tileSize: 256,
+                attribution: b.attribution,
+                maxzoom: b.maxzoom,
+            },
         },
-    ],
-};
+        layers: [
+            { id: 'basemap-layer', type: 'raster' as const, source: 'basemap', minzoom: 0 },
+        ],
+    };
+}
 
 export interface ArchiveMapProps {
     onParcelSelect?: (section: string, ilot: string) => void;
@@ -37,134 +104,154 @@ export interface ArchiveMapProps {
 
 export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<mapboxgl.Map | null>(null);
+    const mapRef = useRef<maplibregl.Map | null>(null);
+    const popupRef = useRef<maplibregl.Popup | null>(null);
+    const selectedFeatureIdRef = useRef<string | number | null>(null);
+    const cadastreDataRef = useRef<any>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
-    const [cadastreGeoJson, setCadastreGeoJson] = useState<GeoJSON.GeoJSON | null>(null);
+    const [fadaaVisible, setFadaaVisible] = useState(true);
+    const [basemap, setBasemap] = useState<BasemapKey>('osm');
 
-    // Load local cadastral GeoJSON data from public folder
-    useEffect(() => {
-        fetch('/mzab_cadastre_map.geojson')
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}: GeoJSON not found`);
-                }
-                return res.json();
-            })
-            .then((data) => {
-                console.log('[Archive Map] ✅ GeoJSON loaded:', data.features?.length || 0, 'features');
-                setCadastreGeoJson(data);
-            })
-            .catch((err) => {
-                console.error('[Archive Map] ❌ Failed to load GeoJSON:', err.message);
-            });
-    }, []);
-
-    // Initialize vanilla Mapbox GL map
+    // Initialize MapLibre GL map
     useEffect(() => {
         if (!mapContainerRef.current) {
-            console.error('[Archive Map] ❌ Map container ref is null');
+            console.error('[Archive Map] Map container ref is null');
             return;
         }
 
-        // Set Mapbox access token (empty string works for OSM-only style)
-        mapboxgl.accessToken = '';
-
-        // Initialize vanilla Mapbox GL map
-        const map = new mapboxgl.Map({
+        const map = new maplibregl.Map({
             container: mapContainerRef.current,
-            style: OSM_STYLE,
+            style: makeStyle(basemap),
             center: GHARDAIA_CENTER,
             zoom: 14,
-            attributionControl: true,
-            preserveDrawingBuffer: true,
+            maxZoom: 20,
+            attributionControl: false,
         });
 
-        // Add navigation controls
-        map.addControl(new mapboxgl.NavigationControl({ showCompass: true, showZoom: true }), 'top-right');
-        map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+        map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+        map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 
         mapRef.current = map;
 
-        // Map load event
+        const clearSelection = () => {
+            if (selectedFeatureIdRef.current !== null) {
+                map.setFeatureState(
+                    { source: 'cadastre-parcels', id: selectedFeatureIdRef.current },
+                    { selected: false },
+                );
+                selectedFeatureIdRef.current = null;
+            }
+        };
+
         map.on('load', () => {
             console.log('[Archive Map] ✅ Map loaded');
             setIsMapLoaded(true);
 
-            // Add GeoJSON source for cadastral parcels
             map.addSource('cadastre-parcels', {
                 type: 'geojson',
-                data: {
-                    type: 'FeatureCollection',
-                    features: [],
-                } as GeoJSON.GeoJSON,
+                data: ({ type: 'FeatureCollection', features: [] }) as any,
+                generateId: true, // required for feature-state
             });
 
-            // Add fill layer with transparent red
+            // Fill: colorful by commune (Fadaa El Djazair style)
             map.addLayer({
                 id: 'cadastre-parcels-fill',
                 type: 'fill',
                 source: 'cadastre-parcels',
+                minzoom: 0,
+                maxzoom: 24,
                 paint: {
-                    'fill-color': '#FF0000',
-                    'fill-opacity': 0.2,
+                    'fill-color': [
+                        'case',
+                        ['boolean', ['feature-state', 'selected'], false],
+                        '#fbbf24', // gold when selected
+                        [
+                            'match',
+                            ['coalesce', ['get', 'COMMUNE'], ['get', 'Commune'], ['get', 'commune'], ''],
+                            'غرداية', '#a855f7',
+                            'GHARDAIA', '#a855f7',
+                            'بنورة', '#dc2626',
+                            'BOUNOURA', '#dc2626',
+                            'العطف', '#7c2d12',
+                            'EL ATTEUF', '#7c2d12',
+                            'متليلي', '#f97316',
+                            'METLILI', '#f97316',
+                            'ضاية بن ضحوة', '#0ea5e9',
+                            'DAYA BEN DAHOUA', '#0ea5e9',
+                            '#64748b',
+                        ],
+                    ],
+                    'fill-opacity': [
+                        'case',
+                        ['boolean', ['feature-state', 'selected'], false],
+                        0.65,
+                        0.45,
+                    ],
                 },
             });
 
-            // Add line layer with red outline
+            // Outline: grid lines
             map.addLayer({
                 id: 'cadastre-parcels-line',
                 type: 'line',
                 source: 'cadastre-parcels',
+                minzoom: 0,
+                maxzoom: 24,
                 paint: {
-                    'line-color': '#FF0000',
-                    'line-width': 2,
-                    'line-opacity': 1,
+                    'line-color': [
+                        'case',
+                        ['boolean', ['feature-state', 'selected'], false],
+                        '#fbbf24',
+                        '#1e293b',
+                    ],
+                    'line-width': [
+                        'case',
+                        ['boolean', ['feature-state', 'selected'], false],
+                        3,
+                        0.6,
+                    ],
+                    'line-opacity': 0.85,
                 },
             });
 
             console.log('[Archive Map] ✅ Cadastral layers added');
 
-            // Change cursor to pointer on hover
             map.on('mouseenter', 'cadastre-parcels-fill', () => {
                 map.getCanvas().style.cursor = 'pointer';
             });
-
             map.on('mouseleave', 'cadastre-parcels-fill', () => {
                 map.getCanvas().style.cursor = '';
             });
 
-            // Handle parcel click - AUTO-FILL ARCHIVE SEARCH & SHOW POPUP
             map.on('click', 'cadastre-parcels-fill', (e) => {
-                console.log('[Archive Map] 🖱️ Parcel clicked');
-
-                if (!e.features || e.features.length === 0) {
-                    console.warn('[Archive Map] ⚠️ No features found');
-                    return;
-                }
+                if (!e.features || e.features.length === 0) return;
 
                 const feature = e.features[0];
                 const properties = feature.properties || {};
-                console.log('[Archive Map] 📋 Parcel properties:', properties);
 
-                // Extract SECTION and ILOT from properties (uppercase as per GeoJSON)
+                // Update selection (feature-state highlight)
+                clearSelection();
+                if (feature.id !== undefined && feature.id !== null) {
+                    map.setFeatureState(
+                        { source: 'cadastre-parcels', id: feature.id },
+                        { selected: true },
+                    );
+                    selectedFeatureIdRef.current = feature.id;
+                }
+
                 const sectionRaw = properties.SECTION ?? properties.Section ?? properties.section ?? '';
                 const ilotRaw = properties.ILOT ?? properties.Ilot ?? properties.ilot ?? properties.group ?? '';
                 const communeRaw = properties.COMMUNE ?? properties.Commune ?? properties.commune ?? 'غير متوفر';
 
-                // Format section (3 digits) and ilot (4 digits)
                 const section = String(sectionRaw).padStart(3, '0');
                 const ilot = String(ilotRaw).padStart(4, '0');
                 const commune = String(communeRaw);
 
-                console.log('[Archive Map] 📊 Extracted & formatted:', { section, ilot, commune });
-
-                // CRITICAL: Auto-fill archive search filters using React state setters
                 if (onParcelSelect && section && ilot) {
                     onParcelSelect(section, ilot);
-                    console.log('[Archive Map] ✅ Called onParcelSelect with:', section, ilot);
                 }
 
-                // Show popup with Arabic survey data (معلومات المسح)
                 const popupContent = `
                     <div style="font-family: 'Cairo', sans-serif; padding: 12px; text-align: right; direction: rtl; min-width: 220px;">
                         <h4 style="margin: 0 0 10px 0; color: #dc2626; border-bottom: 2px solid #fecaca; padding-bottom: 6px; font-size: 15px; font-weight: bold;">
@@ -190,53 +277,125 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     </div>
                 `;
 
-                new mapboxgl.Popup({
-                    closeButton: true,
-                    closeOnClick: false,
-                    maxWidth: '280px',
-                    anchor: 'top',
-                })
+                // Reuse a single pinned popup
+                if (!popupRef.current) {
+                    popupRef.current = new maplibregl.Popup({
+                        closeButton: true,
+                        closeOnClick: false,
+                        closeOnMove: false,
+                        maxWidth: '280px',
+                    });
+                    popupRef.current.on('close', () => {
+                        clearSelection();
+                    });
+                }
+
+                popupRef.current
                     .setLngLat(e.lngLat)
                     .setHTML(popupContent)
                     .addTo(map);
             });
 
-            // Update GeoJSON data when loaded
-            if (cadastreGeoJson) {
-                const source = map.getSource('cadastre-parcels') as GeoJSONSource;
-                if (source) {
-                    source.setData(cadastreGeoJson);
-                    console.log('[Archive Map] ✅ GeoJSON data set on source');
-                }
-            }
+            fetch(CADASTRE_GEOJSON_URL)
+                .then(r => r.json())
+                .then(geoData => {
+                    cadastreDataRef.current = geoData;
+                    const source = map.getSource('cadastre-parcels') as any;
+                    if (source && geoData) {
+                        source.setData(geoData);
+                        console.log('[Archive Map] ✅ GeoJSON data set:', geoData.features?.length || 0, 'features');
+                        // Auto-fit map to cadastre bounds so parcels are visible
+                        try {
+                            const bounds = new maplibregl.LngLatBounds();
+                            (geoData.features || []).forEach((f: any) => {
+                                extendBoundsFromCoordinates(bounds, f?.geometry?.coordinates);
+                            });
+                            if (!bounds.isEmpty()) {
+                                map.fitBounds(bounds, { padding: 40, maxZoom: 18, duration: 800 });
+                            }
+                        } catch (e) {
+                            console.warn('[Archive Map] fitBounds failed', e);
+                        }
+                    }
+                })
+                .catch(err => console.error('[Archive Map] Failed to load GeoJSON:', err));
 
-            // Debug: Log errors
             map.on('error', (e) => {
                 console.error('[Archive Map] ❌ Error:', e);
             });
         });
 
-        // Cleanup function
         return () => {
             console.log('[Archive Map] 🧹 Cleaning up map instance...');
+            if (popupRef.current) {
+                popupRef.current.remove();
+                popupRef.current = null;
+            }
             if (mapRef.current) {
                 mapRef.current.remove();
                 mapRef.current = null;
             }
+            selectedFeatureIdRef.current = null;
             setIsMapLoaded(false);
         };
-    }, [cadastreGeoJson, onParcelSelect]);
+    }, [onParcelSelect]);
 
-    // Update GeoJSON data when it changes
+    // Switch basemap by replacing only the basemap source/layer, preserving other layers
     useEffect(() => {
-        if (mapRef.current && isMapLoaded && cadastreGeoJson) {
-            const source = mapRef.current.getSource('cadastre-parcels') as GeoJSONSource;
-            if (source) {
-                source.setData(cadastreGeoJson);
-                console.log('[Archive Map] 🔄 GeoJSON data updated');
-            }
+        const map = mapRef.current;
+        if (!map || !isMapLoaded) return;
+        const b = BASEMAPS[basemap];
+        try {
+            if (map.getLayer('basemap-layer')) map.removeLayer('basemap-layer');
+            if (map.getSource('basemap')) map.removeSource('basemap');
+            map.addSource('basemap', {
+                type: 'raster',
+                tiles: [...b.tiles],
+                tileSize: 256,
+                attribution: b.attribution,
+                maxzoom: b.maxzoom,
+            } as any);
+            // Insert basemap below all other layers
+            const firstLayerId = map.getStyle().layers?.[0]?.id;
+            map.addLayer(
+                { id: 'basemap-layer', type: 'raster', source: 'basemap', minzoom: 0 },
+                firstLayerId,
+            );
+        } catch (err) {
+            console.error('[Archive Map] basemap switch failed', err);
         }
-    }, [cadastreGeoJson, isMapLoaded]);
+    }, [basemap, isMapLoaded]);
+
+    // Toggle Fadaa WMS layer visibility (added on-demand to avoid CORS errors on load)
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !isMapLoaded) return;
+
+        if (fadaaVisible) {
+            if (!map.getSource('fadaa-wms')) {
+                map.addSource('fadaa-wms', {
+                    type: 'raster',
+                    tiles: [FADAA_WMS_TILE_URL],
+                    tileSize: 256,
+                    attribution: '© Fadaa El Djazair',
+                    maxzoom: 22,
+                } as any);
+            }
+            if (!map.getLayer('fadaa-wms-layer')) {
+                // Insert above OSM but below cadastre fill
+                const beforeId = map.getLayer('cadastre-parcels-fill') ? 'cadastre-parcels-fill' : undefined;
+                map.addLayer({
+                    id: 'fadaa-wms-layer',
+                    type: 'raster',
+                    source: 'fadaa-wms',
+                    paint: { 'raster-opacity': 0.75 },
+                }, beforeId);
+            }
+        } else {
+            if (map.getLayer('fadaa-wms-layer')) map.removeLayer('fadaa-wms-layer');
+            if (map.getSource('fadaa-wms')) map.removeSource('fadaa-wms');
+        }
+    }, [fadaaVisible, isMapLoaded]);
 
     return (
         <Card className="w-full h-full flex flex-col border-2 border-slate-200 rounded-xl shadow-lg text-right" dir="rtl">
@@ -265,6 +424,40 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                     />
                 </div>
 
+                {/* Fadaa WMS Toggle - Top Right */}
+                <div className="absolute top-4 right-16 z-[45] flex flex-col gap-2 items-end">
+                    <Button
+                        size="sm"
+                        variant={fadaaVisible ? 'default' : 'outline'}
+                        onClick={() => setFadaaVisible(v => !v)}
+                        className="shadow-lg gap-2 bg-white text-slate-800 hover:bg-slate-100 border-2 border-slate-200"
+                        title="إظهار/إخفاء طبقة فضاء الجزائر الرسمية"
+                    >
+                        <Layers className="w-4 h-4" />
+                        <span className="text-xs font-bold">
+                            فضاء الجزائر {fadaaVisible ? '●' : '○'}
+                        </span>
+                    </Button>
+
+                    {/* Basemap Switcher */}
+                    <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border-2 border-slate-200 p-1 flex flex-col gap-1">
+                        {(Object.keys(BASEMAPS) as BasemapKey[]).map((key) => (
+                            <button
+                                key={key}
+                                onClick={() => setBasemap(key)}
+                                className={`text-[11px] font-bold px-3 py-1.5 rounded transition-colors text-right ${
+                                    basemap === key
+                                        ? 'bg-slate-900 text-white'
+                                        : 'text-slate-700 hover:bg-slate-100'
+                                }`}
+                            >
+                                <MapIcon className="w-3 h-3 inline-block ml-1" />
+                                {BASEMAPS[key].label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 {/* Info Banner - Top Left */}
                 <div className="absolute top-4 left-4 bg-white/98 backdrop-blur-sm p-4 rounded-xl shadow-xl z-[40] text-xs text-right rtl border-2 border-slate-200 max-w-[300px]">
                     <div className="flex items-start gap-3">
@@ -276,6 +469,11 @@ export default function ArchiveMap({ onParcelSelect }: ArchiveMapProps) {
                             <p className="text-slate-600 leading-relaxed">
                                 انقر على أي قطعة عقارية لتصفية الأرشيف حسب <span className="font-mono font-bold text-red-600">القسم</span> و <span className="font-mono font-bold text-red-600">مجموعة الملكية</span>
                             </p>
+                            {fadaaVisible && (
+                                <p className="mt-2 text-[11px] text-emerald-700 font-semibold">
+                                    ✓ طبقة فضاء الجزائر الرسمية مفعّلة
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>

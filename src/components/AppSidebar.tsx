@@ -16,7 +16,7 @@ import {
 import {
   LayoutDashboard, FilePlus, Archive, Users, LogOut, RefreshCw,
   FileText, Users2, Scale, Trash2, Database as DatabaseIcon, MapPin,
-  ShieldCheck, Settings, Search,
+  ShieldCheck, Settings, Search, Landmark, BarChart3, CalendarDays, Flame, Sparkles, GitCompare, Target, History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -40,10 +40,16 @@ interface AdminSidebarItem {
 
 const mainMenuItems: SidebarItem[] = [
   { title: "لوحة التحكم", url: "/", icon: LayoutDashboard },
+  { title: "التحليلات", url: "/analytics", icon: BarChart3 },
+  { title: "تقويم الجلسات", url: "/sessions-calendar", icon: CalendarDays },
   { title: "ملف جديد", url: "/new-file", icon: FilePlus, requiresEdit: true },
   { title: "إعادة الدراسة", url: "/restudy", icon: RefreshCw, requiresEdit: true },
   { title: "الأرشيف", url: "/archive", icon: Archive },
   { title: "الخريطة العمرانية", url: "/urban-map", icon: MapPin },
+  
+  { title: "المساعد الذكي", url: "/ai-assistant", icon: Sparkles },
+  { title: "الملفات المتشابهة", url: "/similar-files", icon: GitCompare },
+  { title: "مؤشرات الأداء", url: "/kpi", icon: Target },
 ];
 
 // These modules are hidden from viewers (requires edit permissions)
@@ -56,12 +62,14 @@ const newModulesItems: SidebarItem[] = [
 const publicModulesItems: SidebarItem[] = [
   { title: "المراسيم والتعليمات", url: "/legal-archive", icon: Scale },
   { title: "البحث الحكومي", url: "/gov-search", icon: Search },
+  { title: "تراث وادي مزاب", url: "/mzab-heritage", icon: Landmark },
 ];
 
 // Data Management - hidden from viewers
 const dataManagementItems: SidebarItem[] = [
   { title: "النسخة الاحتياطية", url: "/backup", icon: DatabaseIcon },
   { title: "سلة المحذوفات", url: "/recycle-bin", icon: Trash2 },
+  { title: "سجل التحديثات", url: "/changelog", icon: History },
 ];
 
 const adminMenuItems = [

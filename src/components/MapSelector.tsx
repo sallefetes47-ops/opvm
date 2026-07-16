@@ -12,6 +12,8 @@ import { formatFileNumberWithYear } from '@/lib/file-number';
 
 // Ghardaia center coordinates
 const GHARDAIA_CENTER: [number, number] = [3.6900, 32.4810];
+const OSM_TILE_MAX_ZOOM = 19;
+const GHARDAIA_VECTOR_TILE_MAX_ZOOM = 17;
 
 // Custom OSM style for MapLibre (no token required)
 const OSM_STYLE = {
@@ -22,7 +24,7 @@ const OSM_STYLE = {
             tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
             tileSize: 256,
             attribution: '© OpenStreetMap contributors',
-            maxzoom: 19,
+            maxzoom: OSM_TILE_MAX_ZOOM,
         },
     },
     layers: [
@@ -31,7 +33,7 @@ const OSM_STYLE = {
             type: 'raster' as const,
             source: 'osm',
             minzoom: 0,
-            maxzoom: 19,
+            maxzoom: 22,
         },
     ],
 };
@@ -177,7 +179,7 @@ export default function MapSelector({
                 type: 'vector',
                 tiles: ['https://fadaeldjazair.mf.gov.dz/pm/ghardaia_ilot/{z}/{x}/{y}.mvt'],
                 minzoom: 0,
-                maxzoom: 22,
+                maxzoom: GHARDAIA_VECTOR_TILE_MAX_ZOOM,
                 scheme: 'xyz',
             });
 
@@ -187,6 +189,8 @@ export default function MapSelector({
                 type: 'fill',
                 source: 'ghardaia-cadastre',
                 'source-layer': 'ghardaia_ilot',
+                minzoom: 0,
+                maxzoom: 22,
                 paint: {
                     'fill-color': '#FF0000',
                     'fill-opacity': 0.3,
@@ -199,6 +203,8 @@ export default function MapSelector({
                 type: 'line',
                 source: 'ghardaia-cadastre',
                 'source-layer': 'ghardaia_ilot',
+                minzoom: 0,
+                maxzoom: 22,
                 paint: {
                     'line-color': '#FF0000',
                     'line-width': 2,
@@ -215,7 +221,7 @@ export default function MapSelector({
                 type: 'vector',
                 tiles: ['https://fadaeldjazair.mf.gov.dz/pm/ghardaia_batiment/{z}/{x}/{y}.mvt'],
                 minzoom: 0,
-                maxzoom: 22,
+                maxzoom: GHARDAIA_VECTOR_TILE_MAX_ZOOM,
                 scheme: 'xyz',
             });
 
@@ -225,6 +231,8 @@ export default function MapSelector({
                 type: 'fill',
                 source: 'ghardaia-batiment-source',
                 'source-layer': 'ghardaia_batiment',
+                minzoom: 0,
+                maxzoom: 22,
                 paint: {
                     'fill-color': '#1f2937',
                     'fill-opacity': 0.7,

@@ -9,7 +9,10 @@ interface AuthContextType {
   session: Session | null;
   role: UserRole;
   loading: boolean;
+  roleLoading: boolean;
+  roleError: string | null;
   isViewer: boolean;
+  refreshRole: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -21,31 +24,54 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Viewer session storage key
 const VIEWER_SESSION_KEY = "opvm_viewer_session";
 
+// Single source of truth: fetch role from user_roles table under RLS.
+// Never calls the get_user_role RPC (revoked from authenticated).
+async function fetchUserRole(
+  userId: string,
+): Promise<{ role: UserRole; error: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching user role:", error);
+      return { role: null, error: error.message };
+    }
+    return { role: (data?.role as UserRole) ?? null, error: null };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Error in fetchUserRole:", e);
+    return { role: null, error: msg };
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
+  const [roleLoading, setRoleLoading] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
   const [isViewer, setIsViewer] = useState(false);
 
-  const fetchUserRole = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .maybeSingle();
+  const loadRole = async (userId: string) => {
+    setRoleLoading(true);
+    setRoleError(null);
+    const { role: r, error } = await fetchUserRole(userId);
+    setRole(r);
+    setRoleError(error);
+    setRoleLoading(false);
+  };
 
-      if (error) {
-        console.error("Error fetching user role:", error);
-        return null;
-      }
-
-      return data?.role as UserRole;
-    } catch (error) {
-      console.error("Error in fetchUserRole:", error);
-      return null;
+  const refreshRole = async () => {
+    if (isViewer) {
+      setRole("viewer");
+      return;
     }
+    if (user?.id) await loadRole(user.id);
   };
 
   useEffect(() => {
@@ -60,34 +86,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, nextSession) => {
+        setSession(nextSession);
+        setUser(nextSession?.user ?? null);
 
-        if (session?.user) {
-          // Use setTimeout to avoid potential deadlock with Supabase client
-          setTimeout(async () => {
-            const userRole = await fetchUserRole(session.user.id);
-            setRole(userRole);
-            setLoading(false);
+        if (nextSession?.user) {
+          // Defer to avoid potential deadlock with Supabase client
+          setTimeout(() => {
+            loadRole(nextSession.user.id).finally(() => setLoading(false));
           }, 0);
         } else {
           setRole(null);
+          setRoleError(null);
           setLoading(false);
         }
       }
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: existing } }) => {
+      setSession(existing);
+      setUser(existing?.user ?? null);
 
-      if (session?.user) {
-        fetchUserRole(session.user.id).then((userRole) => {
-          setRole(userRole);
-          setLoading(false);
-        });
+      if (existing?.user) {
+        loadRole(existing.user.id).finally(() => setLoading(false));
       } else {
         setLoading(false);
       }
@@ -151,7 +173,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         role,
         loading,
+        roleLoading,
+        roleError,
         isViewer,
+        refreshRole,
         signIn,
         signUp,
         signOut,

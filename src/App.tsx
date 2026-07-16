@@ -12,7 +12,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 
 // Pages
 import Login from "@/pages/Login";
-import Register from "@/pages/Register";
+
 import Dashboard from "@/pages/Dashboard";
 import NewFile from "@/pages/NewFile";
 import Restudy from "@/pages/Restudy";
@@ -25,6 +25,14 @@ import Backup from "@/pages/Backup";
 import RecycleBin from "@/pages/RecycleBin";
 import UrbanMap from "@/pages/UrbanMap";
 import GovSearch from "@/pages/GovSearch";
+import MzabHeritage from "@/pages/MzabHeritage";
+import Analytics from "@/pages/Analytics";
+import SessionsCalendar from "@/pages/SessionsCalendar";
+
+import AIFileAssistant from "@/pages/AIFileAssistant";
+import SimilarFiles from "@/pages/SimilarFiles";
+import KPIDashboard from "@/pages/KPIDashboard";
+import Changelog from "@/pages/Changelog";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,7 +49,7 @@ const App = () => (
               <Routes>
                 {/* Public Routes */}
                 <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
+                
 
                 {/* Protected Routes */}
                 <Route
@@ -70,6 +78,14 @@ const App = () => (
                   <Route path="/urban-map" element={<UrbanMap />} />
                   <Route path="/recycle-bin" element={<RecycleBin />} />
                   <Route path="/gov-search" element={<GovSearch />} />
+                  <Route path="/mzab-heritage" element={<MzabHeritage />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/sessions-calendar" element={<SessionsCalendar />} />
+                  
+                  <Route path="/ai-assistant" element={<AIFileAssistant />} />
+                  <Route path="/similar-files" element={<SimilarFiles />} />
+                  <Route path="/kpi" element={<KPIDashboard />} />
+                  <Route path="/changelog" element={<Changelog />} />
                 </Route>
 
                 {/* 404 */}
