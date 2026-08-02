@@ -64,3 +64,12 @@ export function exportHtmlAsPdf({ title, subtitle, bodyHtml }: PrintPdfOptions) 
   win.document.close();
   return true;
 }
+
+/** Escapes a value for safe HTML interpolation in exported documents. */
+export function escapeHtmlValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}

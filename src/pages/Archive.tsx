@@ -30,6 +30,7 @@ import {
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { formatFileNumberWithYear } from "@/lib/file-number";
+import { exportHtmlAsPdf, formatPdfDate, escapeHtmlValue } from "@/lib/export-pdf";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -288,7 +289,7 @@ export default function ArchivePage() {
   <td>${escapeHtmlValue(file.full_name)}</td>
   <td>${escapeHtmlValue(file.municipality)}</td>
   <td>${escapeHtmlValue(file.permit_type)}</td>
-  <td>${escapeHtmlValue(formatPdfDate(file.study_date))}</td>
+  <td>${escapeHtmlValue(formatPdfDate(file.created_at))}</td>
   <td>${escapeHtmlValue(file.committee_opinion || "قيد الدراسة")}</td>
 </tr>`
       )
@@ -300,7 +301,7 @@ export default function ArchivePage() {
       bodyHtml: `<table>
   <thead><tr>
     <th>رقم الملف</th><th>صاحب الملف</th><th>البلدية</th>
-    <th>نوع عقد التعمير</th><th>تاريخ الدراسة</th><th>رأي اللجنة</th>
+    <th>نوع عقد التعمير</th><th>تاريخ التسجيل</th><th>رأي اللجنة</th>
   </tr></thead>
   <tbody>${rows}</tbody>
 </table>`,
