@@ -1,0 +1,176 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, Download, RefreshCw, Globe, AlertTriangle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  fetchWfsLayers,
+  fetchLayerGeoJson,
+  mergeCollections,
+  downloadGeoJson,
+  type WfsLayer,
+  type GeoJsonCollection,
+} from "@/lib/fadaa-geojson-export";
+
+export default function FadaaImport() {
+  const { toast } = useToast();
+  const [layers, setLayers] = useState<WfsLayer[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [loadingLayers, setLoadingLayers] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<GeoJsonCollection | null>(null);
+
+  const loadLayers = async () => {
+    setLoadingLayers(true);
+    setError(null);
+    try {
+      const found = await fetchWfsLayers();
+      setLayers(found);
+      if (!found.length) setError("لم يتم العثور على أي طبقة منشورة في الخدمة.");
+    } catch (e) {
+      setError(
+        `تعذّر الاتصال بخدمة فضاء الجزائر: ${(e as Error).message}. الخدمة متاحة فقط من الشبكات الجزائرية وقد تمنع المتصفح (CORS).`
+      );
+    } finally {
+      setLoadingLayers(false);
+    }
+  };
+
+  const toggle = (name: string) =>
+    setSelected((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+    );
+
+  const handleExport = async () => {
+    if (!selected.length) {
+      toast({ title: "اختر طبقة واحدة على الأقل", variant: "destructive" });
+      return;
+    }
+    setExporting(true);
+    setError(null);
+    const parts: { layer: string; collection: GeoJsonCollection }[] = [];
+    const failed: string[] = [];
+
+    for (const layer of selected) {
+      try {
+        const collection = await fetchLayerGeoJson(layer);
+        parts.push({ layer, collection });
+      } catch {
+        failed.push(layer);
+      }
+    }
+
+    if (!parts.length) {
+      setError("فشل جلب جميع الطبقات المحددة. تحقق من الاتصال بشبكة جزائرية.");
+      setExporting(false);
+      return;
+    }
+
+    const merged = mergeCollections(parts);
+    setResult(merged);
+    downloadGeoJson(merged, "fadaa_eldjazair_47");
+    toast({
+      title: "تم إنشاء ملف GeoJSON",
+      description: `عدد المعالم: ${merged.features.length}${
+        failed.length ? ` — طبقات فشلت: ${failed.length}` : ""
+      }`,
+    });
+    setExporting(false);
+  };
+
+  return (
+    <div className="space-y-6" dir="rtl">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+          <Globe className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">استيراد بيانات فضاء الجزائر</h1>
+          <p className="text-muted-foreground text-sm">
+            جلب طبقات المسح العقاري لولاية غرداية (47) وتحويلها إلى ملف GeoJSON.
+          </p>
+        </div>
+        <Button
+          onClick={loadLayers}
+          disabled={loadingLayers}
+          variant="outline"
+          className="ms-auto gap-2"
+        >
+          {loadingLayers ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          استعراض الطبقات المتوفرة
+        </Button>
+      </div>
+
+      <Alert>
+        <AlertTriangle className="w-4 h-4" />
+        <AlertTitle>ملاحظة مهمة</AlertTitle>
+        <AlertDescription className="text-sm leading-relaxed">
+          خدمة <span dir="ltr">fadaeldjazair.mf.gov.dz</span> لا تستجيب إلا من داخل
+          الشبكات الجزائرية، لذلك يتم الجلب من متصفحك مباشرة. إذا رفض الموقع الطلب
+          (CORS) فيمكنك تنزيل الملف من الموقع الرسمي ثم استيراده يدوياً في الخريطة.
+        </AlertDescription>
+      </Alert>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="w-4 h-4" />
+          <AlertDescription className="text-sm leading-relaxed">{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {layers.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center justify-between">
+              <span>الطبقات المتوفرة ({layers.length})</span>
+              <Badge variant="outline">محدد: {selected.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 max-h-[420px] overflow-y-auto">
+            {layers.map((layer) => (
+              <label
+                key={layer.name}
+                className="flex items-start gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
+              >
+                <Checkbox
+                  checked={selected.includes(layer.name)}
+                  onCheckedChange={() => toggle(layer.name)}
+                />
+                <span className="flex flex-col">
+                  <span className="text-sm font-medium">{layer.title}</span>
+                  <span className="text-xs text-muted-foreground font-mono" dir="ltr">
+                    {layer.name}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex items-center gap-3 flex-wrap">
+        <Button onClick={handleExport} disabled={exporting || !selected.length} className="gap-2">
+          {exporting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+          تصدير GeoJSON
+        </Button>
+        {result && (
+          <span className="text-sm text-muted-foreground">
+            آخر تصدير: {result.features.length} معلم من {selected.length} طبقة.
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
