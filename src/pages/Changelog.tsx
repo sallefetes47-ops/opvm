@@ -123,10 +123,43 @@ const entries: ChangelogEntry[] = [
   },
 ];
 
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 export default function Changelog() {
+  const { toast } = useToast();
+
+  const handleExport = () => {
+    const bodyHtml = entries
+      .map(
+        (entry) => `<div class="entry">
+  <div class="entry-head">
+    <span>${escapeHtml(entry.title)}</span>
+    <span class="tag">الإصدار ${escapeHtml(entry.version)} — ${escapeHtml(formatPdfDate(entry.date) || entry.date)}</span>
+  </div>
+  <ul>${entry.changes.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}</ul>
+</div>`
+      )
+      .join("");
+
+    const ok = exportHtmlAsPdf({
+      title: "سجل التحديثات",
+      subtitle: "جميع المراحل والتحديثات التي مرت بها المنصة منذ انطلاقها.",
+      bodyHtml,
+    });
+
+    if (!ok) {
+      toast({
+        title: "تعذّر التصدير",
+        description: "يرجى السماح بالنوافذ المنبثقة لتصدير ملف PDF.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="w-10 h-10 bg-[#D4AF37]/10 rounded-lg flex items-center justify-center">
           <History className="w-5 h-5 text-[#D4AF37]" />
         </div>
@@ -136,7 +169,16 @@ export default function Changelog() {
             جميع المراحل والتحديثات التي مرت بها المنصة منذ انطلاقها.
           </p>
         </div>
+        <Button
+          onClick={handleExport}
+          variant="outline"
+          className="ms-auto gap-2 border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/10"
+        >
+          <FileDown className="w-4 h-4" />
+          تصدير PDF
+        </Button>
       </div>
+
 
       <div className="relative pr-6 space-y-6">
         <div className="absolute right-[11px] top-2 bottom-2 w-px bg-[#D4AF37]/30" aria-hidden />
