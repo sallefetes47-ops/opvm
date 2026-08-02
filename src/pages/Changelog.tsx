@@ -1,6 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { History, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { History, CheckCircle2, FileDown } from "lucide-react";
+import { exportHtmlAsPdf, formatPdfDate } from "@/lib/export-pdf";
+import { useToast } from "@/hooks/use-toast";
+
 
 interface ChangelogEntry {
   version: string;
