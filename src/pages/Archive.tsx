@@ -25,11 +25,12 @@ import {
 } from "@/components/ui/dialog";
 import {
   Archive, Search, Trash2, Edit, Eye, Loader2, History,
-  Map as MapIcon, List, Save, X, FileText
+  Map as MapIcon, List, Save, X, FileText, FileDown
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { formatFileNumberWithYear } from "@/lib/file-number";
+import { exportHtmlAsPdf, formatPdfDate, escapeHtmlValue } from "@/lib/export-pdf";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -280,6 +281,41 @@ export default function ArchivePage() {
 
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-12 w-48" /><Skeleton className="h-[500px]" /></div>;
 
+  const handleExportPdf = () => {
+    const rows = (filteredFiles ?? [])
+      .map(
+        (file) => `<tr>
+  <td>${escapeHtmlValue(formatFileNumberWithYear(file.file_number, file.year))}</td>
+  <td>${escapeHtmlValue(file.full_name)}</td>
+  <td>${escapeHtmlValue(file.municipality)}</td>
+  <td>${escapeHtmlValue(file.permit_type)}</td>
+  <td>${escapeHtmlValue(formatPdfDate(file.created_at))}</td>
+  <td>${escapeHtmlValue(file.committee_opinion || "قيد الدراسة")}</td>
+</tr>`
+      )
+      .join("");
+
+    const ok = exportHtmlAsPdf({
+      title: "سجل الملفات",
+      subtitle: `عدد الملفات: ${filteredFiles?.length ?? 0}`,
+      bodyHtml: `<table>
+  <thead><tr>
+    <th>رقم الملف</th><th>صاحب الملف</th><th>البلدية</th>
+    <th>نوع عقد التعمير</th><th>تاريخ التسجيل</th><th>رأي اللجنة</th>
+  </tr></thead>
+  <tbody>${rows}</tbody>
+</table>`,
+    });
+
+    if (!ok) {
+      toast({
+        title: "تعذّر التصدير",
+        description: "يرجى السماح بالنوافذ المنبثقة لتصدير ملف PDF.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] gap-4">
       {/* ── HEADER ── */}
@@ -291,7 +327,12 @@ export default function ArchivePage() {
           <h1 className="text-2xl font-bold">الأرشيف الرقمي</h1>
           <p className="text-muted-foreground text-sm">تصفح الخريطة والملفات في آن واحد</p>
         </div>
+        <Button variant="outline" size="sm" className="ms-auto gap-2" onClick={handleExportPdf}>
+          <FileDown className="w-4 h-4" />
+          تصدير السجل PDF
+        </Button>
       </div>
+
 
       {/* ── FILTERS ── */}
       <Card className="shrink-0">
