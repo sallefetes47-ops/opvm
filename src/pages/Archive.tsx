@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Archive, Search, Trash2, Edit, Eye, Loader2, History,
-  Map as MapIcon, List, Save, X, FileText
+  Map as MapIcon, List, Save, X, FileText, FileDown
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
