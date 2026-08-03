@@ -63,9 +63,16 @@ const fetchFadaa = async (targetUrl: string, ms = 60000): Promise<Response> => {
 
 /** Lists all published WFS layers via GetCapabilities. */
 export async function fetchWfsLayers(): Promise<WfsLayer[]> {
+  const localLayer: WfsLayer = {
+    name: LOCAL_CADASTRE_LAYER,
+    title: "بيانات المسح العقاري المحلية — وادي مزاب",
+  };
+  const local = await fetch(LOCAL_CADASTRE_URL);
+  if (!local.ok) throw new Error(`تعذّر تحميل بيانات الخريطة المحلية [${local.status}]`);
+
   const url = `${WFS_ENDPOINT}?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetCapabilities`;
   try {
-    const res = await fetchFadaa(url);
+    const res = await fetchFadaa(url, 8000);
     if (!res.ok) throw new Error(`GetCapabilities فشل [${res.status}]`);
     const xml = new DOMParser().parseFromString(await res.text(), "text/xml");
     const layers: WfsLayer[] = [];
@@ -74,17 +81,11 @@ export async function fetchWfsLayers(): Promise<WfsLayer[]> {
       const title = node.getElementsByTagName("Title")[0]?.textContent?.trim();
       if (name) layers.push({ name, title: title || name });
     });
-    if (layers.length) return layers;
+    if (layers.length) return [localLayer, ...layers];
   } catch {
     // The official host is commonly unreachable outside Algerian networks.
   }
-
-  const local = await fetch(LOCAL_CADASTRE_URL);
-  if (!local.ok) throw new Error(`تعذّر تحميل بيانات الخريطة المحلية [${local.status}]`);
-  return [{
-    name: LOCAL_CADASTRE_LAYER,
-    title: "بيانات المسح العقاري المحلية — وادي مزاب",
-  }];
+  return [localLayer];
 }
 
 
