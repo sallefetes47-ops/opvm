@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
         'Accept-Language': 'ar-DZ,ar;q=0.9,fr;q=0.8',
         'User-Agent': 'Mozilla/5.0 (compatible; OPVM/1.0)',
       },
-      signal: AbortSignal.timeout(55_000),
+      signal: AbortSignal.timeout(20_000),
     });
 
     const body = await upstream.text();
