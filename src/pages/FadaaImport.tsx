@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Download, RefreshCw, Globe, AlertTriangle } from "lucide-react";
+import { Loader2, Download, RefreshCw, Globe, AlertTriangle, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   fetchWfsLayers,
@@ -15,14 +15,40 @@ import {
   type GeoJsonCollection,
 } from "@/lib/fadaa-geojson-export";
 
+const MANUAL_STORAGE_KEY = "fadaa_manual_geojson_v1";
+
 export default function FadaaImport() {
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [layers, setLayers] = useState<WfsLayer[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [loadingLayers, setLoadingLayers] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GeoJsonCollection | null>(null);
+
+  const handleManualImport = async (file: File) => {
+    setError(null);
+    try {
+      const parsed = JSON.parse(await file.text()) as GeoJsonCollection;
+      if (parsed?.type !== "FeatureCollection" || !Array.isArray(parsed.features)) {
+        throw new Error("الملف ليس FeatureCollection صالحاً");
+      }
+      try {
+        localStorage.setItem(MANUAL_STORAGE_KEY, JSON.stringify(parsed));
+      } catch {
+        // ملف كبير جداً للتخزين المحلي — نكتفي بالمعاينة
+      }
+      setResult(parsed);
+      toast({
+        title: "تم استيراد الملف",
+        description: `عدد المعالم: ${parsed.features.length}`,
+      });
+    } catch (e) {
+      setError(`فشل استيراد الملف: ${(e as Error).message}`);
+    }
+  };
+
 
   const loadLayers = async () => {
     setLoadingLayers(true);
