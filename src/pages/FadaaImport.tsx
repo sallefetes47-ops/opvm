@@ -137,13 +137,41 @@ export default function FadaaImport() {
 
       <Alert>
         <AlertTriangle className="w-4 h-4" />
-        <AlertTitle>ملاحظة مهمة</AlertTitle>
+        <AlertTitle>كيف يعمل الجلب الآن</AlertTitle>
         <AlertDescription className="text-sm leading-relaxed">
-          خدمة <span dir="ltr">fadaeldjazair.mf.gov.dz</span> لا تستجيب إلا من داخل
-          الشبكات الجزائرية، لذلك يتم الجلب من متصفحك مباشرة. إذا رفض الموقع الطلب
-          (CORS) فيمكنك تنزيل الملف من الموقع الرسمي ثم استيراده يدوياً في الخريطة.
+          تم حل مشكلة (CORS): الطلبات تمرّ الآن عبر وسيط في الخادم الخلفي، وإن تعذّر ذلك
+          يُعاد المحاولة مباشرة من متصفحك. خدمة{" "}
+          <span dir="ltr">fadaeldjazair.mf.gov.dz</span> محجوبة خارج الشبكات الجزائرية،
+          فإذا استمر الفشل نزّل ملف GeoJSON من الموقع الرسمي واستورده يدوياً بالزر أدناه.
         </AlertDescription>
       </Alert>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">استيراد ملف GeoJSON يدوياً</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center gap-3 flex-wrap">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".geojson,.json,application/geo+json,application/json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleManualImport(file);
+              e.target.value = "";
+            }}
+          />
+          <Button variant="outline" className="gap-2" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="w-4 h-4" />
+            اختيار ملف GeoJSON
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            يُحفظ الملف محلياً في هذا الحاسوب لاستخدامه في الخريطة.
+          </span>
+        </CardContent>
+      </Card>
+
 
       {error && (
         <Alert variant="destructive">
