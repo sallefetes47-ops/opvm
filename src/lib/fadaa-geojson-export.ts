@@ -29,6 +29,12 @@ export interface GeoJsonCollection {
 /** Ghardaia (wilaya 47) bounding box: minLon, minLat, maxLon, maxLat */
 export const WILAYA_47_BBOX = [3.2, 32.2, 4.3, 32.75] as const;
 
+const PROXY_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fadaa-proxy`;
+
+/** Wraps a Fadaa URL through the backend proxy (avoids browser CORS). */
+const viaProxy = (targetUrl: string) =>
+  `${PROXY_ENDPOINT}?url=${encodeURIComponent(targetUrl)}`;
+
 const withTimeout = async (url: string, ms = 60000): Promise<Response> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
@@ -39,10 +45,24 @@ const withTimeout = async (url: string, ms = 60000): Promise<Response> => {
   }
 };
 
+/**
+ * Fetches a Fadaa URL: first through the backend proxy (no CORS),
+ * then directly from the browser (works on Algerian networks).
+ */
+const fetchFadaa = async (targetUrl: string, ms = 60000): Promise<Response> => {
+  try {
+    const res = await withTimeout(viaProxy(targetUrl), ms);
+    if (res.ok) return res;
+  } catch {
+    // fall through to direct attempt
+  }
+  return withTimeout(targetUrl, ms);
+};
+
 /** Lists all published WFS layers via GetCapabilities. */
 export async function fetchWfsLayers(): Promise<WfsLayer[]> {
   const url = `${WFS_ENDPOINT}?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetCapabilities`;
-  const res = await withTimeout(url);
+  const res = await fetchFadaa(url);
   if (!res.ok) throw new Error(`GetCapabilities فشل [${res.status}]`);
   const xml = new DOMParser().parseFromString(await res.text(), "text/xml");
 
@@ -54,6 +74,7 @@ export async function fetchWfsLayers(): Promise<WfsLayer[]> {
   });
   return layers;
 }
+
 
 /** Fetches one layer as GeoJSON, limited to the Ghardaia bounding box. */
 export async function fetchLayerGeoJson(
