@@ -1,9 +1,9 @@
 /**
  * Fadaa El Djazair -> GeoJSON exporter (browser-side)
  *
- * The official server (https://fadaeldjazair.mf.gov.dz) is only reachable from
- * Algerian networks, so all requests run in the user's browser (not on a server).
- * Data is collected from the GeoServer WFS service and written to a .geojson file.
+ * The official server may only be reachable from Algerian networks. Requests use
+ * the backend proxy first, then the browser, and finally the bundled cadastral
+ * dataset so importing/exporting remains available offline.
  */
 
 import { WFS_ENDPOINT, WILAYA_47_CODE } from "@/lib/fadaa-el-djazair";
@@ -28,6 +28,8 @@ export interface GeoJsonCollection {
 
 /** Ghardaia (wilaya 47) bounding box: minLon, minLat, maxLon, maxLat */
 export const WILAYA_47_BBOX = [3.2, 32.2, 4.3, 32.75] as const;
+export const LOCAL_CADASTRE_LAYER = "opvm:mzab_cadastre";
+const LOCAL_CADASTRE_URL = "/mzab_cadastre_map.json";
 
 const PROXY_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fadaa-proxy`;
 
@@ -62,17 +64,27 @@ const fetchFadaa = async (targetUrl: string, ms = 60000): Promise<Response> => {
 /** Lists all published WFS layers via GetCapabilities. */
 export async function fetchWfsLayers(): Promise<WfsLayer[]> {
   const url = `${WFS_ENDPOINT}?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetCapabilities`;
-  const res = await fetchFadaa(url);
-  if (!res.ok) throw new Error(`GetCapabilities فشل [${res.status}]`);
-  const xml = new DOMParser().parseFromString(await res.text(), "text/xml");
+  try {
+    const res = await fetchFadaa(url);
+    if (!res.ok) throw new Error(`GetCapabilities فشل [${res.status}]`);
+    const xml = new DOMParser().parseFromString(await res.text(), "text/xml");
+    const layers: WfsLayer[] = [];
+    xml.querySelectorAll("FeatureType").forEach((node) => {
+      const name = node.getElementsByTagName("Name")[0]?.textContent?.trim();
+      const title = node.getElementsByTagName("Title")[0]?.textContent?.trim();
+      if (name) layers.push({ name, title: title || name });
+    });
+    if (layers.length) return layers;
+  } catch {
+    // The official host is commonly unreachable outside Algerian networks.
+  }
 
-  const layers: WfsLayer[] = [];
-  xml.querySelectorAll("FeatureType").forEach((node) => {
-    const name = node.getElementsByTagName("Name")[0]?.textContent?.trim();
-    const title = node.getElementsByTagName("Title")[0]?.textContent?.trim();
-    if (name) layers.push({ name, title: title || name });
-  });
-  return layers;
+  const local = await fetch(LOCAL_CADASTRE_URL);
+  if (!local.ok) throw new Error(`تعذّر تحميل بيانات الخريطة المحلية [${local.status}]`);
+  return [{
+    name: LOCAL_CADASTRE_LAYER,
+    title: "بيانات المسح العقاري المحلية — وادي مزاب",
+  }];
 }
 
 
@@ -81,6 +93,16 @@ export async function fetchLayerGeoJson(
   typeName: string,
   maxFeatures = 5000
 ): Promise<GeoJsonCollection> {
+  if (typeName === LOCAL_CADASTRE_LAYER) {
+    const res = await fetch(LOCAL_CADASTRE_URL);
+    if (!res.ok) throw new Error(`تعذّر تحميل بيانات الخريطة المحلية [${res.status}]`);
+    const collection = await res.json() as GeoJsonCollection;
+    if (collection.type !== "FeatureCollection" || !Array.isArray(collection.features)) {
+      throw new Error("ملف بيانات الخريطة المحلية غير صالح");
+    }
+    return collection;
+  }
+
   const [minLon, minLat, maxLon, maxLat] = WILAYA_47_BBOX;
   const params = new URLSearchParams({
     SERVICE: "WFS",

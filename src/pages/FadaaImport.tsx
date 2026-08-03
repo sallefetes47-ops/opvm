@@ -11,6 +11,7 @@ import {
   fetchLayerGeoJson,
   mergeCollections,
   downloadGeoJson,
+  LOCAL_CADASTRE_LAYER,
   type WfsLayer,
   type GeoJsonCollection,
 } from "@/lib/fadaa-geojson-export";
@@ -56,6 +57,7 @@ export default function FadaaImport() {
     try {
       const found = await fetchWfsLayers();
       setLayers(found);
+      setSelected(found.length === 1 ? [found[0].name] : []);
       if (!found.length) setError("لم يتم العثور على أي طبقة منشورة في الخدمة.");
     } catch (e) {
       setError(
@@ -139,10 +141,8 @@ export default function FadaaImport() {
         <AlertTriangle className="w-4 h-4" />
         <AlertTitle>كيف يعمل الجلب الآن</AlertTitle>
         <AlertDescription className="text-sm leading-relaxed">
-          تم حل مشكلة (CORS): الطلبات تمرّ الآن عبر وسيط في الخادم الخلفي، وإن تعذّر ذلك
-          يُعاد المحاولة مباشرة من متصفحك. خدمة{" "}
-          <span dir="ltr">fadaeldjazair.mf.gov.dz</span> محجوبة خارج الشبكات الجزائرية،
-          فإذا استمر الفشل نزّل ملف GeoJSON من الموقع الرسمي واستورده يدوياً بالزر أدناه.
+          تمر الطلبات عبر وسيط الخادم ثم من المتصفح. وعند تعذّر الوصول إلى الموقع الرسمي
+          تُستخدم تلقائياً نسخة بيانات المسح العقاري المحفوظة في المنصة، ويمكن تصديرها دون اتصال.
         </AlertDescription>
       </Alert>
 
@@ -200,6 +200,9 @@ export default function FadaaImport() {
                 />
                 <span className="flex flex-col">
                   <span className="text-sm font-medium">{layer.title}</span>
+                  {layer.name === LOCAL_CADASTRE_LAYER && (
+                    <Badge variant="secondary" className="mt-1 w-fit">متاحة دون اتصال</Badge>
+                  )}
                   <span className="text-xs text-muted-foreground font-mono" dir="ltr">
                     {layer.name}
                   </span>
