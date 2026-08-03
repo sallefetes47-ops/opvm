@@ -93,7 +93,7 @@ export async function fetchLayerGeoJson(
     BBOX: `${minLat},${minLon},${maxLat},${maxLon},EPSG:4326`,
   });
 
-  const res = await withTimeout(`${WFS_ENDPOINT}?${params.toString()}`);
+  const res = await fetchFadaa(`${WFS_ENDPOINT}?${params.toString()}`);
   if (!res.ok) throw new Error(`جلب الطبقة ${typeName} فشل [${res.status}]`);
 
   const text = await res.text();
