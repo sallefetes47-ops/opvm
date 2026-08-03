@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Download, RefreshCw, Globe, AlertTriangle } from "lucide-react";
+import { Loader2, Download, RefreshCw, Globe, AlertTriangle, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   fetchWfsLayers,
@@ -15,14 +15,40 @@ import {
   type GeoJsonCollection,
 } from "@/lib/fadaa-geojson-export";
 
+const MANUAL_STORAGE_KEY = "fadaa_manual_geojson_v1";
+
 export default function FadaaImport() {
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [layers, setLayers] = useState<WfsLayer[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [loadingLayers, setLoadingLayers] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GeoJsonCollection | null>(null);
+
+  const handleManualImport = async (file: File) => {
+    setError(null);
+    try {
+      const parsed = JSON.parse(await file.text()) as GeoJsonCollection;
+      if (parsed?.type !== "FeatureCollection" || !Array.isArray(parsed.features)) {
+        throw new Error("الملف ليس FeatureCollection صالحاً");
+      }
+      try {
+        localStorage.setItem(MANUAL_STORAGE_KEY, JSON.stringify(parsed));
+      } catch {
+        // ملف كبير جداً للتخزين المحلي — نكتفي بالمعاينة
+      }
+      setResult(parsed);
+      toast({
+        title: "تم استيراد الملف",
+        description: `عدد المعالم: ${parsed.features.length}`,
+      });
+    } catch (e) {
+      setError(`فشل استيراد الملف: ${(e as Error).message}`);
+    }
+  };
+
 
   const loadLayers = async () => {
     setLoadingLayers(true);
@@ -111,13 +137,41 @@ export default function FadaaImport() {
 
       <Alert>
         <AlertTriangle className="w-4 h-4" />
-        <AlertTitle>ملاحظة مهمة</AlertTitle>
+        <AlertTitle>كيف يعمل الجلب الآن</AlertTitle>
         <AlertDescription className="text-sm leading-relaxed">
-          خدمة <span dir="ltr">fadaeldjazair.mf.gov.dz</span> لا تستجيب إلا من داخل
-          الشبكات الجزائرية، لذلك يتم الجلب من متصفحك مباشرة. إذا رفض الموقع الطلب
-          (CORS) فيمكنك تنزيل الملف من الموقع الرسمي ثم استيراده يدوياً في الخريطة.
+          تم حل مشكلة (CORS): الطلبات تمرّ الآن عبر وسيط في الخادم الخلفي، وإن تعذّر ذلك
+          يُعاد المحاولة مباشرة من متصفحك. خدمة{" "}
+          <span dir="ltr">fadaeldjazair.mf.gov.dz</span> محجوبة خارج الشبكات الجزائرية،
+          فإذا استمر الفشل نزّل ملف GeoJSON من الموقع الرسمي واستورده يدوياً بالزر أدناه.
         </AlertDescription>
       </Alert>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">استيراد ملف GeoJSON يدوياً</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center gap-3 flex-wrap">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".geojson,.json,application/geo+json,application/json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleManualImport(file);
+              e.target.value = "";
+            }}
+          />
+          <Button variant="outline" className="gap-2" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="w-4 h-4" />
+            اختيار ملف GeoJSON
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            يُحفظ الملف محلياً في هذا الحاسوب لاستخدامه في الخريطة.
+          </span>
+        </CardContent>
+      </Card>
+
 
       {error && (
         <Alert variant="destructive">
