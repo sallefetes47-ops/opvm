@@ -11,3 +11,7 @@ verify_jwt = false
 
 [functions.bootstrap-opvm-user]
 verify_jwt = false
+
+[functions.fadaa-proxy]
+verify_jwt = false
+
