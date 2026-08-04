@@ -10,11 +10,19 @@ import {
   fetchWfsLayers,
   fetchLayerGeoJson,
   mergeCollections,
-  downloadGeoJson,
+  downloadCollection,
   LOCAL_CADASTRE_LAYER,
   type WfsLayer,
   type GeoJsonCollection,
+  type ExportFormat,
 } from "@/lib/fadaa-geojson-export";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const MANUAL_STORAGE_KEY = "fadaa_manual_geojson_v1";
 
@@ -27,6 +35,7 @@ export default function FadaaImport() {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GeoJsonCollection | null>(null);
+  const [format, setFormat] = useState<ExportFormat>("geojson");
 
   const handleManualImport = async (file: File) => {
     setError(null);
@@ -100,9 +109,9 @@ export default function FadaaImport() {
 
     const merged = mergeCollections(parts);
     setResult(merged);
-    downloadGeoJson(merged, "fadaa_eldjazair_47");
+    downloadCollection(merged, "fadaa_eldjazair_47", format);
     toast({
-      title: "تم إنشاء ملف GeoJSON",
+      title: format === "csv" ? "تم إنشاء ملف CSV" : "تم إنشاء ملف GeoJSON",
       description: `عدد المعالم: ${merged.features.length}${
         failed.length ? ` — طبقات فشلت: ${failed.length}` : ""
       }`,
@@ -214,13 +223,22 @@ export default function FadaaImport() {
       )}
 
       <div className="flex items-center gap-3 flex-wrap">
+        <Select value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="geojson">GeoJSON (.geojson)</SelectItem>
+            <SelectItem value="csv">CSV (.csv) — جدول</SelectItem>
+          </SelectContent>
+        </Select>
         <Button onClick={handleExport} disabled={exporting || !selected.length} className="gap-2">
           {exporting ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Download className="w-4 h-4" />
           )}
-          تصدير GeoJSON
+          {format === "csv" ? "تصدير CSV" : "تصدير GeoJSON"}
         </Button>
         {result && (
           <span className="text-sm text-muted-foreground">
