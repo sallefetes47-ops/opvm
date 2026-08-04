@@ -11,10 +11,12 @@ import {
   fetchLayerGeoJson,
   mergeCollections,
   downloadCollection,
+  classifyError,
   LOCAL_CADASTRE_LAYER,
   type WfsLayer,
   type GeoJsonCollection,
   type ExportFormat,
+  type FetchDiagnostic,
 } from "@/lib/fadaa-geojson-export";
 import {
   Select,
