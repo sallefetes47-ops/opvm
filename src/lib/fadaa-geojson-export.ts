@@ -47,22 +47,127 @@ const withTimeout = async (url: string, ms = 60000): Promise<Response> => {
   }
 };
 
+/** Why the remote fetch failed, so the UI can show precise guidance. */
+export type FetchFailureKind =
+  | "proxy_unreachable"
+  | "proxy_error"
+  | "cors_or_network"
+  | "timeout"
+  | "http_error"
+  | "invalid_response";
+
+export interface FetchDiagnostic {
+  kind: FetchFailureKind;
+  /** Arabic, human-readable cause. */
+  reason: string;
+  /** Ordered retry / workaround steps. */
+  steps: string[];
+  /** Raw technical detail for the details block. */
+  detail?: string;
+}
+
+const DIAGNOSTIC_LABELS: Record<FetchFailureKind, { reason: string; steps: string[] }> = {
+  proxy_unreachable: {
+    reason: "وسيط الخادم (fadaa-proxy) لم يستجب — قد يكون متوقفاً أو محجوباً.",
+    steps: [
+      "أعد المحاولة بالضغط على «استعراض الطبقات المتوفرة» بعد بضع ثوانٍ.",
+      "تحقّق من اتصال المنصة بالخدمات الخلفية.",
+      "أو استخدم «بيانات المسح العقاري المحلية» المتاحة دون اتصال.",
+    ],
+  },
+  proxy_error: {
+    reason: "وسيط الخادم استجاب بخطأ عند الاتصال بموقع فضاء الجزائر (الموقع محجوب جغرافياً غالباً).",
+    steps: [
+      "أعد المحاولة لاحقاً؛ الموقع الرسمي غير متاح خارج الشبكات الجزائرية.",
+      "نزّل الملف من الموقع الرسمي من حاسوب متصل بشبكة جزائرية.",
+      "ثم استورده هنا عبر «اختيار ملف GeoJSON».",
+    ],
+  },
+  cors_or_network: {
+    reason: "المتصفح منع الطلب المباشر (CORS) أو تعذّر الوصول إلى الشبكة.",
+    steps: [
+      "أعد المحاولة؛ يجري النظام محاولة عبر وسيط الخادم أولاً.",
+      "شغّل الصفحة من شبكة جزائرية للسماح بالطلب المباشر.",
+      "أو استخدم الاستيراد المحلي للملف، أو الطبقة المحلية الجاهزة.",
+    ],
+  },
+  timeout: {
+    reason: "انتهت المدة المحددة للطلب دون استجابة من موقع فضاء الجزائر.",
+    steps: [
+      "أعد المحاولة — قد يكون الموقع بطيئاً مؤقتاً.",
+      "قلّل عدد الطبقات المحددة عند التصدير.",
+      "أو اعتمد على الطبقة المحلية المتاحة دون اتصال.",
+    ],
+  },
+  http_error: {
+    reason: "الخدمة الرسمية أرجعت رمز خطأ HTTP.",
+    steps: [
+      "أعد المحاولة بعد قليل.",
+      "إذا استمر الخطأ فالخدمة معطّلة؛ استخدم الاستيراد المحلي.",
+    ],
+  },
+  invalid_response: {
+    reason: "الاستجابة لم تكن بصيغة صالحة (ليست GeoJSON أو XML سليم).",
+    steps: [
+      "أعد المحاولة — قد تكون الاستجابة صفحة خطأ مؤقتة.",
+      "استخدم الاستيراد المحلي لملف GeoJSON نزّلته من الموقع الرسمي.",
+    ],
+  },
+};
+
+/** Builds a user-facing diagnostic from a failure kind. */
+export function buildDiagnostic(kind: FetchFailureKind, detail?: string): FetchDiagnostic {
+  return { kind, ...DIAGNOSTIC_LABELS[kind], detail };
+}
+
+/** Classifies a thrown fetch error into a diagnostic kind. */
+export function classifyError(error: unknown): FetchDiagnostic {
+  const message = error instanceof Error ? error.message : String(error);
+  const name = error instanceof Error ? error.name : "";
+  if (name === "AbortError" || /timeout|timed out/i.test(message)) {
+    return buildDiagnostic("timeout", message);
+  }
+  if (/JSON|XML|صالح/i.test(message)) return buildDiagnostic("invalid_response", message);
+  if (/\[\d{3}\]/.test(message)) return buildDiagnostic("http_error", message);
+  return buildDiagnostic("cors_or_network", message);
+}
+
 /**
  * Fetches a Fadaa URL: first through the backend proxy (no CORS),
  * then directly from the browser (works on Algerian networks).
+ * Records why each attempt failed in `diagnostics`.
  */
-const fetchFadaa = async (targetUrl: string, ms = 60000): Promise<Response> => {
+const fetchFadaa = async (
+  targetUrl: string,
+  ms = 60000,
+  diagnostics?: FetchDiagnostic[]
+): Promise<Response> => {
   try {
     const res = await withTimeout(viaProxy(targetUrl), ms);
     if (res.ok) return res;
-  } catch {
-    // fall through to direct attempt
+    diagnostics?.push(buildDiagnostic("proxy_error", `الوسيط أرجع الرمز ${res.status}`));
+  } catch (e) {
+    diagnostics?.push(
+      buildDiagnostic("proxy_unreachable", e instanceof Error ? e.message : String(e))
+    );
   }
-  return withTimeout(targetUrl, ms);
+  try {
+    const res = await withTimeout(targetUrl, ms);
+    if (!res.ok) {
+      const diag = buildDiagnostic("http_error", `الموقع الرسمي أرجع الرمز ${res.status}`);
+      diagnostics?.push(diag);
+    }
+    return res;
+  } catch (e) {
+    diagnostics?.push(classifyError(e));
+    throw e;
+  }
 };
 
 /** Lists all published WFS layers via GetCapabilities. */
-export async function fetchWfsLayers(): Promise<WfsLayer[]> {
+export async function fetchWfsLayers(
+  diagnostics?: FetchDiagnostic[]
+): Promise<WfsLayer[]> {
   const localLayer: WfsLayer = {
     name: LOCAL_CADASTRE_LAYER,
     title: "بيانات المسح العقاري المحلية — وادي مزاب",
@@ -72,7 +177,7 @@ export async function fetchWfsLayers(): Promise<WfsLayer[]> {
 
   const url = `${WFS_ENDPOINT}?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetCapabilities`;
   try {
-    const res = await fetchFadaa(url, 8000);
+    const res = await fetchFadaa(url, 8000, diagnostics);
     if (!res.ok) throw new Error(`GetCapabilities فشل [${res.status}]`);
     const xml = new DOMParser().parseFromString(await res.text(), "text/xml");
     const layers: WfsLayer[] = [];
@@ -82,8 +187,10 @@ export async function fetchWfsLayers(): Promise<WfsLayer[]> {
       if (name) layers.push({ name, title: title || name });
     });
     if (layers.length) return [localLayer, ...layers];
-  } catch {
+    diagnostics?.push(buildDiagnostic("invalid_response", "GetCapabilities لم يُرجع أي طبقة"));
+  } catch (e) {
     // The official host is commonly unreachable outside Algerian networks.
+    if (!diagnostics?.length) diagnostics?.push(classifyError(e));
   }
   return [localLayer];
 }
