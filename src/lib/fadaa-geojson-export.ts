@@ -199,7 +199,8 @@ export async function fetchWfsLayers(
 /** Fetches one layer as GeoJSON, limited to the Ghardaia bounding box. */
 export async function fetchLayerGeoJson(
   typeName: string,
-  maxFeatures = 5000
+  maxFeatures = 5000,
+  diagnostics?: FetchDiagnostic[]
 ): Promise<GeoJsonCollection> {
   if (typeName === LOCAL_CADASTRE_LAYER) {
     const res = await fetch(LOCAL_CADASTRE_URL);
@@ -223,7 +224,7 @@ export async function fetchLayerGeoJson(
     BBOX: `${minLat},${minLon},${maxLat},${maxLon},EPSG:4326`,
   });
 
-  const res = await fetchFadaa(`${WFS_ENDPOINT}?${params.toString()}`);
+  const res = await fetchFadaa(`${WFS_ENDPOINT}?${params.toString()}`, 60000, diagnostics);
   if (!res.ok) throw new Error(`جلب الطبقة ${typeName} فشل [${res.status}]`);
 
   const text = await res.text();
