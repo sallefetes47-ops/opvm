@@ -217,9 +217,39 @@ export default function FadaaImport() {
       {error && (
         <Alert variant="destructive">
           <AlertTriangle className="w-4 h-4" />
-          <AlertDescription className="text-sm leading-relaxed">{error}</AlertDescription>
+          <AlertTitle>{error}</AlertTitle>
+          <AlertDescription className="text-sm leading-relaxed space-y-3">
+            {diagnostics.map((diag, i) => (
+              <div key={`${diag.kind}-${i}`} className="space-y-1">
+                <p className="font-medium">السبب: {diag.reason}</p>
+                <ol className="list-decimal ms-5 space-y-0.5">
+                  {diag.steps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+                {diag.detail && (
+                  <p className="text-xs font-mono opacity-80" dir="ltr">
+                    {diag.detail}
+                  </p>
+                )}
+              </div>
+            ))}
+            {diagnostics.length > 0 && (
+              <div className="flex items-center gap-2 pt-1">
+                <Button size="sm" variant="outline" onClick={loadLayers} disabled={loadingLayers}>
+                  <RefreshCw className="w-3.5 h-3.5 me-1" />
+                  إعادة المحاولة
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="w-3.5 h-3.5 me-1" />
+                  استيراد ملف محلياً
+                </Button>
+              </div>
+            )}
+          </AlertDescription>
         </Alert>
       )}
+
 
       {layers.length > 0 && (
         <Card>
