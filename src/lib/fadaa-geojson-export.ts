@@ -161,17 +161,87 @@ export function mergeCollections(
   };
 }
 
-/** Triggers a browser download of the collection as a .geojson file. */
-export function downloadGeoJson(collection: GeoJsonCollection, fileName: string) {
-  const blob = new Blob([JSON.stringify(collection, null, 2)], {
-    type: "application/geo+json",
-  });
+/** Triggers a browser download of a blob. */
+function triggerDownload(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = fileName.endsWith(".geojson") ? fileName : `${fileName}.geojson`;
+  link.download = fileName;
   document.body.appendChild(link);
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
+
+const ensureExt = (fileName: string, ext: string) =>
+  fileName.toLowerCase().endsWith(`.${ext}`) ? fileName : `${fileName}.${ext}`;
+
+/** Triggers a browser download of the collection as a .geojson file. */
+export function downloadGeoJson(collection: GeoJsonCollection, fileName: string) {
+  triggerDownload(
+    new Blob([JSON.stringify(collection, null, 2)], { type: "application/geo+json" }),
+    ensureExt(fileName, "geojson")
+  );
+}
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s][\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$/;
+
+/** Normalizes ISO-like date values to DD/MM/YYYY, leaves other values untouched. */
+export function formatCellValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "object") return JSON.stringify(value);
+  const text = String(value);
+  const match = text.match(ISO_DATE);
+  if (match) {
+    const [, y, m, d] = match;
+    return `${d}/${m}/${y}`;
+  }
+  return text;
+}
+
+const escapeCsv = (value: string) =>
+  /[",\n;]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+
+/** Converts a FeatureCollection to CSV, preserving all layer properties. */
+export function collectionToCsv(collection: GeoJsonCollection): string {
+  const features = collection.features || [];
+  const keys: string[] = [];
+  for (const feature of features) {
+    for (const key of Object.keys(feature.properties || {})) {
+      if (!keys.includes(key)) keys.push(key);
+    }
+  }
+  const header = [...keys, "geometry_type", "geometry"];
+  const rows = features.map((feature) => {
+    const props = feature.properties || {};
+    const geometry = feature.geometry as { type?: string } | null;
+    return [
+      ...keys.map((k) => escapeCsv(formatCellValue(props[k]))),
+      escapeCsv(geometry?.type ?? ""),
+      escapeCsv(JSON.stringify(feature.geometry ?? null)),
+    ].join(",");
+  });
+  // BOM keeps Arabic readable in Excel
+  return `\uFEFF${header.map(escapeCsv).join(",")}\n${rows.join("\n")}`;
+}
+
+/** Triggers a browser download of the collection as a .csv file. */
+export function downloadCsv(collection: GeoJsonCollection, fileName: string) {
+  triggerDownload(
+    new Blob([collectionToCsv(collection)], { type: "text/csv;charset=utf-8" }),
+    ensureExt(fileName, "csv")
+  );
+}
+
+export type ExportFormat = "geojson" | "csv";
+
+/** Downloads the collection in the requested format. */
+export function downloadCollection(
+  collection: GeoJsonCollection,
+  fileName: string,
+  format: ExportFormat
+) {
+  if (format === "csv") downloadCsv(collection, fileName);
+  else downloadGeoJson(collection, fileName);
+}
+
