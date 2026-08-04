@@ -36,11 +36,17 @@ export default function FadaaImport() {
   const [loadingLayers, setLoadingLayers] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<FetchDiagnostic[]>([]);
   const [result, setResult] = useState<GeoJsonCollection | null>(null);
   const [format, setFormat] = useState<ExportFormat>("geojson");
 
-  const handleManualImport = async (file: File) => {
+  const resetErrors = () => {
     setError(null);
+    setDiagnostics([]);
+  };
+
+  const handleManualImport = async (file: File) => {
+    resetErrors();
     try {
       const parsed = JSON.parse(await file.text()) as GeoJsonCollection;
       if (parsed?.type !== "FeatureCollection" || !Array.isArray(parsed.features)) {
@@ -58,22 +64,38 @@ export default function FadaaImport() {
       });
     } catch (e) {
       setError(`فشل استيراد الملف: ${(e as Error).message}`);
+      setDiagnostics([
+        {
+          kind: "invalid_response",
+          reason: "الملف المحدد ليس ملف GeoJSON صالحاً.",
+          steps: [
+            "تأكد من أن الملف بامتداد .geojson أو .json.",
+            "تأكد من أن محتواه من النوع FeatureCollection ويحوي مصفوفة features.",
+            "أعد تنزيل الملف من الموقع الرسمي ثم أعد المحاولة.",
+          ],
+          detail: (e as Error).message,
+        },
+      ]);
     }
   };
 
 
   const loadLayers = async () => {
     setLoadingLayers(true);
-    setError(null);
+    resetErrors();
+    const diags: FetchDiagnostic[] = [];
     try {
-      const found = await fetchWfsLayers();
+      const found = await fetchWfsLayers(diags);
       setLayers(found);
       setSelected(found.length === 1 ? [found[0].name] : []);
       if (!found.length) setError("لم يتم العثور على أي طبقة منشورة في الخدمة.");
+      else if (diags.length) {
+        setError("تعذّر جلب الطبقات الحيّة من موقع فضاء الجزائر — تم الاكتفاء بالطبقة المحلية.");
+        setDiagnostics(diags);
+      }
     } catch (e) {
-      setError(
-        `تعذّر الاتصال بخدمة فضاء الجزائر: ${(e as Error).message}. الخدمة متاحة فقط من الشبكات الجزائرية وقد تمنع المتصفح (CORS).`
-      );
+      setError("تعذّر الاتصال بخدمة فضاء الجزائر.");
+      setDiagnostics(diags.length ? diags : [classifyError(e)]);
     } finally {
       setLoadingLayers(false);
     }
@@ -90,23 +112,31 @@ export default function FadaaImport() {
       return;
     }
     setExporting(true);
-    setError(null);
+    resetErrors();
     const parts: { layer: string; collection: GeoJsonCollection }[] = [];
     const failed: string[] = [];
+    const diags: FetchDiagnostic[] = [];
 
     for (const layer of selected) {
       try {
-        const collection = await fetchLayerGeoJson(layer);
+        const collection = await fetchLayerGeoJson(layer, 5000, diags);
         parts.push({ layer, collection });
-      } catch {
+      } catch (e) {
         failed.push(layer);
+        if (!diags.length) diags.push(classifyError(e));
       }
     }
 
     if (!parts.length) {
-      setError("فشل جلب جميع الطبقات المحددة. تحقق من الاتصال بشبكة جزائرية.");
+      setError(`فشل جلب جميع الطبقات المحددة (${failed.length}).`);
+      setDiagnostics(diags);
       setExporting(false);
       return;
+    }
+
+    if (failed.length) {
+      setError(`نجح التصدير جزئياً — فشلت ${failed.length} طبقة: ${failed.join(", ")}`);
+      setDiagnostics(diags);
     }
 
     const merged = mergeCollections(parts);
