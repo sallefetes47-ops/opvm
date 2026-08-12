@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 
 const MANUAL_STORAGE_KEY = "fadaa_manual_geojson_v1";
+const OFFLINE_ONLY_KEY = "fadaa_offline_only_v1";
 
 export default function FadaaImport() {
   const { toast } = useToast();
@@ -39,11 +40,26 @@ export default function FadaaImport() {
   const [diagnostics, setDiagnostics] = useState<FetchDiagnostic[]>([]);
   const [result, setResult] = useState<GeoJsonCollection | null>(null);
   const [format, setFormat] = useState<ExportFormat>("geojson");
+  const [offlineOnly, setOfflineOnly] = useState<boolean>(
+    () => localStorage.getItem(OFFLINE_ONLY_KEY) === "1"
+  );
+
+  const toggleOfflineOnly = (value: boolean) => {
+    setOfflineOnly(value);
+    localStorage.setItem(OFFLINE_ONLY_KEY, value ? "1" : "0");
+    if (value) {
+      setError(null);
+      setDiagnostics([]);
+      setLayers((prev) => prev.filter((l) => l.name === LOCAL_CADASTRE_LAYER));
+      setSelected((prev) => prev.filter((n) => n === LOCAL_CADASTRE_LAYER));
+    }
+  };
 
   const resetErrors = () => {
     setError(null);
     setDiagnostics([]);
   };
+
 
   const handleManualImport = async (file: File) => {
     resetErrors();
