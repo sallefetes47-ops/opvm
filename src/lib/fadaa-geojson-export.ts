@@ -205,7 +205,8 @@ export async function fetchWfsLayers(
 export async function fetchLayerGeoJson(
   typeName: string,
   maxFeatures = 5000,
-  diagnostics?: FetchDiagnostic[]
+  diagnostics?: FetchDiagnostic[],
+  offlineOnly = false
 ): Promise<GeoJsonCollection> {
   if (typeName === LOCAL_CADASTRE_LAYER) {
     const res = await fetch(LOCAL_CADASTRE_URL);
@@ -216,6 +217,12 @@ export async function fetchLayerGeoJson(
     }
     return collection;
   }
+
+  if (offlineOnly) {
+    throw new Error("الوضع دون اتصال مُفعّل — لا يمكن جلب الطبقات من الشبكة");
+  }
+
+
 
   const [minLon, minLat, maxLon, maxLat] = WILAYA_47_BBOX;
   const params = new URLSearchParams({
