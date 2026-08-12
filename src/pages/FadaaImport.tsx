@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Download, RefreshCw, Globe, AlertTriangle, Upload } from "lucide-react";
+import { Loader2, Download, RefreshCw, Globe, AlertTriangle, Upload, Wifi, WifiOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import {
   fetchWfsLayers,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/select";
 
 const MANUAL_STORAGE_KEY = "fadaa_manual_geojson_v1";
+const OFFLINE_ONLY_KEY = "fadaa_offline_only_v1";
 
 export default function FadaaImport() {
   const { toast } = useToast();
@@ -39,11 +41,26 @@ export default function FadaaImport() {
   const [diagnostics, setDiagnostics] = useState<FetchDiagnostic[]>([]);
   const [result, setResult] = useState<GeoJsonCollection | null>(null);
   const [format, setFormat] = useState<ExportFormat>("geojson");
+  const [offlineOnly, setOfflineOnly] = useState<boolean>(
+    () => localStorage.getItem(OFFLINE_ONLY_KEY) === "1"
+  );
+
+  const toggleOfflineOnly = (value: boolean) => {
+    setOfflineOnly(value);
+    localStorage.setItem(OFFLINE_ONLY_KEY, value ? "1" : "0");
+    if (value) {
+      setError(null);
+      setDiagnostics([]);
+      setLayers((prev) => prev.filter((l) => l.name === LOCAL_CADASTRE_LAYER));
+      setSelected((prev) => prev.filter((n) => n === LOCAL_CADASTRE_LAYER));
+    }
+  };
 
   const resetErrors = () => {
     setError(null);
     setDiagnostics([]);
   };
+
 
   const handleManualImport = async (file: File) => {
     resetErrors();
@@ -85,7 +102,7 @@ export default function FadaaImport() {
     resetErrors();
     const diags: FetchDiagnostic[] = [];
     try {
-      const found = await fetchWfsLayers(diags);
+      const found = await fetchWfsLayers(diags, offlineOnly);
       setLayers(found);
       setSelected(found.length === 1 ? [found[0].name] : []);
       if (!found.length) setError("لم يتم العثور على أي طبقة منشورة في الخدمة.");
@@ -119,7 +136,7 @@ export default function FadaaImport() {
 
     for (const layer of selected) {
       try {
-        const collection = await fetchLayerGeoJson(layer, 5000, diags);
+        const collection = await fetchLayerGeoJson(layer, 5000, diags, offlineOnly);
         parts.push({ layer, collection });
       } catch (e) {
         failed.push(layer);
@@ -163,6 +180,12 @@ export default function FadaaImport() {
             جلب طبقات المسح العقاري لولاية غرداية (47) وتحويلها إلى ملف GeoJSON.
           </p>
         </div>
+        {offlineOnly && (
+          <Badge className="gap-1 bg-amber-500/15 text-amber-600 border-amber-500/30" variant="outline">
+            <WifiOff className="w-3.5 h-3.5" />
+            الوضع دون اتصال مُفعّل
+          </Badge>
+        )}
         <Button
           onClick={loadLayers}
           disabled={loadingLayers}
@@ -174,18 +197,45 @@ export default function FadaaImport() {
           ) : (
             <RefreshCw className="w-4 h-4" />
           )}
-          استعراض الطبقات المتوفرة
+          {offlineOnly ? "تحميل البيانات المحلية" : "استعراض الطبقات المتوفرة"}
         </Button>
       </div>
 
+      <Card className={offlineOnly ? "border-amber-500/40 bg-amber-500/5" : undefined}>
+        <CardContent className="flex items-center justify-between gap-4 py-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              {offlineOnly ? (
+                <WifiOff className="w-4 h-4 text-amber-600" />
+              ) : (
+                <Wifi className="w-4 h-4 text-muted-foreground" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-semibold">استخدام البيانات المحلية فقط</p>
+              <p className="text-xs text-muted-foreground">
+                يمنع أي طلب للشبكة أو لموقع فضاء الجزائر، ويعتمد على نسخة المسح العقاري المحفوظة.
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={offlineOnly}
+            onCheckedChange={toggleOfflineOnly}
+            aria-label="استخدام البيانات المحلية فقط"
+          />
+        </CardContent>
+      </Card>
+
       <Alert>
         <AlertTriangle className="w-4 h-4" />
-        <AlertTitle>كيف يعمل الجلب الآن</AlertTitle>
+        <AlertTitle>{offlineOnly ? "أنت في الوضع دون اتصال" : "كيف يعمل الجلب الآن"}</AlertTitle>
         <AlertDescription className="text-sm leading-relaxed">
-          تمر الطلبات عبر وسيط الخادم ثم من المتصفح. وعند تعذّر الوصول إلى الموقع الرسمي
-          تُستخدم تلقائياً نسخة بيانات المسح العقاري المحفوظة في المنصة، ويمكن تصديرها دون اتصال.
+          {offlineOnly
+            ? "كل الطلبات الخارجية معطّلة. تُستعمل فقط بيانات المسح العقاري المحفوظة داخل المنصة، ويمكنك المعاينة والتصدير والاستيراد اليدوي دون أي اتصال."
+            : "تمر الطلبات عبر وسيط الخادم ثم من المتصفح. وعند تعذّر الوصول إلى الموقع الرسمي تُستخدم تلقائياً نسخة بيانات المسح العقاري المحفوظة في المنصة، ويمكن تصديرها دون اتصال."}
         </AlertDescription>
       </Alert>
+
 
       <Card>
         <CardHeader className="pb-3">
