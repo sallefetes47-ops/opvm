@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import https from 'https';
 import http from 'http';
@@ -48,7 +49,80 @@ const httpAgent = new http.Agent({
 export default defineConfig({
   // Desktop build (Electron) needs relative asset paths so file:// loads correctly.
   base: process.env.VITE_APP_MODE === 'desktop' ? './' : '/',
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      strategies: 'generateSW',
+      registerType: 'autoUpdate',
+      injectRegister: null,
+      filename: 'sw.js',
+      devOptions: { enabled: false },
+      manifest: {
+        name: 'OPVM - ديوان حماية وادي مزاب وترقيته',
+        short_name: 'OPVM',
+        lang: 'ar',
+        dir: 'rtl',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        background_color: '#0F172A',
+        theme_color: '#0F172A',
+        icons: [
+          { src: '/favicon.ico', sizes: '48x48', type: 'image/x-icon' },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globIgnores: ['**/gis-app/**', '**/mzab_cadastre_map.json'],
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/~oauth/],
+        cleanupOutdatedCaches: true,
+        runtimeCaching: [
+          {
+            // HTML navigations: always try network first
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'opvm-pages',
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 30 },
+            },
+          },
+          {
+            // بيانات فضاء الجزائر المحلية (المسح العقاري) — تخزين دائم للعمل دون إنترنت
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && /(mzab_cadastre_map\.json|\.geojson$|\/gis-app\/)/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'opvm-fadaa-data',
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+              rangeRequests: true,
+            },
+          },
+          {
+            // طلبات طبقات فضاء الجزائر عبر الوسيط
+            urlPattern: ({ url }) =>
+              /\/(api\/cadastral-proxy|geoserver)\//.test(url.pathname) ||
+              url.hostname.includes('fadaeldjazair'),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'opvm-fadaa-remote',
+              networkTimeoutSeconds: 20,
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 90 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'opvm-fonts', expiration: { maxEntries: 30 } },
+          },
+        ],
+      },
+    }),
+  ],
   optimizeDeps: {
     exclude: ['@electric-sql/pglite'],
   },
