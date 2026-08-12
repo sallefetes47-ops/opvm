@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Download, RefreshCw, Globe, AlertTriangle, Upload } from "lucide-react";
+import { Loader2, Download, RefreshCw, Globe, AlertTriangle, Upload, Wifi, WifiOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import {
   fetchWfsLayers,
