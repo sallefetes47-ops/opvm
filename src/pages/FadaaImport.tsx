@@ -101,7 +101,7 @@ export default function FadaaImport() {
     resetErrors();
     const diags: FetchDiagnostic[] = [];
     try {
-      const found = await fetchWfsLayers(diags);
+      const found = await fetchWfsLayers(diags, offlineOnly);
       setLayers(found);
       setSelected(found.length === 1 ? [found[0].name] : []);
       if (!found.length) setError("لم يتم العثور على أي طبقة منشورة في الخدمة.");
@@ -135,7 +135,7 @@ export default function FadaaImport() {
 
     for (const layer of selected) {
       try {
-        const collection = await fetchLayerGeoJson(layer, 5000, diags);
+        const collection = await fetchLayerGeoJson(layer, 5000, diags, offlineOnly);
         parts.push({ layer, collection });
       } catch (e) {
         failed.push(layer);
