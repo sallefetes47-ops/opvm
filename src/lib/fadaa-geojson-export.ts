@@ -166,7 +166,8 @@ const fetchFadaa = async (
 
 /** Lists all published WFS layers via GetCapabilities. */
 export async function fetchWfsLayers(
-  diagnostics?: FetchDiagnostic[]
+  diagnostics?: FetchDiagnostic[],
+  offlineOnly = false
 ): Promise<WfsLayer[]> {
   const localLayer: WfsLayer = {
     name: LOCAL_CADASTRE_LAYER,
@@ -174,6 +175,9 @@ export async function fetchWfsLayers(
   };
   const local = await fetch(LOCAL_CADASTRE_URL);
   if (!local.ok) throw new Error(`تعذّر تحميل بيانات الخريطة المحلية [${local.status}]`);
+
+  // Offline-only mode: never touch the network beyond the bundled dataset.
+  if (offlineOnly) return [localLayer];
 
   const url = `${WFS_ENDPOINT}?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetCapabilities`;
   try {
@@ -194,6 +198,7 @@ export async function fetchWfsLayers(
   }
   return [localLayer];
 }
+
 
 
 /** Fetches one layer as GeoJSON, limited to the Ghardaia bounding box. */
