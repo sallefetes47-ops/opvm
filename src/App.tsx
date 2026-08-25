@@ -24,6 +24,8 @@ import LegalArchive from "@/pages/LegalArchive";
 import Backup from "@/pages/Backup";
 import RecycleBin from "@/pages/RecycleBin";
 import UrbanMap from "@/pages/UrbanMap";
+import FadaaImport from "@/pages/FadaaImport";
+
 import GovSearch from "@/pages/GovSearch";
 import MzabHeritage from "@/pages/MzabHeritage";
 import Analytics from "@/pages/Analytics";
@@ -76,6 +78,8 @@ const App = () => (
                   />
                   <Route path="/backup" element={<Backup />} />
                   <Route path="/urban-map" element={<UrbanMap />} />
+                  <Route path="/fadaa-import" element={<FadaaImport />} />
+
                   <Route path="/recycle-bin" element={<RecycleBin />} />
                   <Route path="/gov-search" element={<GovSearch />} />
                   <Route path="/mzab-heritage" element={<MzabHeritage />} />
