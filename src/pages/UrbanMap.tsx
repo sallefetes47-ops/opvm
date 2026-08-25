@@ -12,7 +12,7 @@ const EspaceAlgerieMvtLayer = ({ onFeatureClick }) => {
   useEffect(() => {
     // هذا هو الرابط الديناميكي (MVT) الذي يسحب البيانات بصيغة بلاطات
     // قمنا بوضع رابط تجريبي/افتراضي هنا (يجب تغييره للرابط الفعلي الذي التقطناه بالرادار)
-    const mvtUrl = "https://your-espace-algerie-server.com/cadastre/{z}/{x}/{y}.pbf";
+    const mvtUrl = "https://fadaeldjazair.mf.gov.dz/pm/ghardaia_ilot/{z}/{x}/{y}.mvt";
 
     const vectorLayer = L.vectorGrid.protobuf(mvtUrl, {
       vectorTileLayerStyles: {
