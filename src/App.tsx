@@ -20,20 +20,11 @@ import Archive from "@/pages/Archive";
 import Users from "@/pages/Users";
 import Minutes from "@/pages/Minutes";
 import Summons from "@/pages/Summons";
-import LegalArchive from "@/pages/LegalArchive";
 import Backup from "@/pages/Backup";
 import RecycleBin from "@/pages/RecycleBin";
 import UrbanMap from "@/pages/UrbanMap";
-import FadaaImport from "@/pages/FadaaImport";
 
-import GovSearch from "@/pages/GovSearch";
-import MzabHeritage from "@/pages/MzabHeritage";
-import Analytics from "@/pages/Analytics";
 import SessionsCalendar from "@/pages/SessionsCalendar";
-
-import AIFileAssistant from "@/pages/AIFileAssistant";
-import SimilarFiles from "@/pages/SimilarFiles";
-import KPIDashboard from "@/pages/KPIDashboard";
 import Changelog from "@/pages/Changelog";
 import NotFound from "@/pages/NotFound";
 
@@ -67,7 +58,6 @@ const App = () => (
                   <Route path="/archive" element={<Archive />} />
                   <Route path="/minutes" element={<Minutes />} />
                   <Route path="/summons" element={<Summons />} />
-                  <Route path="/legal-archive" element={<LegalArchive />} />
                   <Route
                     path="/users"
                     element={
@@ -78,17 +68,9 @@ const App = () => (
                   />
                   <Route path="/backup" element={<Backup />} />
                   <Route path="/urban-map" element={<UrbanMap />} />
-                  <Route path="/fadaa-import" element={<FadaaImport />} />
 
                   <Route path="/recycle-bin" element={<RecycleBin />} />
-                  <Route path="/gov-search" element={<GovSearch />} />
-                  <Route path="/mzab-heritage" element={<MzabHeritage />} />
-                  <Route path="/analytics" element={<Analytics />} />
                   <Route path="/sessions-calendar" element={<SessionsCalendar />} />
-                  
-                  <Route path="/ai-assistant" element={<AIFileAssistant />} />
-                  <Route path="/similar-files" element={<SimilarFiles />} />
-                  <Route path="/kpi" element={<KPIDashboard />} />
                   <Route path="/changelog" element={<Changelog />} />
                 </Route>
 
